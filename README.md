@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sol’s RNG — Expanded</title>
+  <title>Sol’s RNG — Expanded with Inventory, Index, Auto-Sell</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -12,6 +12,7 @@
       --muted: #9aa0ab;
       --accent: #6ea8fe;
       --gold: #ffd700;
+      --warn: #ff6666;
     }
     body {
       margin: 0;
@@ -21,32 +22,40 @@
       min-height: 100vh; display: grid; place-items: center;
     }
     .app {
-      width: 960px; max-width: 96vw;
+      width: 980px; max-width: 96vw;
       background: linear-gradient(180deg, #141821 0%, var(--panel) 100%);
       border: 1px solid #252b39; border-radius: 14px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.5);
       overflow: hidden;
     }
     .content { padding: 20px; display: grid; gap: 18px; }
-    .panel {
-      background: #121521; border: 1px solid #242a38; border-radius: 12px; padding: 16px;
+    .panel { background: #121521; border: 1px solid #242a38; border-radius: 12px; padding: 16px; }
+
+    .roll-area { min-height: 240px; display: grid; place-items: center; position: relative; overflow: hidden; }
+    .luck-banner, .new-banner, .announce-banner {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      font-weight: 700; text-align: center; opacity: 0; pointer-events: none;
+      animation: fadeout 3.6s forwards;
     }
-    .roll-area { min-height: 220px; display: grid; place-items: center; position: relative; overflow: hidden; }
-    .luck-banner { font-size: 16px; font-weight: 700; color: var(--gold); margin-bottom: 8px; min-height: 22px; text-align: center; }
+    .luck-banner { top: 14px; color: var(--gold); font-size: 18px; }
+    .new-banner { top: 120px; color: var(--accent); font-size: 16px; } /* directly under "Ready to roll" */
+    .announce-banner { top: -34px; color: var(--warn); font-size: 16px; }
+    @keyframes fadeout { 0%{opacity:1; filter:blur(0)} 70%{opacity:1;} 100%{opacity:0; filter:blur(4px)} }
+
     .result { font-size: 28px; font-weight: 700; text-align: center; text-shadow: 0 0 12px rgba(255,255,255,0.15); }
-    .rarity { margin-top: 6px; font-size: 14px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; }
+    .rarity { margin-top: 6px; font-size: 14px; font-weight: 600; text-transform: uppercase; }
+
     .controls { display: flex; gap: 12px; padding-top: 12px; }
     button {
       background: #1b2232; color: var(--text); border: 1px solid #2a3449;
-      padding: 12px 16px; border-radius: 10px; cursor: pointer; font-weight: 600;
+      padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 600;
       transition: transform 0.06s ease, background 0.2s ease, box-shadow 0.2s ease;
     }
     button:hover { background: #232c41; box-shadow: 0 6px 18px rgba(110,168,254,0.12); }
     button:active { transform: translateY(1px); }
-    button:disabled { opacity: 0.45; cursor: not-allowed; }
-    .new-banner { margin-top: 8px; font-size: 14px; color: var(--accent); font-weight: 600; min-height: 20px; text-align: center; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* Index and Inventory */
+    /* Index */
     .index-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .index-section { background: #0f1320; border: 1px solid #252b39; border-radius: 10px; padding: 12px; }
     .index-section h4 { margin: 0 0 8px; font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
@@ -56,8 +65,15 @@
     .locked { filter: blur(3px); opacity: 0.6; }
     .unlocked { color: var(--accent); font-weight: 600; }
 
-    .inv-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    /* Inventory */
+    .inv-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 10px; }
+    .inv-title { display: flex; align-items: center; gap: 10px; }
     .inv-stats { font-size: 13px; color: var(--muted); }
+    .inv-controls { display: flex; align-items: center; gap: 10px; }
+    .inv-list { list-style: none; padding: 0; margin: 0; }
+    .inv-list li { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #242a38; padding: 6px 0; }
+    .inv-actions { display: flex; gap: 8px; }
+    .inv-warning { color: var(--warn); font-size: 13px; }
 
     /* Distinct rarity badge colors */
     .b-worthless    { background: #1a1a1a; color: #b3b3b3; }
@@ -89,10 +105,12 @@
     <div class="content">
       <!-- Rolling panel -->
       <div class="panel">
-        <div class="luck-banner" id="luckBanner"></div>
         <div class="roll-area" id="rollArea">
+          <div class="luck-banner" id="luckBanner"></div>
           <div class="result" id="resultText">Ready to roll</div>
+          <div class="new-banner" id="newBanner"></div>
           <div class="rarity" id="rarityText"></div>
+          <div class="announce-banner" id="announceBanner"></div>
         </div>
         <div class="controls">
           <button id="btnRoll">Roll</button>
@@ -100,7 +118,6 @@
           <button id="btnIndex">Index</button>
           <button id="btnInventory">Inventory</button>
         </div>
-        <div class="new-banner" id="newBanner"></div>
       </div>
 
       <!-- Index panel (hidden until button clicked) -->
@@ -112,17 +129,37 @@
       <!-- Inventory panel (hidden until button clicked) -->
       <div class="panel" id="inventoryPanel" style="display:none;">
         <div class="inv-header">
-          <h3 style="margin:0;">Inventory</h3>
-          <div class="inv-stats" id="inventoryStats"></div>
+          <div class="inv-title">
+            <h3 style="margin:0;">Inventory</h3>
+            <span class="inv-stats" id="inventoryStats"></span>
+          </div>
+          <div class="inv-controls">
+            <select id="autoSellSelect" title="Auto-Sell">
+              <option value="off">Auto-Sell: Off</option>
+              <option value="trash">Trash+</option>
+              <option value="common">Common+</option>
+              <option value="uncommon">Uncommon+</option>
+              <option value="rare">Rare+</option>
+              <option value="epic">Epic+</option>
+              <option value="legendary">Legendary+</option>
+              <option value="mythic">Mythic+</option>
+              <option value="divine">Divine+</option>
+              <option value="celestial">Celestial+</option>
+              <option value="transcendent">Transcendent+</option>
+              <option value="eternal">Eternal+</option>
+              <option value="omniversal">Omniversal+</option>
+            </select>
+            <span class="inv-warning" id="invWarning" style="display:none;"></span>
+          </div>
         </div>
-        <ul id="inventoryList" style="list-style:none; padding:0; margin:0;"></ul>
+        <ul id="inventoryList" class="inv-list"></ul>
       </div>
     </div>
   </div>
 
   <script>
     // -----------------------------
-    // CONFIG: tiers and weights (higher index = rarer)
+    // CONFIG: tiers, weights
     const TIERS = [
       { key: "worthless",    name: "Worthless",    weight: 1200000, colorClass: "b-worthless" },
       { key: "trash",        name: "Trash",        weight: 600000,  colorClass: "b-trash" },
@@ -139,7 +176,7 @@
       { key: "omniversal",   name: "Omniversal",   weight: 1,       colorClass: "b-omniversal" },
     ];
 
-    // Items per rarity (12+ each, names only)
+    // Items per rarity (12+ each)
     const INDEX_ITEMS = {
       worthless:["Flicker Dust","Cracked Ash","Dim Mote","Frayed Thread","Worn Chip","Hollow Grain","Stale Ember","Silt Speck","Faded Spark","Withered Flake","Dull Scale","Spent Echo"],
       trash:["Bent Sigil","Scuffed Gear","Fractured Bead","Tarnished Ring","Splintered Token","Bruised Charm","Chipped Prism","Dented Halo","Crater Chip","Scratched Fang","Bruised Petal","Muddled Rune"],
@@ -156,8 +193,8 @@
       omniversal:["Omniversal Heart","All-Crown","Totality Core","Panreality Halo","Absolute Sigil","Everything Rune","Boundless Star","Cosmos Crown","Axis of All","Prime Totality","Universal Eye","Omega Diadem"],
     };
 
-    // Luck affects higher tiers only
     const LUCK_TARGET_KEYS = ["rare","epic","legendary","mythic","divine","celestial","transcendent","eternal","omniversal"];
+    const INVENTORY_MAX = 10;
 
     // -----------------------------
     // PERSISTENCE
@@ -165,7 +202,8 @@
       rolls: "sol_rng_rolls",
       unlocks: "sol_rng_unlocks",
       auto: "sol_rng_auto",
-      inv: "sol_rng_inventory"
+      inv: "sol_rng_inventory",
+      autoSell: "sol_rng_autosell"
     };
 
     function buildInitialUnlocks(indexDef) {
@@ -190,16 +228,19 @@
       const unlocksRaw = localStorage.getItem(STORAGE_KEYS.unlocks);
       const autoRaw = localStorage.getItem(STORAGE_KEYS.auto);
       const invRaw = localStorage.getItem(STORAGE_KEYS.inv);
+      const autoSellRaw = localStorage.getItem(STORAGE_KEYS.autoSell);
       state.rolls = Number.isFinite(rolls) ? rolls : 0;
       state.unlocks = unlocksRaw ? reviveUnlocks(JSON.parse(unlocksRaw)) : buildInitialUnlocks(INDEX_ITEMS);
       state.auto = autoRaw === "true";
-      state.inventory = invRaw ? JSON.parse(invRaw) : []; // [{tier,name,roll}]
+      state.inventory = invRaw ? JSON.parse(invRaw) : [];
+      state.autoSell = autoSellRaw || "off";
     }
     function saveState() {
       localStorage.setItem(STORAGE_KEYS.rolls, String(state.rolls));
       localStorage.setItem(STORAGE_KEYS.unlocks, JSON.stringify(state.unlocks));
       localStorage.setItem(STORAGE_KEYS.auto, state.auto ? "true" : "false");
       localStorage.setItem(STORAGE_KEYS.inv, JSON.stringify(state.inventory));
+      localStorage.setItem(STORAGE_KEYS.autoSell, state.autoSell);
     }
 
     // -----------------------------
@@ -209,51 +250,51 @@
       unlocks: buildInitialUnlocks(INDEX_ITEMS),
       auto: false,
       autoInterval: null,
-      inventory: [] // collected items by roll order
+      inventory: [],
+      autoSell: "off",
+      fullAnnounced: false
     };
 
     // -----------------------------
     // UTILS
     function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
     function sumWeights(arr) { return arr.reduce((s, r) => s + r.weight, 0); }
-
-    // Luck milestones: activate only ON the exact roll numbers
-    function luckForUpcomingRoll(upcomingRollNumber) {
-      if (upcomingRollNumber === 250) return 10;
-      if (upcomingRollNumber === 50) return 2;
-      return 1;
-    }
+    function luckForUpcomingRoll(n) { if (n === 250) return 10; if (n === 50) return 2; return 1; }
 
     function applyMilestoneLuckToWeights(baseTiers, tempLuck) {
       const tiers = clone(baseTiers);
       if (tempLuck > 1) {
-        for (const t of tiers) {
-          if (LUCK_TARGET_KEYS.includes(t.key)) t.weight *= tempLuck;
-        }
+        for (const t of tiers) { if (LUCK_TARGET_KEYS.includes(t.key)) t.weight *= tempLuck; }
       }
       return tiers;
     }
-
     function toChances(tiers) {
       const total = sumWeights(tiers);
       return tiers.map(t => ({ ...t, chance: t.weight / total }));
     }
-
     function pickTier(chances) {
-      const r = Math.random();
-      let acc = 0;
+      const r = Math.random(); let acc = 0;
       for (let i = chances.length - 1; i >= 0; i--) {
         acc += chances[i].chance;
         if (r <= acc) return { index: i, item: chances[i], roll: r, acc };
       }
       return { index: 0, item: chances[0], roll: r, acc };
     }
-
     function pickItemNameForTier(tierKey) {
       const list = INDEX_ITEMS[tierKey] || [];
       if (!list.length) return null;
-      const i = Math.floor(Math.random() * list.length);
-      return list[i];
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    // Auto-sell threshold: returns true if item should be auto-sold (not kept)
+    function shouldAutoSell(tierKey) {
+      const order = TIERS.map(t => t.key); // ascending rarity
+      const threshold = state.autoSell; // e.g., "common", "rare", "off"
+      if (threshold === "off") return false;
+      const idxItem = order.indexOf(tierKey);
+      const idxThresh = order.indexOf(threshold);
+      // "Trash+" means trash and below are sold; "Rare+" means rare and below are sold.
+      return idxItem <= idxThresh;
     }
 
     // -----------------------------
@@ -261,8 +302,6 @@
     function rollOnce() {
       const upcoming = state.rolls + 1;
       const tempLuck = luckForUpcomingRoll(upcoming);
-
-      // Luck banner visible only when activated
       renderLuckBanner(tempLuck);
 
       const weighted = applyMilestoneLuckToWeights(TIERS, tempLuck);
@@ -274,30 +313,40 @@
 
       state.rolls++;
 
-      // Unlock item via roll and show "NEW collected" banner when first obtained
+      // Unlock index item
       let isNew = false;
       if (pickedName && !state.unlocks[pickedTierKey][pickedName]) {
         state.unlocks[pickedTierKey][pickedName] = true;
         isNew = true;
       }
 
-      // Add to inventory log
-      state.inventory.push({ tier: pickedTierKey, tierName: pickedTierName, name: pickedName, roll: state.rolls, luck: tempLuck });
+      // Inventory handling: auto-sell threshold and max capacity
+      let addedToInventory = false;
+      if (!shouldAutoSell(pickedTierKey)) {
+        if (state.inventory.length < INVENTORY_MAX) {
+          state.inventory.push({ tier: pickedTierKey, tierName: pickedTierName, name: pickedName, roll: state.rolls, luck: tempLuck });
+          addedToInventory = true;
+        } else {
+          // Inventory full announcement (once per session until space is freed)
+          if (!state.fullAnnounced) {
+            showAnnouncement(`Inventory is full ${INVENTORY_MAX}/${INVENTORY_MAX}`);
+            state.fullAnnounced = true;
+          }
+          // Do not add; effectively auto-delete due to lack of space
+        }
+      } // else auto-sold due to threshold
+
+      // Clear fullAnnounced flag if space available again
+      if (state.inventory.length < INVENTORY_MAX) state.fullAnnounced = false;
 
       saveState();
 
       showGlow();
       renderResult(tierPick.item, pickedName);
       renderNewBanner(isNew, pickedTierName, pickedName);
-      renderStats();
+      renderButtonsState();
       renderIndex();      // live update
       renderInventory();  // live update
-
-      // Auto unlock at 50 rolls
-      if (state.rolls >= 50 && elAutoBtn.disabled) {
-        elAutoBtn.disabled = false;
-        elAutoBtn.textContent = state.auto ? "Auto Roll: On" : "Auto Roll: Off";
-      }
     }
 
     // -----------------------------
@@ -324,35 +373,49 @@
     // UI ELEMENTS
     const elLuckBanner = document.getElementById("luckBanner");
     const elNewBanner = document.getElementById("newBanner");
+    const elAnnounceBanner = document.getElementById("announceBanner");
     const elResult = document.getElementById("resultText");
     const elRarity = document.getElementById("rarityText");
     const elRollArea = document.getElementById("rollArea");
+
     const elRollBtn = document.getElementById("btnRoll");
     const elAutoBtn = document.getElementById("btnAuto");
     const elIndexBtn = document.getElementById("btnIndex");
     const elInventoryBtn = document.getElementById("btnInventory");
+
     const elIndexPanel = document.getElementById("indexPanel");
     const elIndexGrid = document.getElementById("indexGrid");
+
     const elInventoryPanel = document.getElementById("inventoryPanel");
     const elInventoryStats = document.getElementById("inventoryStats");
     const elInventoryList = document.getElementById("inventoryList");
+    const elAutoSellSelect = document.getElementById("autoSellSelect");
+    const elInvWarning = document.getElementById("invWarning");
 
     function renderLuckBanner(mult) {
+      elLuckBanner.style.animation = "none"; elLuckBanner.offsetHeight; // restart animation
       if (mult > 1) {
         elLuckBanner.textContent = `${mult}x luck activated`;
+        elLuckBanner.style.animation = "fadeout 3.6s forwards";
       } else {
         elLuckBanner.textContent = "";
       }
     }
 
     function renderNewBanner(isNew, tierName, itemName) {
+      elNewBanner.style.animation = "none"; elNewBanner.offsetHeight; // restart animation
       if (isNew) {
         elNewBanner.textContent = `NEW collected: [${tierName}] ${itemName}`;
-        // fade message after 2.5s
-        setTimeout(() => { elNewBanner.textContent = ""; }, 2500);
+        elNewBanner.style.animation = "fadeout 3.6s forwards";
       } else {
         elNewBanner.textContent = "";
       }
+    }
+
+    function showAnnouncement(text) {
+      elAnnounceBanner.style.animation = "none"; elAnnounceBanner.offsetHeight;
+      elAnnounceBanner.textContent = text;
+      elAnnounceBanner.style.animation = "fadeout 3.6s forwards";
     }
 
     function renderResult(tierItem, itemName) {
@@ -361,16 +424,12 @@
       elRarity.className = "rarity badge " + tierItem.colorClass;
     }
 
-    function renderStats() {
-      // No header stats texts as requested; keep auto button state only
-      const upcoming = state.rolls + 1;
-      const mult = luckForUpcomingRoll(upcoming);
-      renderLuckBanner(mult);
-      if (state.rolls >= 50 && elAutoBtn.disabled) {
+    function renderButtonsState() {
+      // Auto unlock at 50 rolls
+      if (state.rolls >= 50) {
         elAutoBtn.disabled = false;
         elAutoBtn.textContent = state.auto ? "Auto Roll: On" : "Auto Roll: Off";
-      }
-      if (state.rolls < 50) {
+      } else {
         elAutoBtn.disabled = true;
         elAutoBtn.textContent = "Auto Roll (locked)";
       }
@@ -396,7 +455,6 @@
             const li = document.createElement("li");
             li.className = "index-item";
             const unlocked = !!state.unlocks[tier.key][name];
-            // Show name only (no "Tier - Name" prefix). Blur if locked.
             li.innerHTML = `
               <span class="${unlocked ? "" : "locked"}">${name}</span>
               <span class="${unlocked ? "unlocked" : "locked"}">${unlocked ? "Unlocked" : "Locked"}</span>
@@ -410,26 +468,46 @@
     }
 
     function renderInventory() {
-      elInventoryStats.textContent = `Rolls: ${state.rolls} • Items: ${state.inventory.length}`;
+      elInventoryStats.textContent = `Capacity ${state.inventory.length}/${INVENTORY_MAX}`;
+      elInvWarning.style.display = state.inventory.length >= INVENTORY_MAX ? "inline" : "none";
+      elInvWarning.textContent = state.inventory.length >= INVENTORY_MAX ? "Full" : "";
+
       elInventoryList.innerHTML = "";
-      // Most recent first
       const items = [...state.inventory].reverse();
       for (const entry of items) {
         const tier = TIERS.find(t => t.key === entry.tier);
         const badgeClass = tier ? tier.colorClass : "";
         const li = document.createElement("li");
-        li.style.display = "flex";
-        li.style.justifyContent = "space-between";
-        li.style.borderBottom = "1px solid #242a38";
-        li.style.padding = "6px 0";
         const left = document.createElement("div");
         left.innerHTML = `<span class="badge ${badgeClass}">${entry.tierName}</span> — ${entry.name || "(Unknown)"}`;
         const right = document.createElement("div");
-        right.style.color = "var(--muted)";
-        right.textContent = `Roll #${entry.roll}${entry.luck > 1 ? ` • ${entry.luck}x` : ""}`;
+        right.className = "inv-actions";
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Delete";
+        delBtn.addEventListener("click", () => handleDeleteInventoryItem(entry));
+        right.appendChild(delBtn);
         li.appendChild(left);
         li.appendChild(right);
         elInventoryList.appendChild(li);
+      }
+    }
+
+    function handleDeleteInventoryItem(entry) {
+      // Confirmation for Divine+ tiers
+      const order = TIERS.map(t => t.key);
+      const isHigh = order.indexOf(entry.tier) >= order.indexOf("divine");
+      if (isHigh) {
+        const ok = confirm(`Are you sure you want to delete "${entry.name}" [${entry.tierName}]?`);
+        if (!ok) return;
+      }
+      // Remove first matching item from inventory (by roll id uniqueness)
+      const idx = state.inventory.findIndex(i => i.roll === entry.roll);
+      if (idx >= 0) {
+        state.inventory.splice(idx, 1);
+        saveState();
+        renderInventory();
+        // Clear full announcement flag if space available
+        if (state.inventory.length < INVENTORY_MAX) state.fullAnnounced = false;
       }
     }
 
@@ -442,23 +520,43 @@
 
     // -----------------------------
     // HOOKS
-    elRollBtn.addEventListener("click", rollOnce);
-    elAutoBtn.addEventListener("click", toggleAuto);
-    elIndexBtn.addEventListener("click", () => {
+    document.getElementById("btnRoll").addEventListener("click", rollOnce);
+    document.getElementById("btnAuto").addEventListener("click", toggleAuto);
+
+    document.getElementById("btnIndex").addEventListener("click", () => {
       const visible = elIndexPanel.style.display !== "none";
-      elIndexPanel.style.display = visible ? "none" : "block";
-      if (!visible) renderIndex();
+      // Toggle Index, auto-close Inventory if opening Index
+      if (visible) {
+        elIndexPanel.style.display = "none";
+      } else {
+        elIndexPanel.style.display = "block";
+        elInventoryPanel.style.display = "none";
+        renderIndex();
+      }
     });
-    elInventoryBtn.addEventListener("click", () => {
+
+    document.getElementById("btnInventory").addEventListener("click", () => {
       const visible = elInventoryPanel.style.display !== "none";
-      elInventoryPanel.style.display = visible ? "none" : "block";
-      if (!visible) renderInventory();
+      // Toggle Inventory, auto-close Index if opening Inventory
+      if (visible) {
+        elInventoryPanel.style.display = "none";
+      } else {
+        elInventoryPanel.style.display = "block";
+        elIndexPanel.style.display = "none";
+        renderInventory();
+      }
+    });
+
+    document.getElementById("autoSellSelect").addEventListener("change", (e) => {
+      state.autoSell = e.target.value;
+      saveState();
+      renderInventory(); // update warning state if needed
     });
 
     // -----------------------------
     // INIT
     loadState();
-    renderStats();
+    renderButtonsState();
     // Restore auto if eligible
     if (state.auto && state.rolls >= 50) {
       elAutoBtn.disabled = false;
@@ -470,6 +568,8 @@
     } else {
       elAutoBtn.textContent = state.rolls >= 50 ? "Auto Roll: Off" : "Auto Roll (locked)";
     }
+    // Ensure auto-sell selection reflects saved state
+    elAutoSellSelect.value = state.autoSell;
   </script>
 </body>
 </html>
