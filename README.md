@@ -9,8 +9,7 @@
     button { margin:6px; padding:10px 16px; border:none; border-radius:8px; cursor:pointer; background:#1b2232; color:#eee; font-weight:600; }
     button:disabled { opacity:0.4; cursor:not-allowed; }
     .result { font-size:24px; margin-top:12px; }
-    table { width:100%; margin-top:12px; border-collapse:collapse; }
-    td,th { padding:6px; border-bottom:1px solid #333; }
+    .menu { margin-top:20px; display:flex; flex-wrap:wrap; gap:10px; }
   </style>
 </head>
 <body>
@@ -18,15 +17,17 @@
     <h2>Sol’s RNG — Milestone Luck</h2>
     <div>
       <button id="btnRoll">Roll</button>
-      <button id="btnAuto" disabled>Auto (x100)</button>
-      <button id="btnReset">Reset</button>
+      <button id="btnAuto" disabled>Auto: OFF</button>
     </div>
     <div class="result" id="resultText">Ready to roll</div>
     <div id="stats"></div>
-    <table id="probTable">
-      <thead><tr><th>Rarity</th><th>Weight</th><th>Chance</th></tr></thead>
-      <tbody></tbody>
-    </table>
+
+    <div class="menu">
+      <button id="btnIndex">INDEX</button>
+      <button id="btnBackpack">BACKPACK</button>
+      <button id="btnLeaderboard">LEADERBOARD</button>
+      <button id="btnCredits">CREDITS</button>
+    </div>
   </div>
 
 <script>
@@ -39,25 +40,19 @@ const BASE_RARITIES = [
   { key:"divine", name:"Divine", weight:1 },
 ];
 
-const state = { rolls:0 };
+const state = { rolls:0, auto:false, autoTimer:null };
 
 function sumWeights(arr){ return arr.reduce((s,r)=>s+r.weight,0); }
-function formatChance(p){ return (p*100).toFixed(4)+"%"; }
-
 function getMultiplier(){
   if(state.rolls>0 && state.rolls % 250 === 0) return 10;
   if(state.rolls>0 && state.rolls % 50 === 0) return 2;
   return 1;
 }
-
 function applyMultiplier(base, mult){
-  // multiply all weights by 1, then apply multiplier to rarer tiers
   const arr = JSON.parse(JSON.stringify(base));
-  // simplest: multiply all rarities equally
   arr.forEach(r => r.weight = r.weight * (r.key==="common" ? 1 : mult));
   return arr;
 }
-
 function pickTier(rarities){
   const total = sumWeights(rarities);
   let r = Math.random()*total, acc=0;
@@ -78,36 +73,34 @@ function rollOnce(){
   renderStats(mult);
 }
 
-function autoRoll(n=100){
-  for(let i=0;i<n;i++) rollOnce();
+function toggleAuto(){
+  if(!state.auto){
+    state.auto = true;
+    document.getElementById("btnAuto").textContent="Auto: ON";
+    state.autoTimer = setInterval(rollOnce, 200); // roll every 200ms
+  } else {
+    state.auto = false;
+    document.getElementById("btnAuto").textContent="Auto: OFF";
+    clearInterval(state.autoTimer);
+  }
 }
 
 function renderStats(mult){
   const stats = document.getElementById("stats");
   stats.textContent = `Total Rolls: ${state.rolls} | Current Multiplier: x${mult}`;
   if(state.rolls>=100) document.getElementById("btnAuto").disabled=false;
-  renderTable(mult);
-}
-
-function renderTable(mult){
-  const rarities = applyMultiplier(BASE_RARITIES, mult);
-  const total = sumWeights(rarities);
-  document.querySelector("#probTable tbody").innerHTML =
-    rarities.map(r=>`<tr><td>${r.name}</td><td>${r.weight}</td><td>${formatChance(r.weight/total)}</td></tr>`).join("");
 }
 
 document.getElementById("btnRoll").onclick=rollOnce;
-document.getElementById("btnAuto").onclick=()=>autoRoll(100);
-document.getElementById("btnReset").onclick=()=>{
-  state.rolls=0;
-  document.getElementById("resultText").textContent="Ready to roll";
-  document.getElementById("btnAuto").disabled=true;
-  renderStats(1);
-};
+document.getElementById("btnAuto").onclick=toggleAuto;
+
+// placeholder menu buttons
+document.getElementById("btnIndex").onclick=()=>alert("INDEX window placeholder");
+document.getElementById("btnBackpack").onclick=()=>alert("BACKPACK placeholder");
+document.getElementById("btnLeaderboard").onclick=()=>alert("LEADERBOARD placeholder");
+document.getElementById("btnCredits").onclick=()=>alert("CREDITS placeholder");
 
 renderStats(1);
 </script>
-</body>
-</html>
 </body>
 </html>
