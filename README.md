@@ -18,22 +18,16 @@
     .roll-area{min-height:260px;display:grid;place-items:center;position:relative;overflow:hidden;}
     .result{font-size:28px;font-weight:700;text-align:center;}
     .rarity{margin-top:6px;font-size:14px;font-weight:600;text-transform:uppercase;}
-    .banner{position:absolute;left:50%;transform:translateX(-50%);font-weight:700;text-align:center;opacity:0;pointer-events:none;padding:6px 10px;border-radius:10px;border:1px solid #2a3449;background:#1b2232;}
+    .banner{position:absolute;left:50%;transform:translateX(-50%);font-weight:700;text-align:center;opacity:0;pointer-events:none;padding:6px 10px;border-radius:10px;}
     .banner.luck{top:14px;color:var(--gold);font-size:18px;}
     .banner.new{top:120px;color:var(--accent);font-size:16px;}
-    .banner.announce{top:-34px;font-size:16px;}
+    .banner.announce{top:-34px;font-size:16px;border:1px solid #2a3449;background:#1b2232;}
     .fadeout{animation:fadeout 3.6s forwards;}
     @keyframes fadeout{0%{opacity:1;filter:blur(0)}70%{opacity:1;}100%{opacity:0;filter:blur(4px)}}
 
-    /* Active effects bottom-right, stacked vertically */
-    .active-effects{
-      position:absolute;bottom:10px;right:10px;font-size:12px;text-align:right;
-      max-width:46%;display:flex;flex-direction:column;align-items:flex-end;
-    }
-    .effect-entry{
-      margin-top:2px;font-weight:600;padding:2px 6px;border-radius:8px;
-      border:1px solid #2a3449;background:#1b2232;white-space:nowrap;display:block;
-    }
+    /* Active effects bottom-right (timed entries only) */
+    .active-effects{position:absolute;bottom:10px;right:10px;font-size:12px;text-align:right;max-width:46%;}
+    .effect-entry{margin-top:2px;font-weight:600;display:inline-block;padding:2px 6px;border-radius:8px;border:1px solid #2a3449;background:#1b2232;}
 
     /* Controls */
     .controls{display:flex;gap:12px;padding-top:12px;flex-wrap:wrap;align-items:center;}
@@ -412,7 +406,7 @@
       updateAutoInterval();
     }
 
-    /* Timers: prune expired and refresh visible text every second */
+    /* prune expired effects and update display every second */
     setInterval(()=>{
       const now=Date.now();
       const before=state.effectInstances.length;
@@ -422,7 +416,8 @@
         saveState();
         updateAutoInterval();
       }
-      renderActiveEffects(); // always tick display precisely
+      // Always refresh the visible timers each tick
+      renderActiveEffects();
     },1000);
 
     function formatSecondsLeft(ms){
@@ -440,7 +435,6 @@
         const div=document.createElement("div");
         const colorClass = TIERS.find(t=>t.key===e.rarityKey)?.colorClass || "";
         div.className=`effect-entry ${colorClass}`;
-        // Each effect on its own line, with rarity color
         div.textContent = `${e.name}: ${left}`;
         el.appendChild(div);
       }
@@ -475,7 +469,7 @@
       const itemTiers = buildItemTierWeightsFromIndex(TIERS.filter(t=>t.key!=="exclusive"));
       const itemWeighted = applyWeightModifiers(itemTiers, milestone);
       const itemChances = toChances(itemWeighted);
-      const baseItemChance = 0.10;
+      const baseItemChance = 0.10; // base coin
       const luckBoost = Math.min(0.50, state.activeEffects.luck * 0.05);
       const rollItem = Math.random() < (baseItemChance + luckBoost);
 
@@ -701,7 +695,7 @@
       }
     }
     function useItemEntry(entry){
-      // Apply timed effect and show colored activation banner in SAME banner area as luck
+      // Apply timed effect and show colored activation banner
       if(entry.effect){
         addEffect(entry.effect);
         const colorClass = TIERS.find(t=>t.key===entry.effect.rarity)?.colorClass || "";
@@ -745,11 +739,6 @@
     document.getElementById("btnRoll").addEventListener("click",rollOnce);
     document.getElementById("btnAuto").addEventListener("click",toggleAuto);
 
-    const elIndexBtn=document.getElementById("btnIndex");
-    const elInventoryBtn=document.getElementById("btnInventory");
-    const elIndexPanel=document.getElementById("indexPanel");
-    const elInventoryPanel=document.getElementById("inventoryPanel");
-
     elIndexBtn.addEventListener("click",()=>{
       const vis=elIndexPanel.style.display!=="none";
       if(vis){ elIndexPanel.style.display="none"; }
@@ -761,19 +750,11 @@
       else { elInventoryPanel.style.display="block"; elIndexPanel.style.display="none"; renderInventory(); }
     });
 
-    const elAutoSellPrev=document.getElementById("autoSellPrev");
-    const elAutoSellNext=document.getElementById("autoSellNext");
-    const elAutoSellValue=document.getElementById("autoSellValue");
+    elAutoSellPrev.addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,state.autoSell,-1)));
+    elAutoSellNext.addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,state.autoSell,1)));
 
-    const elModePrev=document.getElementById("modePrev");
-    const elModeNext=document.getElementById("modeNext");
-    const elModeValue=document.getElementById("modeValue");
-
-    elAutoSellPrev?.addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,state.autoSell,-1)));
-    elAutoSellNext?.addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,state.autoSell,1)));
-
-    elModePrev?.addEventListener("click",()=>setMode(cycle(modes,state.mode,-1)));
-    elModeNext?.addEventListener("click",()=>setMode(cycle(modes,state.mode,1)));
+    elModePrev.addEventListener("click",()=>setMode(cycle(modes,state.mode,-1)));
+    elModeNext.addEventListener("click",()=>setMode(cycle(modes,state.mode,1)));
 
     /* ---------------- Init ---------------- */
     loadState();
