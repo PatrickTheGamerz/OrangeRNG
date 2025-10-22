@@ -24,7 +24,9 @@
     .banner.announce{top:-34px;color:var(--warn);font-size:16px;}
     .fadeout{animation:fadeout 3.6s forwards;}
     @keyframes fadeout{0%{opacity:1;filter:blur(0)}70%{opacity:1;}100%{opacity:0;filter:blur(4px)}}
-    .active-effects{position:absolute;bottom:10px;left:10px;font-size:12px;}
+
+    /* Active effects now bottom-right, time-based entries only */
+    .active-effects{position:absolute;bottom:10px;right:10px;font-size:12px;text-align:right;max-width:46%;}
     .effect-entry{margin-top:2px;}
 
     /* Controls */
@@ -154,7 +156,7 @@
       {key:"transcendent",name:"Transcendent",weight:4,colorClass:"b-transcendent"},
       {key:"eternal",name:"Eternal",weight:2,colorClass:"b-eternal"},
       {key:"omniversal",name:"Omniversal",weight:1,colorClass:"b-omniversal"},
-      {key:"exclusive",name:"Exclusive",weight:0,colorClass:"b-exclusive"} // index-only, blurred until discovered
+      {key:"exclusive",name:"Exclusive",weight:0,colorClass:"b-exclusive"} // always unrollable
     ];
 
     const INDEX_ITEMS={
@@ -175,7 +177,6 @@
     };
 
     /* ---------------- Consumables (items appear in Rolled with 3x harder chance) ---------------- */
-    // Effects: luck (+%), speed (+%), bias (tier weight +%), guarantee (next roll highest tier)
     const ITEM_DROPS={
       worthless:[
         { name:"Vial of Luck", rarity:"worthless", type:"luck", amount:0.01, duration:40 },
@@ -244,10 +245,8 @@
       auto:"sol_rng_auto",
       inv:"sol_rng_inventory",
       autoSell:"sol_rng_autosell",
-      effects:"sol_rng_effects",
-      guarantee:"sol_rng_guarantee",
-      mode:"sol_rng_mode",
-      exclusiveDiscovered:"sol_rng_exclusive_discovered"
+      effects:"sol_rng_effects_instances", // store timed instances
+      mode:"sol_rng_mode"
     };
 
     function buildInitialUnlocks(def){
@@ -255,13 +254,13 @@
     }
     function reviveUnlocks(u){
       const f=buildInitialUnlocks(INDEX_ITEMS);
-      for(const k in f){ for(const n of Object.keys(f[k])){ f[k][n]=u[k]&&typeof u[k][n]==="boolean"?u[k][n]:false; } }
+      for(const k in f){ for(const n of Object.keys(f[k])){ f[k][n]=u&&u[k]&&typeof u[k][n]==="boolean"?u[k][n]:false; } }
       return f;
     }
 
     /* ---------------- State ---------------- */
-    const ROLLED_MAX=10;      // rolled capacity /10
-    const ITEMS_MAX=50;       // items capacity /50
+    const ROLLED_MAX=10;
+    const ITEMS_MAX=50;
     const BASE_AUTO_INTERVAL=120; // ms
 
     const state={
@@ -269,16 +268,16 @@
       unlocks:buildInitialUnlocks(INDEX_ITEMS),
       auto:false,
       autoInterval:null,
-      inventoryRolled:[],   // only index items; capacity 10
+      inventoryRolled:[],   // index items; capacity 10
       inventoryItems:[],    // consumables; capacity 50
-      autoSell:"off",       // threshold for rolled only (items unaffected)
+      autoSell:"off",
       fullAnnouncedRolled:false,
       fullAnnouncedItems:false,
-      activeEffects:{ luck:0, speed:0, bias:{} }, // additive stacking
-      effectTimers:[], // timers for effects
-      nextRollGuaranteeHighest:false,
-      mode:"Rolled",         // Inventory view mode: Rolled | Items
-      exclusiveDiscovered:false
+      // Derived totals used in math; not shown in corner
+      activeEffects:{ luck:0, speed:0, bias:{} },
+      // Timed effect instances shown bottom-right
+      effectInstances:[], // {name,type,amount,target?,expiresAt}
+      mode:"Rolled"
     };
 
     function loadState(){
@@ -287,10 +286,8 @@
       const autoRaw=localStorage.getItem(STORAGE_KEYS.auto);
       const invRaw=localStorage.getItem(STORAGE_KEYS.inv);
       const autoSellRaw=localStorage.getItem(STORAGE_KEYS.autoSell);
-      const effectsRaw=localStorage.getItem(STORAGE_KEYS.effects);
-      const guaranteeRaw=localStorage.getItem(STORAGE_KEYS.guarantee);
+      const effInstRaw=localStorage.getItem(STORAGE_KEYS.effects);
       const modeRaw=localStorage.getItem(STORAGE_KEYS.mode);
-      const exclRaw=localStorage.getItem(STORAGE_KEYS.exclusiveDiscovered);
 
       state.rolls=Number.isFinite(rolls)?rolls:0;
       state.unlocks=unlocksRaw?reviveUnlocks(JSON.parse(unlocksRaw)):buildInitialUnlocks(INDEX_ITEMS);
@@ -299,10 +296,11 @@
       state.inventoryRolled = inv.rolled || [];
       state.inventoryItems = inv.items || [];
       state.autoSell=autoSellRaw||"off";
-      state.activeEffects=effectsRaw?JSON.parse(effectsRaw):{luck:0,speed:0,bias:{}};
-      state.nextRollGuaranteeHighest=guaranteeRaw==="true";
+      state.effectInstances = effInstRaw ? JSON.parse(effInstRaw) : [];
+      const now=Date.now();
+      state.effectInstances = state.effectInstances.filter(e=>e.expiresAt>now);
+      deriveEffectsTotals();
       state.mode = modeRaw || "Rolled";
-      state.exclusiveDiscovered = exclRaw==="true";
     }
     function saveState(){
       localStorage.setItem(STORAGE_KEYS.rolls,String(state.rolls));
@@ -310,10 +308,8 @@
       localStorage.setItem(STORAGE_KEYS.auto,state.auto?"true":"false");
       localStorage.setItem(STORAGE_KEYS.inv,JSON.stringify({rolled:state.inventoryRolled,items:state.inventoryItems}));
       localStorage.setItem(STORAGE_KEYS.autoSell,state.autoSell);
-      localStorage.setItem(STORAGE_KEYS.effects,JSON.stringify(state.activeEffects));
-      localStorage.setItem(STORAGE_KEYS.guarantee,state.nextRollGuaranteeHighest?"true":"false");
+      localStorage.setItem(STORAGE_KEYS.effects,JSON.stringify(state.effectInstances));
       localStorage.setItem(STORAGE_KEYS.mode,state.mode);
-      localStorage.setItem(STORAGE_KEYS.exclusiveDiscovered,state.exclusiveDiscovered?"true":"false");
     }
 
     /* ---------------- Utils ---------------- */
@@ -331,7 +327,7 @@
     }
 
     function shouldAutoSell(tierKey){
-      const order=TIERS.map(t=>t.key); // includes exclusive but we will ignore it via threshold rules
+      const order=TIERS.map(t=>t.key);
       const thr=state.autoSell;
       if(thr==="off") return false;
       if(tierKey==="exclusive") return false;
@@ -353,7 +349,6 @@
         const t=tiers.find(x=>x.key===key);
         if(t){ t.weight *= (1+amt); }
       }
-      // exclusive stays blurred and not rollable unless discovered by item? (kept unrollabe here)
       return tiers;
     }
 
@@ -375,10 +370,7 @@
       return list[Math.floor(Math.random()*list.length)];
     }
 
-    /* Items chance: appears within rolled flow with 3x harder rate than base tiers.
-       We model this by rolling an "item event" coin: small chance per roll, scaled by rarity weights /3. */
     function buildItemTierWeightsFromIndex(baseTiers){
-      // use TIERS weights divided by 3 (harder)
       return baseTiers.map(t=>({ ...t, weight: t.weight/3 }));
     }
     function pickConsumableFromTier(tierKey){
@@ -387,37 +379,65 @@
       return list[Math.floor(Math.random()*list.length)];
     }
 
-    /* ---------------- Effects ---------------- */
-    function addEffect(effect){
-      // stacking: add amounts; time stacks by scheduling independent timers
-      if(effect.type==="luck"){
-        state.activeEffects.luck += effect.amount;
-        scheduleEffectTimer(()=>{ state.activeEffects.luck -= effect.amount; saveState(); updateAutoInterval(); }, effect.duration);
-        updateAutoInterval();
-      } else if(effect.type==="speed"){
-        state.activeEffects.speed += effect.amount;
-        scheduleEffectTimer(()=>{ state.activeEffects.speed -= effect.amount; saveState(); updateAutoInterval(); }, effect.duration);
-        updateAutoInterval();
-      } else if(effect.type==="bias"){
-        const prev=state.activeEffects.bias[effect.target]||0;
-        state.activeEffects.bias[effect.target]=prev+effect.amount;
-        scheduleEffectTimer(()=>{
-          state.activeEffects.bias[effect.target] -= effect.amount;
-          if(state.activeEffects.bias[effect.target] <= 0) delete state.activeEffects.bias[effect.target];
-          saveState();
-        }, effect.duration);
-      } else if(effect.type==="guarantee"){
-        state.nextRollGuaranteeHighest = true;
-        // Consumed on next roll; no timer needed, but add safety 30s expiry
-        scheduleEffectTimer(()=>{ state.nextRollGuaranteeHighest=false; saveState(); }, 30);
+    /* ---------------- Effects (timed instances + derived totals) ---------------- */
+    function deriveEffectsTotals(){
+      const totals={ luck:0, speed:0, bias:{} };
+      const now=Date.now();
+      for(const e of state.effectInstances){
+        if(e.expiresAt <= now) continue;
+        if(e.type==="luck") totals.luck += e.amount;
+        else if(e.type==="speed") totals.speed += e.amount;
+        else if(e.type==="bias"){
+          totals.bias[e.target] = (totals.bias[e.target]||0) + e.amount;
+        }
       }
-      saveState();
-      renderActiveEffects();
+      state.activeEffects = totals;
     }
 
-    function scheduleEffectTimer(cb, seconds){
-      const id=setTimeout(()=>{ cb(); renderActiveEffects(); }, seconds*1000);
-      state.effectTimers.push(id);
+    function addEffect(effect){
+      const inst={
+        name: effect.name,
+        type: effect.type,
+        amount: effect.amount,
+        target: effect.target,
+        expiresAt: Date.now() + (effect.duration*1000)
+      };
+      state.effectInstances.push(inst);
+      deriveEffectsTotals();
+      saveState();
+      renderActiveEffects();
+      updateAutoInterval();
+    }
+
+    // prune expired effects every second
+    setInterval(()=>{
+      const now=Date.now();
+      const before=state.effectInstances.length;
+      state.effectInstances = state.effectInstances.filter(e=>e.expiresAt>now);
+      if(state.effectInstances.length!==before){
+        deriveEffectsTotals();
+        saveState();
+        renderActiveEffects();
+        updateAutoInterval();
+      }
+    },1000);
+
+    function renderActiveEffects(){
+      const el=document.getElementById("activeEffects");
+      el.innerHTML="";
+      const now=Date.now();
+      // Show only timed instances with remaining seconds, bottom-right
+      const active=state.effectInstances.filter(e=>e.expiresAt>now);
+      active.sort((a,b)=> (a.expiresAt-b.expiresAt)); // soonest first
+      for(const e of active){
+        const left=Math.max(0, Math.ceil((e.expiresAt-now)/1000));
+        const div=document.createElement("div");
+        div.className="effect-entry";
+        const label = e.name || (e.type==="luck"?"Luck Potion": e.type==="speed"?"Speed Potion": e.type==="bias"?"Bias Sigil":"Effect");
+        div.textContent = `${label}: ${left}s`;
+        el.appendChild(div);
+      }
+      // No non-timed summaries here by design
     }
 
     function updateAutoInterval(){
@@ -429,73 +449,28 @@
       }
     }
 
-    function renderActiveEffects(){
-      const el=document.getElementById("activeEffects");
-      el.innerHTML="";
-      // luck
-      if(state.activeEffects.luck>0){
-        const e=document.createElement("div");
-        e.className="effect-entry";
-        e.textContent=`Luck +${Math.round(state.activeEffects.luck*100)}%`;
-        el.appendChild(e);
-      }
-      // speed
-      if(state.activeEffects.speed>0){
-        const e=document.createElement("div");
-        e.className="effect-entry";
-        e.textContent=`Auto speed +${Math.round(state.activeEffects.speed*100)}%`;
-        el.appendChild(e);
-      }
-      // bias summary
-      const keys=Object.keys(state.activeEffects.bias||{});
-      if(keys.length){
-        const e=document.createElement("div");
-        e.className="effect-entry";
-        const parts=keys.map(k=>`${k.toUpperCase()} +${Math.round(state.activeEffects.bias[k]*100)}%`);
-        e.textContent=`Bias: ${parts.join(", ")}`;
-        el.appendChild(e);
-      }
-      // guarantee flag
-      if(state.nextRollGuaranteeHighest){
-        const e=document.createElement("div");
-        e.className="effect-entry";
-        e.textContent=`Next roll guaranteed highest tier`;
-        el.appendChild(e);
-      }
-    }
-
     /* ---------------- Rolling ---------------- */
     function rollOnce(){
       const upcoming=state.rolls+1;
       const milestone=luckMilestoneForRoll(upcoming);
       if(milestone>1) spawnBanner(`${milestone}x luck activated`,"luck");
 
-      // Build tiers; exclusive not rollable unless discovered (stays zero weight)
+      // Build tiers; exclusive not rollable
       let tiers=TIERS.filter(t=>t.key!=="exclusive");
       tiers = applyWeightModifiers(tiers, milestone);
 
-      // If guarantee flag: force highest tier available
-      let pickedTier;
-      if(state.nextRollGuaranteeHighest){
-        const highest = TIERS.filter(t=>t.key!=="exclusive" && (INDEX_ITEMS[t.key]||[]).length>0).slice(-1)[0];
-        pickedTier = highest;
-        state.nextRollGuaranteeHighest=false; // consumed
-      } else {
-        const chances=toChances(tiers);
-        pickedTier = pickTier(chances);
-      }
-
+      // Weighted pick
+      const chances=toChances(tiers);
+      const pickedTier = pickTier(chances);
       const tierKey = pickedTier.key;
       const tierName = pickedTier.name;
 
-      // Decide if this roll becomes a consumable item instead (3x harder than normal)
+      // Items (consumables) chance: harder by /3 weights + 10% gate influenced gently by luck
       const itemTiers = buildItemTierWeightsFromIndex(TIERS.filter(t=>t.key!=="exclusive"));
       const itemWeighted = applyWeightModifiers(itemTiers, milestone);
       const itemChances = toChances(itemWeighted);
-      // Small probability gate for item occurrence: scale by overall rarity distribution
-      // We'll use a base 10% chance, modified by luck (items shouldn't be autosold anyway)
       const baseItemChance = 0.10;
-      const luckBoost = Math.min(0.50, state.activeEffects.luck * 0.05); // gentle influence
+      const luckBoost = Math.min(0.50, state.activeEffects.luck * 0.05);
       const rollItem = Math.random() < (baseItemChance + luckBoost);
 
       state.rolls++;
@@ -505,14 +480,12 @@
       let displayRarityClass=null;
 
       if(rollItem){
-        // Pick an item consumable from a tier
         const itemTier = pickTier(itemChances);
         const drop = pickConsumableFromTier(itemTier.key);
         if(drop){
-          // Add to items inventory (no auto-sell; capacity 50)
+          // Add to items inventory (no auto-sell)
           if(state.inventoryItems.length < ITEMS_MAX){
             state.inventoryItems.push({ type:"consumable", tier:itemTier.key, tierName:itemTier.name, name:drop.name, roll:state.rolls, effect:drop });
-            addEffect(drop);
             displayName = drop.name;
             displayRarityClass = TIERS.find(t=>t.key===drop.rarity)?.colorClass || "";
           } else {
@@ -521,7 +494,7 @@
             displayRarityClass = TIERS.find(t=>t.key===drop.rarity)?.colorClass || "";
           }
         } else {
-          // fallback to normal index item
+          // fallback to normal index
           const itemName = pickIndexItem(tierKey);
           displayName = itemName || tierName;
           displayRarityClass = TIERS.find(t=>t.key===tierKey)?.colorClass || "";
@@ -548,7 +521,6 @@
     }
 
     function processIndexItem(tierKey, tierName, itemName, milestone){
-      // Auto-sell applies only to Rolled (index items), not consumables
       const toKeep = !shouldAutoSell(tierKey);
       if(toKeep){
         if(state.inventoryRolled.length < ROLLED_MAX){
@@ -561,8 +533,6 @@
     function markNew(tierKey,itemName){
       if(!state.unlocks[tierKey][itemName]){
         state.unlocks[tierKey][itemName]=true;
-        // If exclusive item ever added, discovery toggles blur off (future use)
-        if(tierKey==="exclusive") state.exclusiveDiscovered=true;
         return true;
       }
       return false;
@@ -589,9 +559,7 @@
     const elModeValue=document.getElementById("modeValue");
 
     function renderResult(name, tierKey, rarityClass){
-      // Show only item name on main line
       elResult.textContent = name || "Unknown";
-      // Show rarity pill below "Ready to roll" like before
       elRarity.textContent = tierKey ? tierKey.toUpperCase() : "";
       elRarity.className = "rarity badge " + (rarityClass || "");
     }
@@ -621,17 +589,20 @@
         const section=document.createElement("div");
         section.className="index-section";
         const comp=tierCompletion(tier.key);
-        const badge = `<span class="badge ${tier.colorClass}">${tier.name}</span>`;
+        // Exclusive: blur badge and percent explicitly
+        const isExclusive = tier.key==="exclusive";
+        const badge = `<span class="badge ${tier.colorClass} ${isExclusive?'locked':''}">${tier.name}</span>`;
+        const percentHtml = `<div class="completion ${isExclusive?'locked':''}">${isExclusive? '—' : comp.percent + '%'}</div>`;
         section.innerHTML=`
           <h4>${badge}</h4>
-          <div class="completion">${comp.percent}%</div>
+          ${percentHtml}
         `;
         const ul=document.createElement("ul"); ul.className="index-list";
         const items=INDEX_ITEMS[tier.key]||[];
-        if(tier.key==="exclusive"){
+        if(isExclusive){
           const li=document.createElement("li"); li.className="index-item";
-          li.innerHTML=`<span class="${state.exclusiveDiscovered ? "" : "locked"}">${state.exclusiveDiscovered ? "Exclusive discovered items will appear here" : "Secret tier (blurred)"}</span>
-                        <span class="${state.exclusiveDiscovered ? "unlocked" : "locked"}">${state.exclusiveDiscovered ? "Unlocked" : "Locked"}</span>`;
+          li.innerHTML=`<span class="locked">Secret tier (blurred)</span>
+                        <span class="locked">Locked</span>`;
           ul.appendChild(li);
         } else if(!items.length){
           const li=document.createElement("li"); li.className="index-item";
@@ -668,7 +639,6 @@
           li.appendChild(left); li.appendChild(right);
           elInventoryList.appendChild(li);
         });
-        // capacity line appended
         const cap=document.createElement("div");
         cap.className="inv-stats";
         cap.style.marginTop="8px";
@@ -727,9 +697,12 @@
       }
     }
     function useItemEntry(entry){
-      // Using applies effect again (stacking multiplier and time)
-      if(entry.effect){ addEffect(entry.effect); spawnBanner(`Used: ${entry.name}`,"announce"); }
-      // After use, remove one instance
+      // Using applies effect (timed), shows activation banner
+      if(entry.effect){
+        addEffect(entry.effect);
+        spawnBanner(`${entry.name} was activated`,"luck");
+      }
+      // Remove one instance
       deleteItemEntry(entry);
       renderActiveEffects();
     }
