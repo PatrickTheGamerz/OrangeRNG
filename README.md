@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sol’s RNG — Updated with Consumables, Modes, Exclusive Blur</title>
+  <title>Sol’s RNG — Fixed roll, 20x item rarity, Exclusive blur</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -173,7 +173,7 @@
       exclusive:[]
     };
 
-    /* ---------------- Consumables (appear in Rolled with chance, 3x harder overall) ---------------- */
+    /* ---------------- Consumables (appear in Rolled with chance, now 20x harder overall) ---------------- */
     const ITEM_DROPS={
       worthless:[
         { name:"Vial of Luck", rarity:"worthless", type:"luck", amount:0.01, duration:40 },
@@ -229,7 +229,7 @@
       omniversal:[
         { name:"Origin Draught", rarity:"omniversal", type:"luck", amount:25.00, duration:20 },
         { name:"Origin Draught of Speed", rarity:"omniversal", type:"speed", amount:2.50, duration:25 },
-        { name:"Origin Crystal", rarity:"omniversal", type:"guarantee", amount:1, duration:1 } // roll-based; not shown in corner
+        { name:"Origin Crystal", rarity:"omniversal", type:"guarantee", amount:1, duration:1 } // not shown in corner
       ]
     };
 
@@ -257,24 +257,23 @@
     }
 
     /* ---------------- State ---------------- */
-    const ROLLED_MAX=10;      // Rolled capacity
-    const ITEMS_MAX=50;       // Items capacity
-    const BASE_AUTO_INTERVAL=120; // ms
+    const ROLLED_MAX=10;
+    const ITEMS_MAX=50;
+    const BASE_AUTO_INTERVAL=120;
 
     const state={
       rolls:0,
       unlocks:buildInitialUnlocks(INDEX_ITEMS),
       auto:false,
       autoInterval:null,
-      inventoryRolled:[],   // index items; capacity 10
-      inventoryItems:[],    // consumables; capacity 50 (use or delete)
-      autoSell:"off",       // rolled only (items unaffected)
+      inventoryRolled:[],
+      inventoryItems:[],
+      autoSell:"off",
       fullAnnouncedRolled:false,
       fullAnnouncedItems:false,
-      // Active effects stack: store instances for timers and a computed aggregate for weights/speed
       activeInstances:[],   // [{name,type,amount,target,endsAt,rarity}]
       aggregate:{ luck:0, speed:0, bias:{}, guarantee:false },
-      mode:"Rolled"         // Inventory view mode: Rolled | Items
+      mode:"Rolled"
     };
 
     function loadState(){
@@ -328,16 +327,14 @@
       const order=TIERS.map(t=>t.key);
       const thr=state.autoSell;
       if(thr==="off") return false;
-      if(tierKey==="exclusive") return false; // exclusive excluded
+      if(tierKey==="exclusive") return false;
       return order.indexOf(tierKey) <= order.indexOf(thr);
     }
 
     /* ---------------- Active effects aggregate ---------------- */
     function recomputeAggregate(){
       const now=Date.now();
-      // purge expired
       state.activeInstances = state.activeInstances.filter(inst=>inst.endsAt ? inst.endsAt>now : false);
-      // recompute sums
       const agg = { luck:0, speed:0, bias:{}, guarantee:false };
       for(const inst of state.activeInstances){
         if(inst.type==="luck") agg.luck += inst.amount;
@@ -346,7 +343,7 @@
           const prev = agg.bias[inst.target]||0;
           agg.bias[inst.target] = prev + inst.amount;
         } else if(inst.type==="guarantee"){
-          agg.guarantee = true; // does not show in corner; consumed on next roll
+          agg.guarantee = true;
         }
       }
       state.aggregate = agg;
@@ -354,7 +351,8 @@
     }
 
     function addEffectInstance({name,type,amount,target,duration,rarity}){
-      const endsAt = Date.now() + (duration*1000);
+      // Only timed effects show in corner; guarantee is roll-based and not shown
+      const endsAt = type==="guarantee" ? Date.now()+1 : Date.now() + (duration*1000);
       state.activeInstances.push({ name, type, amount, target, endsAt, rarity });
       recomputeAggregate();
       renderActiveEffects();
@@ -391,7 +389,7 @@
       const r=Math.random(); let acc=0;
       for(let i=chances.length-1;i>=0;i--){
         acc += chances[i].chance;
-        if(r<=acc) return chances[i];
+        if(r<=acc) return chances[i]; // return the tier-like object with key/name/chance
       }
       return chances[0];
     }
@@ -408,32 +406,32 @@
 
     /* ---------------- Rolling ---------------- */
     function rollOnce(){
-      tickEffects(); // update timers each click so the corner list stays fresh
+      tickEffects(); // keep timers fresh
 
       const upcoming=state.rolls+1;
       const milestone=luckMilestoneForRoll(upcoming);
       if(milestone>1) spawnBanner(`${milestone}x luck activated`,"luck");
 
       // Build tiers (exclude exclusive from rolling)
-      let tiers=TIERS.filter(t=>t.key!=="exclusive");
+      let tiers = TIERS.filter(t=>t.key!=="exclusive");
       tiers = applyWeightModifiers(tiers, milestone);
+      const chances = toChances(tiers);
 
-      // Guarantee highest tier if flagged (does not appear in corner)
+      // Guarantee highest tier if flagged
       let pickedTier;
       if(state.aggregate.guarantee){
         const eligible = TIERS.filter(t=>t.key!=="exclusive" && (INDEX_ITEMS[t.key]||[]).length>0);
-        pickedTier = eligible[eligible.length-1];
+        pickedTier = eligible[eligible.length-1]; // regular TIERS object
         state.aggregate.guarantee=false; // consume
       } else {
-        const chances=toChances(tiers);
-        pickedTier = pickTier(chances);
+        pickedTier = pickTier(chances); // object with key/name/chance
       }
 
       const tierKey = pickedTier.key;
       const tierName = pickedTier.name;
 
-      // Items chance gate: items can appear in Rolled, but 3x harder overall
-      const itemChanceBase = 0.10/3; // ~3.33%
+      // Items chance gate: items can appear in Rolled, but 20x harder overall
+      const itemChanceBase = 0.10/20; // 0.5%
       const rollItem = Math.random() < itemChanceBase;
 
       state.rolls++;
@@ -443,18 +441,14 @@
       let displayRarityClass=null;
 
       if(rollItem){
-        // Consumable path
-        const itemTier = pickedTier; // use same tier context for flavor
-        const drop = pickConsumableFromTier(itemTier.key);
+        // Consumable path (items unaffected by auto-sell)
+        const drop = pickConsumableFromTier(tierKey);
         if(drop){
           displayName = drop.name;
-          const rarityCls = TIERS.find(t=>t.key===drop.rarity)?.colorClass || "";
-          displayRarityClass = rarityCls;
-
-          // Add to items inventory (use or delete)
+          displayRarityClass = TIERS.find(t=>t.key===drop.rarity)?.colorClass || "";
           if(state.inventoryItems.length < ITEMS_MAX){
             state.inventoryItems.push({
-              type:"consumable", tier:itemTier.key, tierName:itemTier.name,
+              type:"consumable", tier:tierKey, tierName,
               name:drop.name, roll:state.rolls, effect:drop, rarity:drop.rarity
             });
           } else if(!state.fullAnnouncedItems){
@@ -577,14 +571,17 @@
         const section=document.createElement("div");
         section.className="index-section";
         const comp=tierCompletion(tier.key);
-        const badgeHTML = `<span class="badge ${tier.colorClass} ${tier.key==="exclusive" ? "locked" : ""}">${tier.name}</span>`;
+        const isExclusive = tier.key==="exclusive";
+        const badgeHTML = `<span class="badge ${tier.colorClass} ${isExclusive ? "locked" : ""}">${tier.name}</span>`;
+        // Exclusive completion percent should also be blurred
+        const completionHTML = `<div class="completion ${isExclusive ? "locked" : ""}">${comp.percent}%</div>`;
         section.innerHTML=`
           <h4>${badgeHTML}</h4>
-          <div class="completion">${comp.percent}%</div>
+          ${completionHTML}
         `;
         const ul=document.createElement("ul"); ul.className="index-list";
         const items=INDEX_ITEMS[tier.key]||[];
-        if(tier.key==="exclusive"){
+        if(isExclusive){
           const li=document.createElement("li"); li.className="index-item";
           li.innerHTML=`<span class="locked">Secret tier (blurred)</span><span class="locked">Locked</span>`;
           ul.appendChild(li);
@@ -679,16 +676,14 @@
     function useItemEntry(entry){
       const e=entry.effect;
       if(!e) return;
-      // Apply instance (stack amount and time)
       addEffectInstance({
-        name: e.name || entry.name,
+        name: entry.name,
         type: e.type,
         amount: e.amount,
         target: e.target || null,
-        duration: e.type==="guarantee" ? 0 : e.duration, // guarantee doesn't show in corner
+        duration: e.type==="guarantee" ? 0 : e.duration,
         rarity: entry.rarity || entry.tier
       });
-      // Remove item after use
       deleteItemEntry(entry);
     }
 
@@ -703,7 +698,6 @@
     function renderActiveEffects(){
       const now=Date.now();
       elActiveEffects.innerHTML="";
-      // Timed effects only (luck/speed/bias), no guarantee
       const timed = state.activeInstances.filter(inst=>inst.type!=="guarantee");
       timed.sort((a,b)=>a.endsAt-b.endsAt);
       timed.forEach(inst=>{
@@ -723,7 +717,7 @@
       renderActiveEffects();
       if(before !== state.activeInstances.length) updateAutoInterval();
     }
-    setInterval(()=>{ tickEffects(); }, 1000); // keep timers visible and remove on 0
+    setInterval(()=>{ tickEffects(); }, 1000);
 
     /* ---------------- Mode & Auto-Sell carousels ---------------- */
     const autoSellOptions=["off","worthless","trash","common","uncommon","rare","epic","legendary","mythic","divine","celestial","transcendent","eternal","omniversal"];
