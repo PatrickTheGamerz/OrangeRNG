@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sol's RNG — Rolls + Index + Auto Unlock</title>
+  <title>Sol’s RNG — Expanded tiers, live index, persistence</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -10,10 +10,6 @@
       --panel: #151822;
       --text: #e7e9ee;
       --muted: #9aa0ab;
-      --accent: #6ea8fe;
-      --rare: #caa6ff;
-      --mythic: #ffbf66;
-      --divine: #ffd700;
     }
     body {
       margin: 0;
@@ -23,7 +19,7 @@
       min-height: 100vh; display: grid; place-items: center;
     }
     .app {
-      width: 900px; max-width: 96vw;
+      width: 960px; max-width: 96vw;
       background: linear-gradient(180deg, #141821 0%, var(--panel) 100%);
       border: 1px solid #252b39; border-radius: 14px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.5);
@@ -73,13 +69,25 @@
       display: flex; justify-content: space-between; align-items: center;
       padding: 6px 0; border-bottom: 1px solid #242a38; font-size: 14px;
     }
+
+    /* Badges per rarity (distinct colors) */
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; }
-    .b-common { background: #1f2635; color: #c7d1e5; }
-    .b-rare { background: #261f35; color: var(--rare); }
-    .b-legendary { background: #262018; color: var(--mythic); }
-    .b-divine { background: #26240f; color: var(--divine); }
+    .b-worthless    { background: #1a1a1a; color: #b3b3b3; }
+    .b-trash        { background: #1f1a1a; color: #d38f8f; }
+    .b-common       { background: #1f2635; color: #c7d1e5; }
+    .b-uncommon     { background: #1a2f21; color: #7ae08f; }
+    .b-rare         { background: #221a35; color: #caa6ff; }
+    .b-epic         { background: #1a2338; color: #7bb7ff; }
+    .b-legendary    { background: #2a1f12; color: #ffbf66; }
+    .b-mythic       { background: #2a142a; color: #ff7ee6; }
+    .b-divine       { background: #2a2a12; color: #ffd700; }
+    .b-celestial    { background: #142a2a; color: #7affff; }
+    .b-transcendent { background: #1a1a2f; color: #a0a7ff; }
+    .b-eternal      { background: #1a2f2a; color: #9cf2c7; }
+    .b-omniversal   { background: #2f1a2f; color: #ff9cff; }
+
     .locked { color: var(--muted); }
-    .unlocked { color: var(--accent); font-weight: 600; }
+    .unlocked { color: #6ea8fe; font-weight: 600; }
 
     /* Glow effect */
     .glow {
@@ -94,7 +102,7 @@
 <body>
   <div class="app">
     <div class="header">
-      <div class="brand">Sol’s RNG — Index + Auto Unlock</div>
+      <div class="brand">Sol’s RNG — Expanded tiers, live index, persistence</div>
       <div class="stats">
         <div id="stat-rolls">Rolls: 0</div>
         <div id="stat-luck">Luck: 1x</div>
@@ -123,32 +131,90 @@
       </div>
     </div>
 
-    <div class="footer">Luck milestones: 50th roll = 2x, 250th roll = 10x (that roll only). Auto Roll unlocks at 50 rolls. Index opens via button.</div>
+    <div class="footer">Milestone luck: 50th roll = 2x, 250th roll = 10x (that roll only). Auto unlocks at 50 rolls. Index unlocks via button and updates live.</div>
   </div>
 
   <script>
     // -----------------------------
-    // CONFIG
+    // CONFIG: tiers and weights (higher index = rarer)
     const TIERS = [
-      { key: "common",     name: "Common",     weight: 980000, colorClass: "b-common" },
-      { key: "uncommon",   name: "Uncommon",   weight: 18000,  colorClass: "b-common" },
-      { key: "rare",       name: "Rare",       weight: 1800,   colorClass: "b-rare" },
-      { key: "epic",       name: "Epic",       weight: 180,    colorClass: "b-rare" },
-      { key: "legendary",  name: "Legendary",  weight: 18,     colorClass: "b-legendary" },
-      { key: "divine",     name: "Divine",     weight: 1,      colorClass: "b-divine" },
+      { key: "worthless",    name: "Worthless",    weight: 1200000, colorClass: "b-worthless" },
+      { key: "trash",        name: "Trash",        weight: 600000,  colorClass: "b-trash" },
+      { key: "common",       name: "Common",       weight: 300000,  colorClass: "b-common" },
+      { key: "uncommon",     name: "Uncommon",     weight: 60000,   colorClass: "b-uncommon" },
+      { key: "rare",         name: "Rare",         weight: 9000,    colorClass: "b-rare" },
+      { key: "epic",         name: "Epic",         weight: 1200,    colorClass: "b-epic" },
+      { key: "legendary",    name: "Legendary",    weight: 160,     colorClass: "b-legendary" },
+      { key: "mythic",       name: "Mythic",       weight: 40,      colorClass: "b-mythic" },
+      { key: "divine",       name: "Divine",       weight: 16,      colorClass: "b-divine" },
+      { key: "celestial",    name: "Celestial",    weight: 8,       colorClass: "b-celestial" },
+      { key: "transcendent", name: "Transcendent", weight: 4,       colorClass: "b-transcendent" },
+      { key: "eternal",      name: "Eternal",      weight: 2,       colorClass: "b-eternal" },
+      { key: "omniversal",   name: "Omniversal",   weight: 1,       colorClass: "b-omniversal" },
     ];
 
+    // Items per rarity (12+ per each, themed)
     const INDEX_ITEMS = {
-      common:    ["Stone Pebble", "Wood Stick", "Rusty Nail"],
-      uncommon:  ["Copper Charm", "Traveler's Map", "Old Compass"],
-      rare:      ["Crystal Shard", "Moonflower", "Ancient Coin"],
-      epic:      ["Dragon Scale", "Starlight Sigil"],
-      legendary: ["Phoenix Feather", "Eternal Hourglass"],
-      divine:    ["Celestial Orb", "Sol's Tear"]
+      worthless: ["Flicker Dust","Cracked Ash","Dim mote","Frayed Thread","Worn Chip","Hollow Grain","Stale Ember","Silt Speck","Faded Spark","Withered Flake","Dull Scale","Spent Echo"],
+      trash: ["Bent Sigil","Scuffed Gear","Fractured Bead","Tarnished Ring","Splintered Token","Bruised Charm","Chipped Prism","Dented Halo","Crater Chip","Scratched Fang","Bruised Petal","Muddled Rune"],
+      common: ["Ember Shard","Faded Leaf","Whisper Pebble","Ash Fragment","Dull Crystal","Hollow Feather","Broken Gear","Dim Lantern","Rusted Token","Clouded Glass","Forgotten Coin","Waning Shell"],
+      uncommon: ["Azure Bloom","Twilight Fang","Iron Relic","Verdant Gem","Lunar Petal","Singing Shell","Obsidian Fang","Frosted Charm","Ancient Rune","Shimmering Scale","Echo Stone","Glimmer Root"],
+      rare: ["Star Fragment","Void Pearl","Radiant Fang","Solar Bloom","Abyssal Shard","Eternal Vine","Frostheart","Ember Crown","Phantom Mask","Spirit Lantern","Dreamcatcher","Arcane Relic"],
+      epic: ["Dragon’s Heart","Celestial Fang","Prism Core","Eternal Flame","Shadow Crown","Aurora Bloom","Titan’s Fang","Rift Crystal","Cosmic Lantern","Astral Rune","Phoenix Ash","Storm Relic"],
+      legendary: ["Sol’s Tear","Moonveil Crown","Eternal Star","Riftwalker’s Fang","Celestial Bloom","Radiant Halo","Abyss Crown","Prism Heart","Void Lantern","Chrono Relic","Phoenix Crown","Astral Flame"],
+      mythic: ["Solstice Crown","Eclipse Heart","Infinity Core","Astral Diadem","Rift Monarch","Nova Grimoire","Umbra Scepter","Parallax Halo","Quasar Thorn","Aether Loom","Aurora Sigil","Prime Catalyst"],
+      divine: ["Sol’s Core","Eternal Sun","Celestial Orb","Divine Halo","Radiant Crown","Cosmic Tear","Riftheart","Astral Bloom","Phoenix Soul","Chrono Star","Abyssal Flame","Prism Crown"],
+      celestial: ["Stellar Crown","Singularity Shard","Event Horizon","Nebula Heart","Galactic Sigil","Nova Crown","Comet Ring","Quasar Core","Ecliptic Rune","Parhelion Gem","Aurora Diadem","Aether Crown"],
+      transcendent: ["Transcendent Eye","Omni Sigil","Hyperion Core","Timeweaver Crest","Axis Heart","Prime Star","Beyond Rune","Unbound Halo","Perennial Flame","Limitless Gem","Meta Crown","Supernal Tear"],
+      eternal: ["Eternal Bloom","Forever Star","Unending Crown","Ceaseless Orb","Timeless Fang","Endless Prism","Sempiternal Rune","Undying Flame","Ageless Halo","Perpetual Core","Immortal Sigil","Infinite Diadem"],
+      omniversal: ["Omniversal Heart","All-Crown","Totality Core","Panreality Halo","Absolute Sigil","Everything Rune","Boundless Star","Cosmos Crown","Axis of All","Prime Totality","Universal Eye","Omega Diadem"],
     };
 
-    // Luck affects higher tiers only
-    const LUCK_TARGET_KEYS = ["rare","epic","legendary","divine"];
+    // Luck applies to tiers from Rare and above (leave low tiers unaffected)
+    const LUCK_TARGET_KEYS = ["rare","epic","legendary","mythic","divine","celestial","transcendent","eternal","omniversal"];
+
+    // -----------------------------
+    // PERSISTENCE
+    const STORAGE_KEYS = {
+      rolls: "sol_rng_rolls",
+      unlocks: "sol_rng_unlocks",
+      auto: "sol_rng_auto"
+    };
+
+    function loadState() {
+      const rolls = parseInt(localStorage.getItem(STORAGE_KEYS.rolls) || "0", 10);
+      const unlocksRaw = localStorage.getItem(STORAGE_KEYS.unlocks);
+      const autoRaw = localStorage.getItem(STORAGE_KEYS.auto);
+      state.rolls = Number.isFinite(rolls) ? rolls : 0;
+      state.unlocks = unlocksRaw ? reviveUnlocks(JSON.parse(unlocksRaw)) : buildInitialUnlocks(INDEX_ITEMS);
+      state.auto = autoRaw === "true";
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEYS.rolls, String(state.rolls));
+      localStorage.setItem(STORAGE_KEYS.unlocks, JSON.stringify(state.unlocks));
+      localStorage.setItem(STORAGE_KEYS.auto, state.auto ? "true" : "false");
+    }
+
+    function buildInitialUnlocks(indexDef) {
+      const out = {};
+      for (const key in indexDef) {
+        out[key] = {};
+        indexDef[key].forEach(name => { out[key][name] = false; });
+      }
+      return out;
+    }
+
+    function reviveUnlocks(unlocks) {
+      // Ensure structure exists for all items, defaulting to false if missing
+      const fresh = buildInitialUnlocks(INDEX_ITEMS);
+      for (const key in fresh) {
+        for (const name of Object.keys(fresh[key])) {
+          fresh[key][name] = unlocks[key] && typeof unlocks[key][name] === "boolean" ? unlocks[key][name] : false;
+        }
+      }
+      return fresh;
+    }
 
     // -----------------------------
     // STATE
@@ -160,21 +226,12 @@
       autoInterval: null
     };
 
-    function buildInitialUnlocks(indexDef) {
-      const out = {};
-      for (const key in indexDef) {
-        out[key] = {};
-        indexDef[key].forEach(name => out[key][name] = false);
-      }
-      return out;
-    }
-
     // -----------------------------
     // UTILS
     function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
     function sumWeights(arr) { return arr.reduce((s, r) => s + r.weight, 0); }
 
-    // Luck milestones: activate only ON the 50th and 250th roll itself
+    // Luck milestones: activate only ON the exact roll numbers
     function luckForUpcomingRoll(upcomingRollNumber) {
       if (upcomingRollNumber === 250) return 10;
       if (upcomingRollNumber === 50) return 2;
@@ -216,33 +273,28 @@
     // -----------------------------
     // ROLL LOGIC
     function rollOnce() {
-      // Determine milestone luck for THIS roll based on upcoming roll number
       const upcoming = state.rolls + 1;
       const tempLuck = luckForUpcomingRoll(upcoming);
 
-      // Compute weighted chances for this roll
       const weighted = applyMilestoneLuckToWeights(TIERS, tempLuck);
       const chances = toChances(weighted);
       const tierPick = pickTier(chances);
       const pickedTierKey = tierPick.item.key;
       const pickedName = pickItemNameForTier(pickedTierKey);
 
-      // Increment rolls
       state.rolls++;
 
-      // Unlock item via roll
       if (pickedName && !state.unlocks[pickedTierKey][pickedName]) {
         state.unlocks[pickedTierKey][pickedName] = true;
       }
 
-      // Save history
       state.history.push({ tier: pickedTierKey, name: pickedName, luck: tempLuck });
+      saveState();
 
-      // UI updates
       showGlow();
       renderResult(tierPick.item, pickedName);
       renderStats();
-      // Do not force index open; user opens via button
+      renderIndex(); // live update without reopening
     }
 
     // -----------------------------
@@ -254,13 +306,14 @@
         state.autoInterval = null;
         elAutoBtn.textContent = "Auto Roll: Off";
         elAutoStat.textContent = "Auto: Off";
+        saveState();
         return;
       }
       state.auto = true;
       elAutoBtn.textContent = "Auto Roll: On";
       elAutoStat.textContent = "Auto: On";
+      saveState();
       state.autoInterval = setInterval(() => {
-        // Stop if button becomes disabled unexpectedly
         if (elAutoBtn.disabled) { toggleAuto(); return; }
         rollOnce();
       }, 120);
@@ -285,12 +338,7 @@
     function renderResult(tierItem, itemName) {
       elResult.textContent = itemName ? `${tierItem.name} — ${itemName}` : tierItem.name;
       elRarity.textContent = tierItem.key.toUpperCase();
-      elRarity.className = "rarity badge " + (
-        tierItem.key === "divine" ? "b-divine" :
-        tierItem.key === "legendary" ? "b-legendary" :
-        tierItem.key === "epic" || tierItem.key === "rare" ? "b-rare" :
-        "b-common"
-      );
+      elRarity.className = "rarity badge " + tierItem.colorClass;
     }
 
     function renderStats() {
@@ -298,10 +346,13 @@
       const upcoming = state.rolls + 1;
       const mult = luckForUpcomingRoll(upcoming);
       elLuck.textContent = "Luck: " + mult + "x";
-      // Unlock auto at 50 rolls
+      // Auto unlock at 50 rolls
       if (state.rolls >= 50 && elAutoBtn.disabled) {
         elAutoBtn.disabled = false;
         elAutoBtn.textContent = state.auto ? "Auto Roll: On" : "Auto Roll: Off";
+      } else if (state.rolls < 50) {
+        elAutoBtn.disabled = true;
+        elAutoBtn.textContent = "Auto Roll (locked)";
       }
     }
 
@@ -347,23 +398,28 @@
     // -----------------------------
     // HOOKS
     elRollBtn.addEventListener("click", rollOnce);
-
     elAutoBtn.addEventListener("click", () => {
       if (elAutoBtn.disabled) return;
       toggleAuto();
     });
-
     elIndexBtn.addEventListener("click", () => {
-      // Toggle index panel visibility
       const visible = elIndexPanel.style.display !== "none";
       elIndexPanel.style.display = visible ? "none" : "block";
-      if (!visible) renderIndex();
+      if (!visible) renderIndex(); // render when opening
     });
 
     // -----------------------------
     // INIT
+    loadState();
     renderStats();
-    // Index starts hidden; render on first open.
+    if (state.auto && state.rolls >= 50) {
+      // Restore auto state after reload if eligible
+      elAutoBtn.disabled = false;
+      toggleAuto(); // will flip to on
+    } else {
+      // ensure button text reflects current state
+      elAutoBtn.textContent = state.rolls >= 50 ? (state.auto ? "Auto Roll: On" : "Auto Roll: Off") : "Auto Roll (locked)";
+    }
   </script>
 </body>
 </html>
