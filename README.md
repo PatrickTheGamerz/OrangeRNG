@@ -109,5 +109,3 @@ renderStats(1);
 </script>
 </body>
 </html>
-</body>
-</html>
