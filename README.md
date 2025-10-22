@@ -18,10 +18,10 @@
     .roll-area{min-height:260px;display:grid;place-items:center;position:relative;overflow:hidden;}
     .result{font-size:28px;font-weight:700;text-align:center;}
     .rarity{margin-top:6px;font-size:14px;font-weight:600;text-transform:uppercase;}
-    .banner{position:absolute;left:50%;transform:translateX(-50%);font-weight:700;text-align:center;opacity:0;pointer-events:none;padding:6px 10px;border-radius:10px;}
+    .banner{position:absolute;left:50%;transform:translateX(-50%);font-weight:700;text-align:center;opacity:0;pointer-events:none;padding:6px 10px;border-radius:10px;border:1px solid #2a3449;background:#1b2232;}
     .banner.luck{top:14px;color:var(--gold);font-size:18px;}
     .banner.new{top:120px;color:var(--accent);font-size:16px;}
-    .banner.announce{top:-34px;font-size:16px;border:1px solid #2a3449;background:#1b2232;}
+    .banner.announce{top:-34px;font-size:16px;}
     .fadeout{animation:fadeout 3.6s forwards;}
     @keyframes fadeout{0%{opacity:1;filter:blur(0)}70%{opacity:1;}100%{opacity:0;filter:blur(4px)}}
 
@@ -32,8 +32,7 @@
     }
     .effect-entry{
       margin-top:2px;font-weight:600;padding:2px 6px;border-radius:8px;
-      border:1px solid #2a3449;background:#1b2232;white-space:nowrap;
-      display:block;
+      border:1px solid #2a3449;background:#1b2232;white-space:nowrap;display:block;
     }
 
     /* Controls */
@@ -441,8 +440,9 @@
         const div=document.createElement("div");
         const colorClass = TIERS.find(t=>t.key===e.rarityKey)?.colorClass || "";
         div.className=`effect-entry ${colorClass}`;
+        // Each effect on its own line, with rarity color
         div.textContent = `${e.name}: ${left}`;
-        el.appendChild(div); // one per line (vertical stack)
+        el.appendChild(div);
       }
     }
 
