@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sol's RNG — Index + Luck milestones</title>
+  <title>Sol's RNG — Rolls + Index + Auto Unlock</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -34,7 +34,7 @@
       display: flex; align-items: center; justify-content: space-between;
     }
     .brand { font-weight: 700; letter-spacing: 0.2px; }
-    .stats { font-size: 14px; color: var(--muted); display: flex; gap: 18px; }
+    .stats { font-size: 14px; color: var(--muted); display: flex; gap: 18px; flex-wrap: wrap; }
     .content { display: grid; grid-template-columns: 1fr; gap: 18px; padding: 20px; }
     .panel {
       background: #121521; border: 1px solid #242a38; border-radius: 12px; padding: 16px;
@@ -81,7 +81,7 @@
     .locked { color: var(--muted); }
     .unlocked { color: var(--accent); font-weight: 600; }
 
-    /* Glow effect for roll animation */
+    /* Glow effect */
     .glow {
       position: absolute; inset: -40%; border-radius: 50%;
       background: radial-gradient(closest-side, rgba(110,168,254,0.25), transparent 65%);
@@ -94,12 +94,11 @@
 <body>
   <div class="app">
     <div class="header">
-      <div class="brand">Sol’s RNG — Index + Luck milestones</div>
+      <div class="brand">Sol’s RNG — Index + Auto Unlock</div>
       <div class="stats">
         <div id="stat-rolls">Rolls: 0</div>
-        <div id="stat-pity">Pity: 1x</div>
-        <div id="stat-luck">Luck: 1x (milestone)</div>
-        <div id="stat-index">Index: Locked</div>
+        <div id="stat-luck">Luck: 1x</div>
+        <div id="stat-auto">Auto: Off</div>
       </div>
     </div>
 
@@ -112,28 +111,24 @@
         </div>
         <div class="controls">
           <button id="btnRoll">Roll</button>
-          <!-- Index button sits where the old Auto button was, and is unlockable -->
-          <button id="btnIndex" disabled>INDEX (locked)</button>
+          <button id="btnAuto" disabled>Auto Roll (locked)</button>
+          <button id="btnIndex">Index</button>
         </div>
       </div>
 
-      <!-- Index panel (always visible below rolling; button toggles highlight/open state if desired) -->
-      <div class="panel">
+      <!-- Index panel (hidden until button clicked) -->
+      <div class="panel" id="indexPanel" style="display:none;">
         <h3 style="margin:0 0 10px;">Index</h3>
         <div class="index-grid" id="indexGrid"></div>
-        <div style="margin-top:10px; font-size:12px; color:var(--muted);">
-          Roll to unlock items. Index button unlocks at 100 rolls. Luck milestones: every 50 rolls → 2x for that roll; every 250 rolls → 10x for that roll.
-        </div>
       </div>
     </div>
 
-    <div class="footer">Pity is fixed at 1x display-only. Luck applies only to the single milestone roll.</div>
+    <div class="footer">Luck milestones: 50th roll = 2x, 250th roll = 10x (that roll only). Auto Roll unlocks at 50 rolls. Index opens via button.</div>
   </div>
 
   <script>
     // -----------------------------
-    // CONFIG: Define tiers, weights, and item names per rarity
-    // Higher index = rarer tier
+    // CONFIG
     const TIERS = [
       { key: "common",     name: "Common",     weight: 980000, colorClass: "b-common" },
       { key: "uncommon",   name: "Uncommon",   weight: 18000,  colorClass: "b-common" },
@@ -143,7 +138,6 @@
       { key: "divine",     name: "Divine",     weight: 1,      colorClass: "b-divine" },
     ];
 
-    // Items per rarity (expand freely)
     const INDEX_ITEMS = {
       common:    ["Stone Pebble", "Wood Stick", "Rusty Nail"],
       uncommon:  ["Copper Charm", "Traveler's Map", "Old Compass"],
@@ -161,8 +155,9 @@
     const state = {
       rolls: 0,
       history: [],
-      unlocks: buildInitialUnlocks(INDEX_ITEMS), // {rarityKey: {itemName: false}}
-      indexUnlocked: false, // button unlock gated by rolls >= 100
+      unlocks: buildInitialUnlocks(INDEX_ITEMS),
+      auto: false,
+      autoInterval: null
     };
 
     function buildInitialUnlocks(indexDef) {
@@ -179,11 +174,10 @@
     function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
     function sumWeights(arr) { return arr.reduce((s, r) => s + r.weight, 0); }
 
-    // Luck milestones: apply to the current roll only
-    function rollLuckMultiplierForUpcomingRoll(upcomingRollNumber) {
-      // 250-roll milestone overrides 50-roll milestone
-      if (upcomingRollNumber % 250 === 0) return 10;
-      if (upcomingRollNumber % 50 === 0) return 2;
+    // Luck milestones: activate only ON the 50th and 250th roll itself
+    function luckForUpcomingRoll(upcomingRollNumber) {
+      if (upcomingRollNumber === 250) return 10;
+      if (upcomingRollNumber === 50) return 2;
       return 1;
     }
 
@@ -191,9 +185,7 @@
       const tiers = clone(baseTiers);
       if (tempLuck > 1) {
         for (const t of tiers) {
-          if (LUCK_TARGET_KEYS.includes(t.key)) {
-            t.weight *= tempLuck;
-          }
+          if (LUCK_TARGET_KEYS.includes(t.key)) t.weight *= tempLuck;
         }
       }
       return tiers;
@@ -215,59 +207,63 @@
     }
 
     function pickItemNameForTier(tierKey) {
-      const list = INDEX_ITEMS[tierKey];
-      if (!list || list.length === 0) return null;
+      const list = INDEX_ITEMS[tierKey] || [];
+      if (!list.length) return null;
       const i = Math.floor(Math.random() * list.length);
       return list[i];
-    }
-
-    function formatMilestoneLuckText(upcomingRollNumber) {
-      const mult = rollLuckMultiplierForUpcomingRoll(upcomingRollNumber);
-      return mult + "x (milestone)";
     }
 
     // -----------------------------
     // ROLL LOGIC
     function rollOnce() {
-      // Determine luck for THIS roll from milestone (based on upcoming roll number)
+      // Determine milestone luck for THIS roll based on upcoming roll number
       const upcoming = state.rolls + 1;
-      const tempLuck = rollLuckMultiplierForUpcomingRoll(upcoming);
+      const tempLuck = luckForUpcomingRoll(upcoming);
 
-      // Compute chances with temp luck applied to higher tiers
+      // Compute weighted chances for this roll
       const weighted = applyMilestoneLuckToWeights(TIERS, tempLuck);
       const chances = toChances(weighted);
       const tierPick = pickTier(chances);
-
-      // Pick specific item name within the chosen tier
       const pickedTierKey = tierPick.item.key;
       const pickedName = pickItemNameForTier(pickedTierKey);
 
-      // Increment rolls AFTER computing milestone
+      // Increment rolls
       state.rolls++;
 
-      // Unlock in index if not already
-      if (pickedName) {
-        if (!state.unlocks[pickedTierKey][pickedName]) {
-          state.unlocks[pickedTierKey][pickedName] = true;
-        }
+      // Unlock item via roll
+      if (pickedName && !state.unlocks[pickedTierKey][pickedName]) {
+        state.unlocks[pickedTierKey][pickedName] = true;
       }
 
-      // Persist history (tier + item)
-      state.history.push({ tier: pickedTierKey, name: pickedName });
+      // Save history
+      state.history.push({ tier: pickedTierKey, name: pickedName, luck: tempLuck });
 
       // UI updates
       showGlow();
       renderResult(tierPick.item, pickedName);
       renderStats();
-      renderIndex(); // reflect unlocked states
+      // Do not force index open; user opens via button
+    }
 
-      // Unlock the Index button at 100 rolls (replacing old auto unlock)
-      if (!state.indexUnlocked && state.rolls >= 100) {
-        state.indexUnlocked = true;
-        elIndexBtn.disabled = false;
-        elIndexBtn.textContent = "INDEX";
-        renderStats();
+    // -----------------------------
+    // AUTO CLICKER
+    function toggleAuto() {
+      if (state.auto) {
+        state.auto = false;
+        clearInterval(state.autoInterval);
+        state.autoInterval = null;
+        elAutoBtn.textContent = "Auto Roll: Off";
+        elAutoStat.textContent = "Auto: Off";
+        return;
       }
+      state.auto = true;
+      elAutoBtn.textContent = "Auto Roll: On";
+      elAutoStat.textContent = "Auto: On";
+      state.autoInterval = setInterval(() => {
+        // Stop if button becomes disabled unexpectedly
+        if (elAutoBtn.disabled) { toggleAuto(); return; }
+        rollOnce();
+      }, 120);
     }
 
     // -----------------------------
@@ -275,13 +271,16 @@
     const elResult = document.getElementById("resultText");
     const elRarity = document.getElementById("rarityText");
     const elRolls  = document.getElementById("stat-rolls");
-    const elPity   = document.getElementById("stat-pity");
     const elLuck   = document.getElementById("stat-luck");
-    const elIndexStat = document.getElementById("stat-index");
+    const elAutoStat = document.getElementById("stat-auto");
+
     const elRollArea = document.getElementById("rollArea");
-    const elIndexGrid = document.getElementById("indexGrid");
     const elRollBtn = document.getElementById("btnRoll");
+    const elAutoBtn = document.getElementById("btnAuto");
     const elIndexBtn = document.getElementById("btnIndex");
+
+    const elIndexPanel = document.getElementById("indexPanel");
+    const elIndexGrid = document.getElementById("indexGrid");
 
     function renderResult(tierItem, itemName) {
       elResult.textContent = itemName ? `${tierItem.name} — ${itemName}` : tierItem.name;
@@ -296,13 +295,17 @@
 
     function renderStats() {
       elRolls.textContent = "Rolls: " + state.rolls;
-      elPity.textContent  = "Pity: 1x";
-      elLuck.textContent  = "Luck: " + formatMilestoneLuckText(state.rolls + 1);
-      elIndexStat.textContent = "Index: " + (state.indexUnlocked ? "Unlocked" : "Locked");
+      const upcoming = state.rolls + 1;
+      const mult = luckForUpcomingRoll(upcoming);
+      elLuck.textContent = "Luck: " + mult + "x";
+      // Unlock auto at 50 rolls
+      if (state.rolls >= 50 && elAutoBtn.disabled) {
+        elAutoBtn.disabled = false;
+        elAutoBtn.textContent = state.auto ? "Auto Roll: On" : "Auto Roll: Off";
+      }
     }
 
     function renderIndex() {
-      // Build sections per rarity, showing names with lock state (no manual toggles)
       elIndexGrid.innerHTML = "";
       TIERS.forEach(tier => {
         const section = document.createElement("div");
@@ -312,7 +315,7 @@
         ul.className = "index-list";
 
         const items = INDEX_ITEMS[tier.key] || [];
-        if (items.length === 0) {
+        if (!items.length) {
           const li = document.createElement("li");
           li.className = "index-item";
           li.innerHTML = `<span class="locked">No items defined</span>`;
@@ -345,19 +348,22 @@
     // HOOKS
     elRollBtn.addEventListener("click", rollOnce);
 
-    // Index button is simply present in controls (replacing the old auto button),
-    // but locked until 100 rolls. Here it can act as a quick scroll-to-index or
-    // visual cue; we’ll scroll to the index panel when clicked.
+    elAutoBtn.addEventListener("click", () => {
+      if (elAutoBtn.disabled) return;
+      toggleAuto();
+    });
+
     elIndexBtn.addEventListener("click", () => {
-      if (elIndexBtn.disabled) return;
-      // Scroll to index panel
-      document.querySelector(".content .panel:nth-child(2)").scrollIntoView({ behavior: "smooth", block: "start" });
+      // Toggle index panel visibility
+      const visible = elIndexPanel.style.display !== "none";
+      elIndexPanel.style.display = visible ? "none" : "block";
+      if (!visible) renderIndex();
     });
 
     // -----------------------------
     // INIT
     renderStats();
-    renderIndex();
+    // Index starts hidden; render on first open.
   </script>
 </body>
 </html>
