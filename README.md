@@ -18,16 +18,16 @@
     .roll-area{min-height:260px;display:grid;place-items:center;position:relative;overflow:hidden;}
     .result{font-size:28px;font-weight:700;text-align:center;}
     .rarity{margin-top:6px;font-size:14px;font-weight:600;text-transform:uppercase;}
-    .banner{position:absolute;left:50%;transform:translateX(-50%);font-weight:700;text-align:center;opacity:0;pointer-events:none;}
+    .banner{position:absolute;left:50%;transform:translateX(-50%);font-weight:700;text-align:center;opacity:0;pointer-events:none;padding:6px 10px;border-radius:10px;}
     .banner.luck{top:14px;color:var(--gold);font-size:18px;}
     .banner.new{top:120px;color:var(--accent);font-size:16px;}
-    .banner.announce{top:-34px;color:var(--warn);font-size:16px;}
+    .banner.announce{top:-34px;font-size:16px;border:1px solid #2a3449;background:#1b2232;}
     .fadeout{animation:fadeout 3.6s forwards;}
     @keyframes fadeout{0%{opacity:1;filter:blur(0)}70%{opacity:1;}100%{opacity:0;filter:blur(4px)}}
 
-    /* Active effects now bottom-right, time-based entries only */
+    /* Active effects bottom-right (timed entries only) */
     .active-effects{position:absolute;bottom:10px;right:10px;font-size:12px;text-align:right;max-width:46%;}
-    .effect-entry{margin-top:2px;}
+    .effect-entry{margin-top:2px;font-weight:600;display:inline-block;padding:2px 6px;border-radius:8px;border:1px solid #2a3449;background:#1b2232;}
 
     /* Controls */
     .controls{display:flex;gap:12px;padding-top:12px;flex-wrap:wrap;align-items:center;}
@@ -156,7 +156,7 @@
       {key:"transcendent",name:"Transcendent",weight:4,colorClass:"b-transcendent"},
       {key:"eternal",name:"Eternal",weight:2,colorClass:"b-eternal"},
       {key:"omniversal",name:"Omniversal",weight:1,colorClass:"b-omniversal"},
-      {key:"exclusive",name:"Exclusive",weight:0,colorClass:"b-exclusive"} // always unrollable
+      {key:"exclusive",name:"Exclusive",weight:0,colorClass:"b-exclusive"} // never obtainable via roll
     ];
 
     const INDEX_ITEMS={
@@ -176,7 +176,7 @@
       exclusive:[]
     };
 
-    /* ---------------- Consumables (items appear in Rolled with 3x harder chance) ---------------- */
+    /* ---------------- Consumables ---------------- */
     const ITEM_DROPS={
       worthless:[
         { name:"Vial of Luck", rarity:"worthless", type:"luck", amount:0.01, duration:40 },
@@ -245,7 +245,7 @@
       auto:"sol_rng_auto",
       inv:"sol_rng_inventory",
       autoSell:"sol_rng_autosell",
-      effects:"sol_rng_effects_instances", // store timed instances
+      effects:"sol_rng_effects_instances",
       mode:"sol_rng_mode"
     };
 
@@ -273,10 +273,8 @@
       autoSell:"off",
       fullAnnouncedRolled:false,
       fullAnnouncedItems:false,
-      // Derived totals used in math; not shown in corner
-      activeEffects:{ luck:0, speed:0, bias:{} },
-      // Timed effect instances shown bottom-right
-      effectInstances:[], // {name,type,amount,target?,expiresAt}
+      activeEffects:{ luck:0, speed:0, bias:{} }, // derived totals
+      effectInstances:[], // {name,type,amount,target?,expiresAt,rarityKey}
       mode:"Rolled"
     };
 
@@ -317,10 +315,10 @@
     function sumWeights(a){ return a.reduce((s,r)=>s+r.weight,0); }
     function luckMilestoneForRoll(n){ if(n===250) return 10; if(n===50) return 2; return 1; }
 
-    function spawnBanner(text,type){
+    function spawnBanner(text,type,colorClass){
       const rollArea=document.getElementById("rollArea");
       const div=document.createElement("div");
-      div.className=`banner ${type} fadeout`;
+      div.className=`banner ${type} fadeout ${colorClass?colorClass:''}`;
       div.textContent=text;
       div.addEventListener("animationend",()=>div.remove());
       rollArea.appendChild(div);
@@ -336,14 +334,11 @@
 
     function applyWeightModifiers(baseTiers, milestoneMult){
       const tiers=clone(baseTiers);
-      // milestone luck
       if(milestoneMult>1){ for(const t of tiers){ if(LUCK_TARGET_KEYS.includes(t.key)) t.weight *= milestoneMult; } }
-      // consumable luck
       if(state.activeEffects.luck>0){
         const mult = 1 + state.activeEffects.luck;
         for(const t of tiers){ if(LUCK_TARGET_KEYS.includes(t.key)) t.weight *= mult; }
       }
-      // bias
       for(const key in state.activeEffects.bias){
         const amt=state.activeEffects.bias[key];
         const t=tiers.find(x=>x.key===key);
@@ -370,8 +365,9 @@
       return list[Math.floor(Math.random()*list.length)];
     }
 
+    /* Items 20x rarer: divide weights by 60 (instead of 3) */
     function buildItemTierWeightsFromIndex(baseTiers){
-      return baseTiers.map(t=>({ ...t, weight: t.weight/3 }));
+      return baseTiers.map(t=>({ ...t, weight: t.weight/60 }));
     }
     function pickConsumableFromTier(tierKey){
       const list=ITEM_DROPS[tierKey]||[];
@@ -400,7 +396,8 @@
         type: effect.type,
         amount: effect.amount,
         target: effect.target,
-        expiresAt: Date.now() + (effect.duration*1000)
+        expiresAt: Date.now() + (effect.duration*1000),
+        rarityKey: effect.rarity
       };
       state.effectInstances.push(inst);
       deriveEffectsTotals();
@@ -409,7 +406,7 @@
       updateAutoInterval();
     }
 
-    // prune expired effects every second
+    /* prune expired effects and update display every second */
     setInterval(()=>{
       const now=Date.now();
       const before=state.effectInstances.length;
@@ -417,27 +414,30 @@
       if(state.effectInstances.length!==before){
         deriveEffectsTotals();
         saveState();
-        renderActiveEffects();
         updateAutoInterval();
       }
+      // Always refresh the visible timers each tick
+      renderActiveEffects();
     },1000);
+
+    function formatSecondsLeft(ms){
+      const s = Math.max(0, Math.ceil(ms/1000));
+      return `${s}s`;
+    }
 
     function renderActiveEffects(){
       const el=document.getElementById("activeEffects");
       el.innerHTML="";
       const now=Date.now();
-      // Show only timed instances with remaining seconds, bottom-right
-      const active=state.effectInstances.filter(e=>e.expiresAt>now);
-      active.sort((a,b)=> (a.expiresAt-b.expiresAt)); // soonest first
+      const active=state.effectInstances.filter(e=>e.expiresAt>now).sort((a,b)=>a.expiresAt-b.expiresAt);
       for(const e of active){
-        const left=Math.max(0, Math.ceil((e.expiresAt-now)/1000));
+        const left = formatSecondsLeft(e.expiresAt - now);
         const div=document.createElement("div");
-        div.className="effect-entry";
-        const label = e.name || (e.type==="luck"?"Luck Potion": e.type==="speed"?"Speed Potion": e.type==="bias"?"Bias Sigil":"Effect");
-        div.textContent = `${label}: ${left}s`;
+        const colorClass = TIERS.find(t=>t.key===e.rarityKey)?.colorClass || "";
+        div.className=`effect-entry ${colorClass}`;
+        div.textContent = `${e.name}: ${left}`;
         el.appendChild(div);
       }
-      // No non-timed summaries here by design
     }
 
     function updateAutoInterval(){
@@ -465,11 +465,11 @@
       const tierKey = pickedTier.key;
       const tierName = pickedTier.name;
 
-      // Items (consumables) chance: harder by /3 weights + 10% gate influenced gently by luck
+      // Items (consumables): much rarer weights + base gate
       const itemTiers = buildItemTierWeightsFromIndex(TIERS.filter(t=>t.key!=="exclusive"));
       const itemWeighted = applyWeightModifiers(itemTiers, milestone);
       const itemChances = toChances(itemWeighted);
-      const baseItemChance = 0.10;
+      const baseItemChance = 0.10; // base coin
       const luckBoost = Math.min(0.50, state.activeEffects.luck * 0.05);
       const rollItem = Math.random() < (baseItemChance + luckBoost);
 
@@ -483,7 +483,6 @@
         const itemTier = pickTier(itemChances);
         const drop = pickConsumableFromTier(itemTier.key);
         if(drop){
-          // Add to items inventory (no auto-sell)
           if(state.inventoryItems.length < ITEMS_MAX){
             state.inventoryItems.push({ type:"consumable", tier:itemTier.key, tierName:itemTier.name, name:drop.name, roll:state.rolls, effect:drop });
             displayName = drop.name;
@@ -589,7 +588,6 @@
         const section=document.createElement("div");
         section.className="index-section";
         const comp=tierCompletion(tier.key);
-        // Exclusive: blur badge and percent explicitly
         const isExclusive = tier.key==="exclusive";
         const badge = `<span class="badge ${tier.colorClass} ${isExclusive?'locked':''}">${tier.name}</span>`;
         const percentHtml = `<div class="completion ${isExclusive?'locked':''}">${isExclusive? '—' : comp.percent + '%'}</div>`;
@@ -697,10 +695,11 @@
       }
     }
     function useItemEntry(entry){
-      // Using applies effect (timed), shows activation banner
+      // Apply timed effect and show colored activation banner
       if(entry.effect){
         addEffect(entry.effect);
-        spawnBanner(`${entry.name} was activated`,"luck");
+        const colorClass = TIERS.find(t=>t.key===entry.effect.rarity)?.colorClass || "";
+        spawnBanner(`Activated ${entry.name}`,"announce",colorClass);
       }
       // Remove one instance
       deleteItemEntry(entry);
