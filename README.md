@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sol’s RNG — Fixed roll, 20x item rarity, Exclusive blur</title>
+  <title>Sol’s RNG — Working roll, 20× item rarity, Exclusive blurred</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -25,7 +25,7 @@
     .fadeout{animation:fadeout 3.6s forwards;}
     @keyframes fadeout{0%{opacity:1;filter:blur(0)}70%{opacity:1;}100%{opacity:0;filter:blur(4px)}}
 
-    /* Active effects list (right-bottom) */
+    /* Active effects list (right-bottom only timed effects) */
     .active-effects{position:absolute;bottom:10px;right:10px;font-size:12px;text-align:right;}
     .effect-entry{margin-top:4px;}
 
@@ -173,7 +173,7 @@
       exclusive:[]
     };
 
-    /* ---------------- Consumables (appear in Rolled with chance, now 20x harder overall) ---------------- */
+    /* ---------------- Consumables (appear in Rolled with chance, 20× harder overall) ---------------- */
     const ITEM_DROPS={
       worthless:[
         { name:"Vial of Luck", rarity:"worthless", type:"luck", amount:0.01, duration:40 },
@@ -229,7 +229,7 @@
       omniversal:[
         { name:"Origin Draught", rarity:"omniversal", type:"luck", amount:25.00, duration:20 },
         { name:"Origin Draught of Speed", rarity:"omniversal", type:"speed", amount:2.50, duration:25 },
-        { name:"Origin Crystal", rarity:"omniversal", type:"guarantee", amount:1, duration:1 } // not shown in corner
+        { name:"Origin Crystal", rarity:"omniversal", type:"guarantee", amount:1, duration:1 } // roll-based; not shown in corner
       ]
     };
 
@@ -355,14 +355,14 @@
         }
       }
       state.aggregate = agg;
-      saveState();
+      // no render here; caller handles
     }
 
     function addEffectInstance({name,type,amount,target,duration,rarity}){
-      // Only timed effects show in corner; guarantee is roll-based and not shown
       const endsAt = type==="guarantee" ? Date.now()+1 : Date.now() + (duration*1000);
       state.activeInstances.push({ name, type, amount, target, endsAt, rarity });
       recomputeAggregate();
+      saveState();
       renderActiveEffects();
       updateAutoInterval();
       spawnBanner(`${name} was activated`,"announce");
@@ -371,33 +371,30 @@
     /* ---------------- Weight modifiers ---------------- */
     function applyWeightModifiers(baseTiers, milestoneMult){
       const tiers=clone(baseTiers);
-      // milestone luck
       if(milestoneMult>1){ for(const t of tiers){ if(LUCK_TARGET_KEYS.includes(t.key)) t.weight *= milestoneMult; } }
-      // consumable luck (additive percent)
       if(state.aggregate.luck>0){
         const mult = 1 + state.aggregate.luck;
         for(const t of tiers){ if(LUCK_TARGET_KEYS.includes(t.key)) t.weight *= mult; }
       }
-      // bias
       for(const key in state.aggregate.bias){
         const amt=state.aggregate.bias[key];
         const t=tiers.find(x=>x.key===key);
         if(t){ t.weight *= (1+amt); }
       }
-      // exclusive never obtainable: enforce zero weight
       tiers.forEach(t=>{ if(t.key==="exclusive") t.weight=0; });
       return tiers;
     }
 
     function toChances(tiers){
       const total=sumWeights(tiers);
-      return tiers.map(t=>({ ...t, chance: total>0 ? t.weight/total : 0 }));
+      // build cumulative from lowest to highest so reverse walk works
+      return tiers.map(t=>({ key:t.key, name:t.name, chance: total>0 ? t.weight/total : 0 }));
     }
     function pickTier(chances){
       const r=Math.random(); let acc=0;
       for(let i=chances.length-1;i>=0;i--){
         acc += chances[i].chance;
-        if(r<=acc) return chances[i]; // return the tier-like object with key/name/chance
+        if(r<=acc) return chances[i];
       }
       return chances[0];
     }
@@ -414,7 +411,8 @@
 
     /* ---------------- Rolling ---------------- */
     function rollOnce(){
-      tickEffects(); // keep timers fresh
+      // ensure aggregate is up-to-date
+      tickEffects();
 
       const upcoming=state.rolls+1;
       const milestone=luckMilestoneForRoll(upcoming);
@@ -429,16 +427,17 @@
       let pickedTier;
       if(state.aggregate.guarantee){
         const eligible = TIERS.filter(t=>t.key!=="exclusive" && (INDEX_ITEMS[t.key]||[]).length>0);
-        pickedTier = eligible[eligible.length-1] || tiers[0]; // regular TIERS object
+        pickedTier = eligible[eligible.length-1] || {key:tiers[tiers.length-1].key,name:tiers[tiers.length-1].name};
         state.aggregate.guarantee=false; // consume
+        saveState();
       } else {
-        pickedTier = pickTier(chances); // object with key/name/chance
+        pickedTier = pickTier(chances);
       }
 
       const tierKey = pickedTier.key;
       const tierName = pickedTier.name;
 
-      // Items chance gate: items can appear in Rolled, but 20x harder overall
+      // Items chance gate: items can appear in Rolled, but 20× harder overall
       const itemChanceBase = 0.10/20; // 0.5%
       const rollItem = Math.random() < itemChanceBase;
 
@@ -581,12 +580,8 @@
         const comp=tierCompletion(tier.key);
         const isExclusive = tier.key==="exclusive";
         const badgeHTML = `<span class="badge ${tier.colorClass} ${isExclusive ? "locked" : ""}">${tier.name}</span>`;
-        // Exclusive completion percent should also be blurred
         const completionHTML = `<div class="completion ${isExclusive ? "locked" : ""}">${comp.percent}%</div>`;
-        section.innerHTML=`
-          <h4>${badgeHTML}</h4>
-          ${completionHTML}
-        `;
+        section.innerHTML=`<h4>${badgeHTML}</h4>${completionHTML}`;
         const ul=document.createElement("ul"); ul.className="index-list";
         const items=INDEX_ITEMS[tier.key]||[];
         if(isExclusive){
@@ -595,15 +590,14 @@
           ul.appendChild(li);
         } else if(!items.length){
           const li=document.createElement("li"); li.className="index-item";
-          li.innerHTML=`<span class="locked">No items defined</span>`; ul.appendChild(li);
+          li.innerHTML=`<span class="locked">No items defined</span>`;
+          ul.appendChild(li);
         } else {
           items.forEach(name=>{
             const li=document.createElement("li"); li.className="index-item";
             const unlocked=!!state.unlocks[tier.key][name];
-            li.innerHTML=`
-              <span class="${unlocked? "": "locked"}">${name}</span>
-              <span class="${unlocked? "unlocked": "locked"}">${unlocked? "Unlocked": "Locked"}</span>
-            `;
+            li.innerHTML=`<span class="${unlocked? "": "locked"}">${name}</span>
+                          <span class="${unlocked? "unlocked": "locked"}">${unlocked? "Unlocked": "Locked"}</span>`;
             ul.appendChild(li);
           });
         }
@@ -628,9 +622,7 @@
           li.appendChild(left); li.appendChild(right);
           elInventoryList.appendChild(li);
         });
-        const cap=document.createElement("div");
-        cap.className="inv-stats";
-        cap.style.marginTop="8px";
+        const cap=document.createElement("div"); cap.className="inv-stats"; cap.style.marginTop="8px";
         cap.textContent=`Rolled capacity ${state.inventoryRolled.length}/${ROLLED_MAX}`;
         elInventoryList.appendChild(cap);
       } else {
@@ -654,9 +646,7 @@
           li.appendChild(left); li.appendChild(right);
           elInventoryList.appendChild(li);
         });
-        const cap=document.createElement("div");
-        cap.className="inv-stats";
-        cap.style.marginTop="8px";
+        const cap=document.createElement("div"); cap.className="inv-stats"; cap.style.marginTop="8px";
         cap.textContent=`Items capacity ${state.inventoryItems.length}/${ITEMS_MAX}`;
         elInventoryList.appendChild(cap);
       }
@@ -722,6 +712,7 @@
     function tickEffects(){
       const before = state.activeInstances.length;
       recomputeAggregate();
+      saveState();
       renderActiveEffects();
       if(before !== state.activeInstances.length) updateAutoInterval();
     }
@@ -742,7 +733,7 @@
       return list[next];
     }
 
-    /* ---------------- Hooks ---------------- */
+    /* ---------------- Hooks (bind AFTER elements exist) ---------------- */
     document.getElementById("btnRoll").addEventListener("click",rollOnce);
     document.getElementById("btnAuto").addEventListener("click",toggleAuto);
 
@@ -767,6 +758,7 @@
     loadState();
     renderButtonsState();
     renderActiveEffects();
+    renderIndex(); // ensure index renders once
     if(state.auto && state.rolls>=50){
       elAutoBtn.disabled=false; elAutoBtn.textContent="Auto Roll: On";
       updateAutoInterval();
