@@ -56,6 +56,7 @@
     }
     button:hover { background: #232c41; box-shadow: 0 6px 18px rgba(110,168,254,0.12); }
     button:active { transform: translateY(1px); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
     .prob-table { width: 100%; border-collapse: collapse; font-size: 14px; }
     .prob-table th, .prob-table td { padding: 8px 10px; border-bottom: 1px solid #242a38; }
     .prob-table th { text-align: left; color: var(--muted); font-weight: 600; }
@@ -81,8 +82,10 @@
       <div class="brand">Sol’s RNG — browser skeleton</div>
       <div class="stats">
         <div id="stat-rolls">Rolls: 0</div>
-        <div id="stat-pity">Pity: 0</div>
+        <div id="stat-pity">Pity: 1x</div>
         <div id="stat-streak">Streak: 0</div>
+        <div id="stat-luck">Luck: 1x</div>
+        <div id="stat-auto">Auto: Off</div>
       </div>
     </div>
     <div class="content">
@@ -93,8 +96,7 @@
         </div>
         <div class="controls">
           <button id="btnRoll">Roll</button>
-          <button id="btnAuto">Auto (x100)</button>
-          <button id="btnReset">Reset</button>
+          <button id="btnAuto" disabled>Auto Clicker (locked)</button>
         </div>
       </div>
       <div class="panel">
@@ -104,18 +106,16 @@
           <tbody></tbody>
         </table>
         <div style="margin-top:10px; font-size:12px; color:var(--muted);">
-          Edit weights in code to match Sol’s exact data. Supports pity, streaks, and conditional boosts.
+          Auto clicker unlocks at 100 rolls. Luck increases at 50 (2x) and 200 (10x). Pity is fixed at 1x.
         </div>
       </div>
     </div>
-    <div class="footer">Plug in accurate tier data and rules for a 1:1 match. This is intentionally minimal and modular.</div>
+    <div class="footer">This build removes Reset and the 100× auto. Toggle auto on/off once unlocked.</div>
   </div>
 
   <script>
     // -----------------------------
     // CONFIG: Define rarities & weights
-    // Replace these with Sol’s exact values for a 1:1 build.
-    // weight is relative; final chance = weight / sum(weights), unless modified by rules below.
     const BASE_RARITIES = [
       { key: "common",     name: "Common",     weight: 980000, colorClass: "b-common" },
       { key: "uncommon",   name: "Uncommon",   weight: 18000,  colorClass: "b-common" },
@@ -124,31 +124,35 @@
       { key: "legendary",  name: "Legendary",  weight: 18,     colorClass: "b-legendary" },
       { key: "divine",     name: "Divine",     weight: 1,      colorClass: "b-divine" },
     ];
-    // Rules toggles — enable once you know exact mechanics
+
+    // Tier order is array index; higher index = rarer tier.
+    // Define streak threshold (epic or above resets streak)
+    const STREAK_THRESHOLD_INDEX = 3;
+
+    // Luck targets: apply luck multiplier to rarities that benefit from "luck"
+    const LUCK_TARGET_KEYS = ["rare","epic","legendary","divine"];
+
+    // -----------------------------
+    // RULES (pity is fixed at 1x, but not applied as a changing mechanic)
     const RULES = {
-      pityEnabled: true,
-      pityTargetKeys: ["legendary", "divine"], // which rarities pity affects
-      pityStep: 0.000002,  // additive chance per roll (placeholder)
-      pityMaxBoost: 0.001, // cap boost (placeholder)
+      pityEnabled: true,           // shown in UI only as 1x
       streakEnabled: true,
-      streakWindow: 10,       // track last N rolls
-      streakBoostKey: "rare", // boost target when dry
-      streakBoost: 0.10,      // +10% weight when dry (placeholder)
+      streakWindow: 10,
+      streakBoostKey: "rare",
+      streakBoost: 0.10
     };
 
     // -----------------------------
     // STATE
     const state = {
       rolls: 0,
-      pity: 0,      // accumulated pity factor (not percent — an additive chance)
-      streak: 0,    // count of rolls since last hit of >= streakThresholdTier
+      streak: 0,
       lastHitTierIndex: null,
       history: [],
+      luck: 1,            // 1x baseline, bumps to 2x at >=50 rolls, 10x at >=200 rolls
+      auto: false,
+      autoInterval: null
     };
-
-    // Tier order is array index; higher index = rarer tier.
-    // Define streak threshold (e.g., hitting epic or above resets streak)
-    const STREAK_THRESHOLD_INDEX = 3; // epic or higher resets streak
 
     // -----------------------------
     // UTILS
@@ -156,44 +160,35 @@
 
     function sumWeights(arr) { return arr.reduce((s, r) => s + r.weight, 0); }
 
+    function currentLuck(rolls) {
+      if (rolls >= 200) return 10;
+      if (rolls >= 50) return 2;
+      return 1;
+    }
+
     function applyRules(base) {
       const tiers = clone(base);
 
-      // Streak boost: if dry (no epic+ for N rolls), boost a target tier
+      // Streak boost: if dry (no epic+ for N rolls), boost target tier weight
       if (RULES.streakEnabled && state.streak >= RULES.streakWindow) {
         const idx = tiers.findIndex(t => t.key === RULES.streakBoostKey);
         if (idx >= 0) tiers[idx].weight = tiers[idx].weight * (1 + RULES.streakBoost);
       }
 
+      // Luck multiplier: amplify weights for luck-targeted rarities
+      const luck = state.luck;
+      tiers.forEach(t => {
+        if (LUCK_TARGET_KEYS.includes(t.key)) {
+          t.weight *= luck;
+        }
+      });
+
       // Convert to chances
       const total = sumWeights(tiers);
       let chances = tiers.map(t => ({ ...t, chance: t.weight / total }));
 
-      // Pity: distribute additive chance across target rarities (normalized)
-      if (RULES.pityEnabled && state.pity > 0) {
-        const targets = chances.filter(c => RULES.pityTargetKeys.includes(c.key));
-        const baseSum = targets.reduce((s, t) => s + t.chance, 0);
-        if (baseSum > 0) {
-          const boost = Math.min(state.pity, RULES.pityMaxBoost);
-          // Apportion boost proportional to each target's base chance
-          chances = chances.map(c => {
-            if (!RULES.pityTargetKeys.includes(c.key)) return c;
-            const proportion = c.chance / baseSum;
-            return { ...c, chance: c.chance + boost * proportion };
-          });
-          // Re-normalize by shaving the boost from the non-targets proportionally
-          const surplus = chances.reduce((s, c) => s + c.chance, 0) - 1;
-          if (surplus > 1e-12) {
-            const nonTargets = chances.filter(c => !RULES.pityTargetKeys.includes(c.key));
-            const nonSum = nonTargets.reduce((s, c) => s + c.chance, 0);
-            chances = chances.map(c => {
-              if (RULES.pityTargetKeys.includes(c.key)) return c;
-              const proportion = c.chance / nonSum;
-              return { ...c, chance: c.chance - surplus * proportion };
-            });
-          }
-        }
-      }
+      // Pity is fixed at 1x and does not modify chances (kept for UI only)
+
       return chances;
     }
 
@@ -218,13 +213,13 @@
     // -----------------------------
     // ROLL LOGIC
     function rollOnce() {
+      // Compute chances under current rules
       const chances = applyRules(BASE_RARITIES);
       const result = pickTier(chances);
+
+      // Increment counters
       state.rolls++;
-      // Update pity
-      if (RULES.pityEnabled) {
-        state.pity = Math.min(state.pity + RULES.pityStep, RULES.pityMaxBoost);
-      }
+
       // Update streak: reset if epic+ hit
       if (result.index >= STREAK_THRESHOLD_INDEX) {
         state.streak = 0;
@@ -232,6 +227,10 @@
       } else {
         state.streak++;
       }
+
+      // Update luck based on roll milestones
+      state.luck = currentLuck(state.rolls);
+
       // Persist history
       state.history.push({ key: result.item.key, index: result.index });
 
@@ -239,10 +238,45 @@
       showGlow();
       renderResult(result.item);
       renderStats();
+
+      // Auto unlock check
+      maybeUpdateAutoLock();
     }
 
-    function autoRoll(times = 100) {
-      for (let i = 0; i < times; i++) rollOnce();
+    // -----------------------------
+    // AUTO CLICKER
+    function toggleAuto() {
+      if (state.auto) {
+        // Turn off
+        state.auto = false;
+        clearInterval(state.autoInterval);
+        state.autoInterval = null;
+        elAutoBtn.textContent = "Auto Clicker: Off";
+        elAutoBtn.classList.remove("on");
+        renderStats();
+        return;
+      }
+      // Turn on
+      state.auto = true;
+      elAutoBtn.textContent = "Auto Clicker: On";
+      elAutoBtn.classList.add("on");
+      // Pace: one roll every 120ms (tweakable)
+      state.autoInterval = setInterval(() => {
+        // Safety: if button got disabled (shouldn’t while unlocked), stop auto
+        if (elAutoBtn.disabled) {
+          toggleAuto();
+          return;
+        }
+        rollOnce();
+      }, 120);
+      renderStats();
+    }
+
+    function maybeUpdateAutoLock() {
+      if (state.rolls >= 100 && elAutoBtn.disabled) {
+        elAutoBtn.disabled = false;
+        elAutoBtn.textContent = state.auto ? "Auto Clicker: On" : "Auto Clicker: Off";
+      }
     }
 
     // -----------------------------
@@ -252,8 +286,12 @@
     const elRolls  = document.getElementById("stat-rolls");
     const elPity   = document.getElementById("stat-pity");
     const elStreak = document.getElementById("stat-streak");
+    const elLuck   = document.getElementById("stat-luck");
+    const elAuto   = document.getElementById("stat-auto");
     const elProbTableBody = document.querySelector("#probTable tbody");
     const elRollArea = document.getElementById("rollArea");
+    const elRollBtn = document.getElementById("btnRoll");
+    const elAutoBtn = document.getElementById("btnAuto");
 
     function renderResult(item) {
       elResult.textContent = item.name;
@@ -268,8 +306,10 @@
 
     function renderStats() {
       elRolls.textContent = "Rolls: " + state.rolls;
-      elPity.textContent  = "Pity: " + (state.pity * 100).toFixed(4) + "%";
+      elPity.textContent  = "Pity: 1x";
       elStreak.textContent= "Streak: " + state.streak;
+      elLuck.textContent  = "Luck: " + state.luck + "x";
+      elAuto.textContent  = "Auto: " + (state.auto ? "On" : "Off");
       renderTable();
     }
 
@@ -277,7 +317,7 @@
       const chances = applyRules(BASE_RARITIES);
       elProbTableBody.innerHTML = chances.map(c => `
         <tr>
-          <td>${c.name}</td>
+          <td><span class="badge ${c.colorClass}">${c.name}</span></td>
           <td>${c.weight.toLocaleString()}</td>
           <td>${formatChance(c.chance)}</td>
         </tr>
@@ -293,12 +333,10 @@
 
     // -----------------------------
     // HOOKS
-    document.getElementById("btnRoll").addEventListener("click", rollOnce);
-    document.getElementById("btnAuto").addEventListener("click", () => autoRoll(100));
-    document.getElementById("btnReset").addEventListener("click", () => {
-      state.rolls = 0; state.pity = 0; state.streak = 0; state.history = []; state.lastHitTierIndex = null;
-      elResult.textContent = "Ready to roll"; elRarity.textContent = "";
-      renderStats();
+    elRollBtn.addEventListener("click", rollOnce);
+    elAutoBtn.addEventListener("click", () => {
+      if (elAutoBtn.disabled) return;
+      toggleAuto();
     });
 
     // init
