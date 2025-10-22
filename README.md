@@ -323,6 +323,14 @@
       rollArea.appendChild(div);
     }
 
+    function showGlow(){
+      const rollArea=document.getElementById("rollArea");
+      const g=document.createElement("div");
+      g.className="glow";
+      rollArea.appendChild(g);
+      setTimeout(()=>g.remove(),1100);
+    }
+
     function shouldAutoSell(tierKey){
       const order=TIERS.map(t=>t.key);
       const thr=state.autoSell;
@@ -421,7 +429,7 @@
       let pickedTier;
       if(state.aggregate.guarantee){
         const eligible = TIERS.filter(t=>t.key!=="exclusive" && (INDEX_ITEMS[t.key]||[]).length>0);
-        pickedTier = eligible[eligible.length-1]; // regular TIERS object
+        pickedTier = eligible[eligible.length-1] || tiers[0]; // regular TIERS object
         state.aggregate.guarantee=false; // consume
       } else {
         pickedTier = pickTier(chances); // object with key/name/chance
@@ -738,12 +746,12 @@
     document.getElementById("btnRoll").addEventListener("click",rollOnce);
     document.getElementById("btnAuto").addEventListener("click",toggleAuto);
 
-    elIndexBtn.addEventListener("click",()=>{
+    document.getElementById("btnIndex").addEventListener("click",()=>{
       const vis=elIndexPanel.style.display!=="none";
       if(vis){ elIndexPanel.style.display="none"; }
       else { elIndexPanel.style.display="block"; elInventoryPanel.style.display="none"; renderIndex(); }
     });
-    elInventoryBtn.addEventListener("click",()=>{
+    document.getElementById("btnInventory").addEventListener("click",()=>{
       const vis=elInventoryPanel.style.display!=="none";
       if(vis){ elInventoryPanel.style.display="none"; }
       else { elInventoryPanel.style.display="block"; elIndexPanel.style.display="none"; renderInventory(); }
