@@ -6,71 +6,70 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
-      --bg: #0e0f13; --panel: #151822; --text: #e7e9ee; --muted: #9aa0ab;
-      --accent: #6ea8fe; --gold: #ffd700; --warn: #ff6666;
+      --bg:#0e0f13; --panel:#151822; --text:#e7e9ee; --muted:#9aa0ab;
+      --accent:#6ea8fe; --gold:#ffd700; --warn:#ff6666;
     }
-    body { margin:0; font-family:sans-serif; background:#0e0f13; color:var(--text); display:grid; place-items:center; min-height:100vh; }
-    .app { width:980px; max-width:96vw; background:#151822; border:1px solid #252b39; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.5); overflow:hidden; }
-    .content { padding:20px; display:grid; gap:18px; }
-    .panel { background:#121521; border:1px solid #242a38; border-radius:12px; padding:16px; }
+    body{margin:0;font-family:sans-serif;background:#0e0f13;color:var(--text);display:grid;place-items:center;min-height:100vh;}
+    .app{width:980px;max-width:96vw;background:#151822;border:1px solid #252b39;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;}
+    .content{padding:20px;display:grid;gap:18px;}
+    .panel{background:#121521;border:1px solid #242a38;border-radius:12px;padding:16px;}
 
     /* Roll area and banners */
-    .roll-area { min-height:240px; display:grid; place-items:center; position:relative; overflow:hidden; }
-    .fade-banner {
+    .roll-area{min-height:240px;display:grid;place-items:center;position:relative;overflow:hidden;}
+    .banner {
       position:absolute; left:50%; transform:translateX(-50%);
       font-weight:700; text-align:center; opacity:0; pointer-events:none;
       animation: fadeout 3.6s forwards;
     }
-    .luck-banner { top:14px; color:var(--gold); font-size:18px; }
-    .new-banner { top:120px; color:var(--accent); font-size:16px; } /* directly under Ready to roll */
-    .announce-banner { top:-34px; color:var(--warn); font-size:16px; }
+    .banner.luck { top:14px; color:var(--gold); font-size:18px; }
+    .banner.new  { top:120px; color:var(--accent); font-size:16px; } /* directly under "Ready to roll" */
+    .banner.announce { top:-34px; color:var(--warn); font-size:16px; }
     @keyframes fadeout { 0%{opacity:1; filter:blur(0)} 70%{opacity:1;} 100%{opacity:0; filter:blur(4px)} }
 
-    .result { font-size:28px; font-weight:700; text-align:center; text-shadow:0 0 12px rgba(255,255,255,0.15); }
-    .rarity { margin-top:6px; font-size:14px; font-weight:600; text-transform:uppercase; }
+    .result{font-size:28px;font-weight:700;text-align:center;}
+    .rarity{margin-top:6px;font-size:14px;font-weight:600;text-transform:uppercase;}
 
     /* Controls */
-    .controls { display:flex; gap:12px; padding-top:12px; flex-wrap:wrap; align-items:center; }
-    button {
-      background:#1b2232; color:var(--text); border:1px solid #2a3449;
-      padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600;
+    .controls{display:flex;gap:12px;padding-top:12px;flex-wrap:wrap;align-items:center;}
+    button{
+      background:#1b2232;color:var(--text);border:1px solid #2a3449;
+      padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;
+      transition:background .2s, box-shadow .2s, transform .06s;
     }
-    button:hover { background:#232c41; box-shadow:0 6px 18px rgba(110,168,254,0.12); }
-    button:disabled { opacity:0.4; cursor:not-allowed; }
-
-    /* Custom Auto-Sell chooser */
-    .autosell-wrap { margin-left:auto; display:flex; align-items:center; gap:6px; }
-    .chooser { position:relative; }
-    .chooser-menu {
-      position:absolute; right:0; top:110%; background:#0f1320; border:1px solid #2a3449; border-radius:8px;
-      box-shadow:0 12px 24px rgba(0,0,0,0.35); min-width:180px; display:none; z-index:10;
-    }
-    .chooser-menu button {
-      width:100%; text-align:left; background:transparent; border:none; padding:10px 12px;
-    }
-    .chooser-menu button:hover { background:#1b2232; }
+    button:hover{background:#232c41;box-shadow:0 6px 18px rgba(110,168,254,0.12);}
+    button:active{transform:translateY(1px);}
+    button:disabled{opacity:0.4;cursor:not-allowed;}
 
     /* Index */
-    .index-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
-    .index-section { background:#0f1320; border:1px solid #252b39; border-radius:10px; padding:12px; position:relative; }
-    .index-section h4 { margin:0 0 8px; font-size:14px; color:var(--muted); display:flex; align-items:center; gap:8px; }
-    .completion { position:absolute; top:8px; right:12px; font-size:12px; color:var(--accent); }
-    .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:700; }
-    .index-list { list-style:none; padding:0; margin:0; }
-    .index-item { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #242a38; font-size:14px; }
-    .locked { filter:blur(3px); opacity:0.6; }
-    .unlocked { color:var(--accent); font-weight:600; }
+    .index-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+    .index-section{background:#0f1320;border:1px solid #252b39;border-radius:10px;padding:12px;position:relative;}
+    .index-section h4{margin:0 0 8px;font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px;}
+    .completion{position:absolute;top:8px;right:12px;font-size:12px;color:var(--accent);}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;}
+    .index-list{list-style:none;padding:0;margin:0;}
+    .index-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #242a38;font-size:14px;}
+    .locked{filter:blur(3px);opacity:0.6;}
+    .unlocked{color:var(--accent);font-weight:600;}
 
     /* Inventory */
-    .inv-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:10px; }
-    .inv-title { display:flex; align-items:center; gap:10px; }
-    .inv-stats { font-size:13px; color:var(--muted); }
-    .inv-warning { color:var(--warn); font-size:13px; }
-    .inv-list { list-style:none; padding:0; margin:0; }
-    .inv-list li { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #242a38; padding:6px 0; }
-    .inv-actions { display:flex; gap:8px; }
+    .inv-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;}
+    .inv-title{display:flex;align-items:center;gap:10px;}
+    .inv-stats{font-size:13px;color:var(--muted);}
+    .inv-warning{color:var(--warn);font-size:13px;}
+    .inv-list{list-style:none;padding:0;margin:0;}
+    .inv-list li{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #242a38;padding:6px 0;}
+    .inv-actions{display:flex;gap:8px;}
 
-    /* Distinct rarity badge colors */
+    /* Auto-sell chooser anchored to right corner of inventory; scrollable menu */
+    .autosell-wrap{position:relative;}
+    .chooser-menu{
+      position:absolute; right:0; top:110%; background:#0f1320; border:1px solid #2a3449; border-radius:8px;
+      box-shadow:0 12px 24px rgba(0,0,0,0.35); min-width:200px; max-height:220px; overflow-y:auto; display:none; z-index:10;
+    }
+    .chooser-menu button{width:100%;text-align:left;background:transparent;border:none;padding:10px 12px;color:var(--text);}
+    .chooser-menu button:hover{background:#1b2232;}
+
+    /* Rarity colors */
     .b-worthless{background:#1a1a1a;color:#b3b3b3;} .b-trash{background:#211616;color:#d28f8f;}
     .b-common{background:#1f2635;color:#c7d1e5;} .b-uncommon{background:#14261d;color:#7ae08f;}
     .b-rare{background:#221a35;color:#caa6ff;} .b-epic{background:#10233a;color:#7bb7ff;}
@@ -90,49 +89,22 @@
       <!-- Rolling panel -->
       <div class="panel">
         <div class="roll-area" id="rollArea">
-          <div class="fade-banner luck-banner" id="luckBanner"></div>
+          <!-- Banners are now ephemeral elements appended per-event; no single IDs to be overwritten -->
           <div class="result" id="resultText">Ready to roll</div>
-          <div class="fade-banner new-banner" id="newBanner"></div>
           <div class="rarity" id="rarityText"></div>
-          <div class="fade-banner announce-banner" id="announceBanner"></div>
         </div>
         <div class="controls">
           <button id="btnRoll">Roll</button>
           <button id="btnAuto" disabled>Auto Roll (locked)</button>
           <button id="btnIndex">Index</button>
           <button id="btnInventory">Inventory</button>
-
-          <!-- Custom Auto-Sell chooser -->
-          <div class="autosell-wrap">
-            <span>Auto-Sell:</span>
-            <div class="chooser">
-              <button id="btnAutoSell">Off</button>
-              <div class="chooser-menu" id="autoSellMenu">
-                <button data-val="off">Off</button>
-                <button data-val="worthless">Worthless+</button>
-                <button data-val="trash">Trash+</button>
-                <button data-val="common">Common+</button>
-                <button data-val="uncommon">Uncommon+</button>
-                <button data-val="rare">Rare+</button>
-                <button data-val="epic">Epic+</button>
-                <button data-val="legendary">Legendary+</button>
-                <button data-val="mythic">Mythic+</button>
-                <button data-val="divine">Divine+</button>
-                <button data-val="celestial">Celestial+</button>
-                <button data-val="transcendent">Transcendent+</button>
-                <button data-val="eternal">Eternal+</button>
-                <button data-val="omniversal">Omniversal+</button>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
       <!-- Index panel -->
       <div class="panel" id="indexPanel" style="display:none;">
-        <h3 style="margin:0 0 10px; display:flex; justify-content:space-between;">
-          <span>Index</span>
-          <span id="indexCompletion"></span>
+        <h3 style="margin:0 0 10px;display:flex;justify-content:space-between;">
+          <span>Index</span><span id="indexCompletion"></span>
         </h3>
         <div class="index-grid" id="indexGrid"></div>
       </div>
@@ -143,6 +115,10 @@
           <div class="inv-title">
             <h3 style="margin:0;">Inventory</h3>
             <span class="inv-stats" id="inventoryStats"></span>
+          </div>
+          <div class="autosell-wrap">
+            <button id="btnAutoSell">Auto-Sell: Off</button>
+            <div class="chooser-menu" id="autoSellMenu"></div>
           </div>
           <span class="inv-warning" id="invWarning" style="display:none;"></span>
         </div>
@@ -188,12 +164,10 @@
 
     /* ---------------- Persistence ---------------- */
     const STORAGE_KEYS={ rolls:"sol_rng_rolls", unlocks:"sol_rng_unlocks", auto:"sol_rng_auto", inv:"sol_rng_inventory", autoSell:"sol_rng_autosell" };
-    function buildInitialUnlocks(indexDef){
-      const out={}; for(const key in indexDef){ out[key]={}; indexDef[key].forEach(name=>out[key][name]=false); } return out;
-    }
+    function buildInitialUnlocks(indexDef){ const out={}; for(const k in indexDef){ out[k]={}; indexDef[k].forEach(n=>out[k][n]=false); } return out; }
     function reviveUnlocks(unlocks){
       const fresh=buildInitialUnlocks(INDEX_ITEMS);
-      for(const key in fresh){ for(const name of Object.keys(fresh[key])){ fresh[key][name]=unlocks[key] && typeof unlocks[key][name]==="boolean" ? unlocks[key][name] : false; } }
+      for(const k in fresh){ for(const n of Object.keys(fresh[k])){ fresh[k][n]=unlocks[k]&&typeof unlocks[k][n]==="boolean"?unlocks[k][n]:false; } }
       return fresh;
     }
     function loadState(){
@@ -220,12 +194,12 @@
     const state={ rolls:0, unlocks:buildInitialUnlocks(INDEX_ITEMS), auto:false, autoInterval:null, inventory:[], autoSell:"off", fullAnnounced:false };
 
     /* ---------------- Utils ---------------- */
-    function clone(obj){ return JSON.parse(JSON.stringify(obj)); }
-    function sumWeights(arr){ return arr.reduce((s,r)=>s+r.weight,0); }
+    function clone(o){ return JSON.parse(JSON.stringify(o)); }
+    function sumWeights(a){ return a.reduce((s,r)=>s+r.weight,0); }
     function luckForUpcomingRoll(n){ if(n===250) return 10; if(n===50) return 2; return 1; }
-    function applyMilestoneLuckToWeights(baseTiers,tempLuck){
-      const tiers=clone(baseTiers);
-      if(tempLuck>1){ for(const t of tiers){ if(LUCK_TARGET_KEYS.includes(t.key)) t.weight*=tempLuck; } }
+    function applyMilestoneLuckToWeights(base,luck){
+      const tiers=clone(base);
+      if(luck>1){ for(const t of tiers){ if(LUCK_TARGET_KEYS.includes(t.key)) t.weight*=luck; } }
       return tiers;
     }
     function toChances(tiers){ const total=sumWeights(tiers); return tiers.map(t=>({ ...t, chance:t.weight/total })); }
@@ -234,18 +208,32 @@
       for(let i=chances.length-1;i>=0;i--){ acc+=chances[i].chance; if(r<=acc) return { index:i, item:chances[i], roll:r, acc }; }
       return { index:0, item:chances[0], roll:r, acc };
     }
-    function pickItemNameForTier(tierKey){
-      const list=INDEX_ITEMS[tierKey]||[]; if(!list.length) return null;
+    function pickItemNameForTier(key){
+      const list=INDEX_ITEMS[key]||[]; if(!list.length) return null;
       return list[Math.floor(Math.random()*list.length)];
     }
-
-    /* ---------------- Auto-Sell ---------------- */
-    function shouldAutoSell(tierKey){
+    function shouldAutoSell(key){
       const order=TIERS.map(t=>t.key);
-      const threshold=state.autoSell;
-      if(threshold==="off") return false;
-      return order.indexOf(tierKey) <= order.indexOf(threshold);
+      const thr=state.autoSell;
+      if(thr==="off") return false;
+      return order.indexOf(key) <= order.indexOf(thr);
     }
+
+    /* ---------------- Ephemeral banners (persist through quick re-rolls) ---------------- */
+    const rollArea=document.getElementById("rollArea");
+    function spawnBanner(text,type){
+      const div=document.createElement("div");
+      div.className=`banner ${type}`;
+      div.textContent=text;
+      div.addEventListener("animationend",()=>div.remove());
+      rollArea.appendChild(div);
+      // Force reflow to ensure animation starts even if another banner just spawned
+      void div.offsetWidth;
+      div.style.animation="fadeout 3.6s forwards";
+    }
+    function showLuckBanner(mult){ if(mult>1) spawnBanner(`${mult}x luck activated`,"luck"); }
+    function showNewBanner(tierName,itemName){ spawnBanner(`NEW collected: [${tierName}] ${itemName}`,"new"); }
+    function showAnnouncement(text){ spawnBanner(text,"announce"); }
 
     /* ---------------- Roll Logic ---------------- */
     function rollOnce(){
@@ -255,24 +243,22 @@
 
       const chances=toChances(applyMilestoneLuckToWeights(TIERS,tempLuck));
       const tierPick=pickTier(chances);
-      const pickedTierKey=tierPick.item.key, pickedTierName=tierPick.item.name;
-      const pickedName=pickItemNameForTier(pickedTierKey);
+      const key=tierPick.item.key, tierName=tierPick.item.name;
+      const itemName=pickItemNameForTier(key);
 
       state.rolls++;
 
-      // Index unlock
+      // Index unlock tracking
       let isNew=false;
-      if(pickedName && !state.unlocks[pickedTierKey][pickedName]){
-        state.unlocks[pickedTierKey][pickedName]=true;
+      if(itemName && !state.unlocks[key][itemName]){
+        state.unlocks[key][itemName]=true;
         isNew=true;
       }
 
-      // Inventory apply
-      let added=false;
-      if(!shouldAutoSell(pickedTierKey)){
+      // Inventory handling with auto-sell and capacity
+      if(!shouldAutoSell(key)){
         if(state.inventory.length<INVENTORY_MAX){
-          state.inventory.push({ tier:pickedTierKey, tierName:pickedTierName, name:pickedName, roll:state.rolls, luck:tempLuck });
-          added=true;
+          state.inventory.push({ tier:key, tierName, name:itemName, roll:state.rolls, luck:tempLuck });
         } else {
           if(!state.fullAnnounced){ showAnnouncement(`Inventory is full ${INVENTORY_MAX}/${INVENTORY_MAX}`); state.fullAnnounced=true; }
         }
@@ -282,11 +268,11 @@
       saveState();
 
       showGlow();
-      renderResult(tierPick.item,pickedName);
-      showNewBanner(isNew,pickedTierName,pickedName);
+      renderResult(tierPick.item,itemName);
+      if(isNew) showNewBanner(tierName,itemName);
       renderButtonsState();
-      renderIndex();      // live
-      renderInventory();  // live
+      renderIndex();
+      renderInventory();
     }
 
     /* ---------------- Auto Clicker ---------------- */
@@ -302,79 +288,50 @@
     }
 
     /* ---------------- UI Elements ---------------- */
-    const elLuckBanner=document.getElementById("luckBanner");
-    const elNewBanner=document.getElementById("newBanner");
-    const elAnnounceBanner=document.getElementById("announceBanner");
     const elResult=document.getElementById("resultText");
     const elRarity=document.getElementById("rarityText");
-    const elRollArea=document.getElementById("rollArea");
-
-    const elRollBtn=document.getElementById("btnRoll");
     const elAutoBtn=document.getElementById("btnAuto");
     const elIndexBtn=document.getElementById("btnIndex");
     const elInventoryBtn=document.getElementById("btnInventory");
-
     const elIndexPanel=document.getElementById("indexPanel");
     const elIndexGrid=document.getElementById("indexGrid");
     const elIndexCompletion=document.getElementById("indexCompletion");
-
     const elInventoryPanel=document.getElementById("inventoryPanel");
     const elInventoryStats=document.getElementById("inventoryStats");
     const elInventoryList=document.getElementById("inventoryList");
     const elInvWarning=document.getElementById("invWarning");
-
     const elAutoSellBtn=document.getElementById("btnAutoSell");
     const elAutoSellMenu=document.getElementById("autoSellMenu");
+    const elRollBtn=document.getElementById("btnRoll");
 
-    /* ---------------- Banners (restart animation every roll) ---------------- */
-    function restartAnimation(el){ el.style.animation="none"; void el.offsetHeight; el.style.animation="fadeout 3.6s forwards"; }
-    function showLuckBanner(mult){
-      if(mult>1){ elLuckBanner.textContent=`${mult}x luck activated`; restartAnimation(elLuckBanner); }
-      else { elLuckBanner.textContent=""; }
-    }
-    function showNewBanner(isNew,tierName,itemName){
-      if(isNew){ elNewBanner.textContent=`NEW collected: [${tierName}] ${itemName}`; restartAnimation(elNewBanner); }
-      else { elNewBanner.textContent=""; }
-    }
-    function showAnnouncement(text){ elAnnounceBanner.textContent=text; restartAnimation(elAnnounceBanner); }
-
-    /* ---------------- Renderers ---------------- */
     function renderResult(tierItem,itemName){
       elResult.textContent=itemName ? `${tierItem.name} — ${itemName}` : tierItem.name;
       elRarity.textContent=tierItem.key.toUpperCase();
       elRarity.className="rarity badge "+tierItem.colorClass;
     }
-
     function renderButtonsState(){
       if(state.rolls>=50){ elAutoBtn.disabled=false; elAutoBtn.textContent=state.auto?"Auto Roll: On":"Auto Roll: Off"; }
       else { elAutoBtn.disabled=true; elAutoBtn.textContent="Auto Roll (locked)"; }
-      elAutoSellBtn.textContent=state.autoSell==="off" ? "Off" : labelForAutoSell(state.autoSell);
+      elAutoSellBtn.textContent = `Auto-Sell: ${state.autoSell==="off"?"Off":labelForAutoSell(state.autoSell)}`;
     }
+    function labelForAutoSell(val){ const t=TIERS.find(x=>x.key===val); return t? `${t.name}+` : "Off"; }
 
-    function labelForAutoSell(val){
-      const tier=TIERS.find(t=>t.key===val);
-      return tier ? `${tier.name}+` : "Off";
-    }
-
-    function computeTierCompletion(key){
+    function tierCompletion(key){
       const items=INDEX_ITEMS[key]||[]; const unlocked=items.filter(n=>state.unlocks[key][n]).length;
-      return { unlocked, total:items.length, percent: items.length? Math.round((unlocked/items.length)*100) : 0 };
+      const pct=items.length? Math.round(unlocked/items.length*100) : 0;
+      return { unlocked, total:items.length, percent:pct };
     }
-    function computeTotalCompletion(){
-      let u=0,t=0; for(const key in INDEX_ITEMS){ const c=computeTierCompletion(key); u+=c.unlocked; t+=c.total; }
-      return { unlocked:u,total:t,percent: t? Math.round((u/t)*100) : 0 };
+    function totalCompletion(){
+      let u=0,t=0; for(const k in INDEX_ITEMS){ const c=tierCompletion(k); u+=c.unlocked; t+=c.total; }
+      return { unlocked:u,total:t,percent: t? Math.round(u/t*100) : 0 };
     }
-
     function renderIndex(){
-      // overall completion
-      const tot=computeTotalCompletion();
-      elIndexCompletion.textContent=`Total ${tot.percent}%`;
-
+      const tot=totalCompletion(); elIndexCompletion.textContent=`Total ${tot.percent}%`;
       elIndexGrid.innerHTML="";
       TIERS.forEach(tier=>{
         const section=document.createElement("div");
         section.className="index-section";
-        const comp=computeTierCompletion(tier.key);
+        const comp=tierCompletion(tier.key);
         section.innerHTML=`
           <h4><span class="badge ${tier.colorClass}">${tier.name}</span></h4>
           <div class="completion">${comp.percent}%</div>
@@ -399,7 +356,6 @@
         elIndexGrid.appendChild(section);
       });
     }
-
     function renderInventory(){
       elInventoryStats.textContent=`Capacity ${state.inventory.length}/${INVENTORY_MAX}`;
       elInvWarning.style.display = state.inventory.length>=INVENTORY_MAX ? "inline" : "none";
@@ -407,78 +363,77 @@
 
       elInventoryList.innerHTML="";
       const items=[...state.inventory].reverse();
-      for(const entry of items){
-        const tier=TIERS.find(t=>t.key===entry.tier);
-        const badgeClass=tier?tier.colorClass:"";
+      items.forEach(entry=>{
+        const tier=TIERS.find(t=>t.key===entry.tier); const badgeClass=tier?tier.colorClass:"";
         const li=document.createElement("li");
         const left=document.createElement("div");
         left.innerHTML=`<span class="badge ${badgeClass}">${entry.tierName}</span> — ${entry.name || "(Unknown)"} • #${entry.roll}${entry.luck>1?` • ${entry.luck}x`:``}`;
         const right=document.createElement("div"); right.className="inv-actions";
-        const delBtn=document.createElement("button"); delBtn.textContent="Delete";
-        delBtn.addEventListener("click",()=>handleDeleteInventoryItem(entry));
-        right.appendChild(delBtn);
+        const del=document.createElement("button"); del.textContent="Delete";
+        del.addEventListener("click",()=>deleteInventoryEntry(entry));
+        right.appendChild(del);
         li.appendChild(left); li.appendChild(right);
         elInventoryList.appendChild(li);
-      }
+      });
     }
-
-    function handleDeleteInventoryItem(entry){
+    function deleteInventoryEntry(entry){
       const order=TIERS.map(t=>t.key);
-      const isHigh = order.indexOf(entry.tier) >= order.indexOf("divine");
-      if(isHigh){
-        const ok=confirm(`Delete "${entry.name}" [${entry.tierName}]?`);
-        if(!ok) return;
-      }
+      const high=order.indexOf(entry.tier) >= order.indexOf("divine");
+      if(high){ const ok=confirm(`Delete "${entry.name}" [${entry.tierName}]?`); if(!ok) return; }
       const idx=state.inventory.findIndex(i=>i.roll===entry.roll);
       if(idx>=0){
         state.inventory.splice(idx,1);
-        saveState();
-        renderInventory();
+        saveState(); renderInventory();
         if(state.inventory.length<INVENTORY_MAX) state.fullAnnounced=false;
       }
     }
+    function showGlow(){ const g=document.createElement("div"); g.className="glow"; rollArea.appendChild(g); setTimeout(()=>g.remove(),1100); }
 
-    function showGlow(){
-      const glow=document.createElement("div"); glow.className="glow";
-      elRollArea.appendChild(glow); setTimeout(()=>glow.remove(),1100);
+    /* ---------------- Auto-Sell chooser (menu populated and scrollable) ---------------- */
+    const autoSellOptions=[
+      {val:"off",label:"Off"},
+      {val:"worthless",label:"Worthless+"},{val:"trash",label:"Trash+"},{val:"common",label:"Common+"},{val:"uncommon",label:"Uncommon+"},
+      {val:"rare",label:"Rare+"},{val:"epic",label:"Epic+"},{val:"legendary",label:"Legendary+"},{val:"mythic",label:"Mythic+"},
+      {val:"divine",label:"Divine+"},{val:"celestial",label:"Celestial+"},{val:"transcendent",label:"Transcendent+"},
+      {val:"eternal",label:"Eternal+"},{val:"omniversal",label:"Omniversal+"},
+    ];
+    function populateAutoSellMenu(){
+      elAutoSellMenu.innerHTML="";
+      autoSellOptions.forEach(opt=>{
+        const b=document.createElement("button"); b.textContent=opt.label; b.dataset.val=opt.val;
+        b.addEventListener("click",()=>{
+          state.autoSell=opt.val; elAutoSellMenu.style.display="none"; renderButtonsState(); saveState();
+        });
+        elAutoSellMenu.appendChild(b);
+      });
     }
 
-    /* ---------------- Controls & Chooser ---------------- */
-    elRollBtn.addEventListener("click",rollOnce);
-    elAutoBtn.addEventListener("click",toggleAuto);
+    /* ---------------- Hooks ---------------- */
+    document.getElementById("btnRoll").addEventListener("click",rollOnce);
+    document.getElementById("btnAuto").addEventListener("click",toggleAuto);
 
     elIndexBtn.addEventListener("click",()=>{
-      const visible=elIndexPanel.style.display!=="none";
-      if(visible){ elIndexPanel.style.display="none"; }
+      const vis=elIndexPanel.style.display!=="none";
+      if(vis){ elIndexPanel.style.display="none"; }
       else { elIndexPanel.style.display="block"; elInventoryPanel.style.display="none"; renderIndex(); }
     });
     elInventoryBtn.addEventListener("click",()=>{
-      const visible=elInventoryPanel.style.display!=="none";
-      if(visible){ elInventoryPanel.style.display="none"; }
+      const vis=elInventoryPanel.style.display!=="none";
+      if(vis){ elInventoryPanel.style.display="none"; }
       else { elInventoryPanel.style.display="block"; elIndexPanel.style.display="none"; renderInventory(); }
     });
 
-    // Custom chooser open/close
     elAutoSellBtn.addEventListener("click",()=>{
       const open=elAutoSellMenu.style.display==="block";
       elAutoSellMenu.style.display=open?"none":"block";
     });
-    // Menu selections
-    elAutoSellMenu.querySelectorAll("button").forEach(btn=>{
-      btn.addEventListener("click",()=>{
-        state.autoSell=btn.dataset.val;
-        elAutoSellMenu.style.display="none";
-        renderButtonsState();
-        saveState();
-      });
-    });
-    // Close menu when clicking elsewhere
     document.addEventListener("click",(e)=>{
-      if(!e.target.closest(".chooser")) elAutoSellMenu.style.display="none";
+      if(!e.target.closest(".autosell-wrap")) elAutoSellMenu.style.display="none";
     });
 
     /* ---------------- Init ---------------- */
     loadState();
+    populateAutoSellMenu();
     renderButtonsState();
     if(state.auto && state.rolls>=50){
       elAutoBtn.disabled=false; elAutoBtn.textContent="Auto Roll: On";
