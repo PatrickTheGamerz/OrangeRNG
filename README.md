@@ -2,13 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sol’s RNG — Expanded with Items, Consumables, Weather & Totems</title>
+  <title>Sol’s RNG — Exclusive & Weather Upgrade</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
       --bg:#0e0f13; --panel:#151822; --text:#e7e9ee; --muted:#9aa0ab;
       --accent:#6ea8fe; --gold:#ffd700; --warn:#ff6666; --weather:#4ec3ff;
-      --eclipse:#3b2b5e; --tempest:#0e2a3b;
     }
     body{margin:0;font-family:sans-serif;background:var(--bg);color:var(--text);display:grid;place-items:center;min-height:100vh;}
     .app{width:980px;max-width:96vw;background:var(--panel);border:1px solid #252b39;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;}
@@ -16,45 +15,76 @@
     .panel{background:#121521;border:1px solid #242a38;border-radius:12px;padding:16px;}
 
     /* Roll area and banners */
-    .roll-area{min-height:320px;display:grid;place-items:center;position:relative;overflow:hidden;}
+    .roll-area{min-height:340px;display:grid;place-items:center;position:relative;overflow:hidden;}
     .result{font-size:28px;font-weight:700;text-align:center;position:relative;z-index:2;}
     .rarity{margin-top:6px;font-size:14px;font-weight:600;text-transform:uppercase;position:relative;z-index:2;}
-    .banner{position:absolute;left:50%;transform:translateX(-50%);font-weight:700;text-align:center;opacity:0;pointer-events:none;padding:6px 10px;border-radius:10px;z-index:3;}
+    .banner{position:absolute;left:50%;transform:translateX(-50%);font-weight:700;text-align:center;opacity:0;pointer-events:none;padding:6px 10px;border-radius:10px;z-index:4;}
     .banner.luck{top:14px;font-size:18px;color:var(--gold);}
     .banner.new{top:120px;color:var(--accent);font-size:16px;}
     .banner.announce{top:14px;font-size:16px;border:1px solid #2a3449;background:#1b2232;}
     .banner.weather{top:14px;font-size:18px;color:var(--weather);}
     .fadeout{animation:fadeout 3.6s forwards;}
-    @keyframes fadeout{0%{opacity:1;filter:blur(0)}70%{opacity:1;}100%{opacity:0;filter:blur(4px)}}
+    @keyframes fadeout{0%{opacity:1}70%{opacity:1}100%{opacity:0;filter:blur(4px)}}
 
     /* Active effects bottom-right (stacked vertically) */
     .active-effects{
       position:absolute;bottom:10px;right:10px;font-size:12px;text-align:right;max-width:60%;
-      display:flex;flex-direction:column;align-items:flex-end;gap:2px;z-index:3;
+      display:flex;flex-direction:column;align-items:flex-end;gap:4px;z-index:4;
     }
     .effect-entry{
-      font-weight:600;display:block;padding:2px 6px;border-radius:8px;border:1px solid #2a3449;background:#1b2232;
+      font-weight:600;display:block;padding:4px 8px;border-radius:8px;border:1px solid #2a3449;background:#1b2232;
     }
 
-    /* Weather backdrops */
+    /* Weather backdrops and animations */
     .weather-bg{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;animation:weatherFadeIn .8s ease-out forwards;}
     @keyframes weatherFadeIn{from{opacity:0}to{opacity:1}}
-    .wb-sunny{background:radial-gradient(120% 120% at 50% 10%, rgba(255,215,120,0.25), transparent 60%), linear-gradient(180deg, rgba(255,232,170,0.08), rgba(0,0,0,0));}
-    .wb-storm{background:linear-gradient(180deg, rgba(50,70,120,0.25), rgba(0,0,0,0));}
-    .wb-blizzard{background:linear-gradient(180deg, rgba(180,220,255,0.18), rgba(0,0,0,0));}
-    .wb-meteor{background:radial-gradient(160% 160% at 20% -20%, rgba(255,120,80,0.20), transparent 60%), linear-gradient(180deg, rgba(120,50,30,0.20), rgba(0,0,0,0));}
-    .wb-aurora{background:radial-gradient(100% 100% at 20% 0%, rgba(80,220,180,0.25), transparent 60%), radial-gradient(100% 100% at 80% 0%, rgba(150,120,255,0.20), transparent 60%);}
-    .wb-eclipse{background:radial-gradient(100% 100% at 50% 50%, rgba(25,15,35,0.75), rgba(0,0,0,0.6)), radial-gradient(80% 80% at 50% 50%, rgba(255,180,100,0.08), transparent 70%); box-shadow: inset 0 0 240px rgba(0,0,0,0.7);}
-    .wb-tempest{background:radial-gradient(120% 120% at 70% 10%, rgba(40,140,255,0.15), transparent 60%), radial-gradient(140% 140% at 30% 90%, rgba(180,40,255,0.15), transparent 60%), linear-gradient(180deg, rgba(0,20,40,0.6), rgba(0,0,0,0.6));}
 
-    /* Subtle particles */
-    .particles{position:absolute;inset:0;overflow:hidden;filter:blur(0.3px);opacity:0.35}
-    .particle{position:absolute;border-radius:50%;background:currentColor;animation:float 6s linear infinite;}
-    @keyframes float{
-      0%{transform:translateY(120%);opacity:0}
-      10%{opacity:0.6}
-      90%{opacity:0.6}
-      100%{transform:translateY(-20%);opacity:0}
+    .wb-sunny{background:radial-gradient(120% 120% at 50% 10%, rgba(255,215,120,0.22), transparent 60%), linear-gradient(180deg, rgba(255,232,170,0.08), rgba(0,0,0,0));}
+    .wb-storm{background:linear-gradient(180deg, rgba(30,40,70,0.55), rgba(0,0,0,0.6));}
+    .wb-blizzard{background:linear-gradient(180deg, rgba(200,230,255,0.22), rgba(0,0,0,0.45));}
+    .wb-meteor{background:radial-gradient(160% 160% at 20% -20%, rgba(255,120,80,0.20), transparent 60%), linear-gradient(180deg, rgba(120,50,30,0.25), rgba(0,0,0,0.5));}
+    .wb-aurora{background:
+      radial-gradient(80% 80% at 20% 0%, rgba(80,220,180,0.22), transparent 60%),
+      radial-gradient(80% 80% at 80% 10%, rgba(150,120,255,0.20), transparent 60%),
+      linear-gradient(180deg, rgba(10,20,30,0.6), rgba(0,0,0,0.6));}
+    .wb-eclipse{background:
+      radial-gradient(100% 100% at 50% 50%, rgba(15,5,25,0.85), rgba(0,0,0,0.7)),
+      radial-gradient(80% 80% at 50% 60%, rgba(255,180,100,0.08), transparent 70%);
+      box-shadow: inset 0 0 260px rgba(0,0,0,0.7);
+    }
+    .wb-tempest{background:
+      radial-gradient(120% 120% at 70% 10%, rgba(40,140,255,0.18), transparent 60%),
+      radial-gradient(130% 130% at 30% 90%, rgba(180,40,255,0.16), transparent 60%),
+      linear-gradient(180deg, rgba(0,20,40,0.7), rgba(0,0,0,0.7));}
+    .wb-fog{background:radial-gradient(100% 100% at 50% 50%, rgba(185,195,210,0.12), rgba(0,0,0,0.5));}
+
+    /* Particles base container */
+    .particles{position:absolute;inset:0;overflow:hidden;filter:blur(0.3px);opacity:0.4}
+
+    /* Rain */
+    .rain-drop{position:absolute;width:2px;height:16px;background:linear-gradient(to bottom, rgba(180,200,255,0.9), rgba(180,200,255,0.2)); border-radius:1px;}
+    @keyframes rainFall{0%{transform:translateY(-40px)}100%{transform:translateY(380px)}}
+
+    /* Snow */
+    .snow-flake{position:absolute;width:6px;height:6px;background:white;border-radius:50%;opacity:0.9;box-shadow:0 0 6px rgba(255,255,255,0.5);}
+    @keyframes snowFall{
+      0%{transform:translateY(-20px) translateX(0)}
+      50%{transform:translateY(180px) translateX(12px)}
+      100%{transform:translateY(380px) translateX(0)}
+    }
+
+    /* Fog */
+    .fog-mist{position:absolute;left:-40%;top:0;width:180%;height:120%;background:
+      radial-gradient(circle at 30% 40%, rgba(255,255,255,0.08), transparent 60%),
+      radial-gradient(circle at 70% 60%, rgba(255,255,255,0.06), transparent 60%);
+      filter:blur(6px);
+      opacity:0.7;
+      animation:fogDrift 24s linear infinite;
+    }
+    @keyframes fogDrift{
+      0%{transform:translateX(0)}
+      50%{transform:translateX(8%)}
+      100%{transform:translateX(0)}
     }
 
     /* Controls */
@@ -106,7 +136,6 @@
     .b-divine{background:#2a2a12;color:#ffd700;} .b-celestial{background:#142a2a;color:#7affff;}
     .b-transcendent{background:#1a1a2f;color:#a0a7ff;} .b-eternal{background:#1a2f2a;color:#9cf2c7;}
     .b-omniversal{background:#2f1a2f;color:#ff9cff;}
-    .b-secret{background:linear-gradient(180deg, #0d0a14, #1c1430); color:#e0d1ff; border:1px solid #3b2a66;}
     .b-exclusive{background:linear-gradient(270deg,red,orange,yellow,green,blue,indigo,violet);background-size:400% 400%;animation:rainbow 6s linear infinite;color:white;}
     @keyframes rainbow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 
@@ -182,7 +211,7 @@
       {key:"transcendent",name:"Transcendent",weight:4,colorClass:"b-transcendent"},
       {key:"eternal",name:"Eternal",weight:2,colorClass:"b-eternal"},
       {key:"omniversal",name:"Omniversal",weight:1,colorClass:"b-omniversal"},
-      {key:"secret",name:"Secret",weight:0,colorClass:"b-secret"} // special: only during certain weathers
+      {key:"exclusive",name:"Exclusive",weight:0,colorClass:"b-exclusive"} // event-only drops
     ];
 
     const INDEX_ITEMS={
@@ -199,7 +228,7 @@
       transcendent:["Transcendent Eye","Omni Sigil","Hyperion Core","Timeweaver Crest","Axis Heart","Prime Star","Beyond Rune","Unbound Halo","Perennial Flame","Limitless Gem","Meta Crown","Supernal Tear"],
       eternal:["Eternal Bloom","Forever Star","Unending Crown","Ceaseless Orb","Timeless Fang","Endless Prism","Sempiternal Rune","Undying Flame","Ageless Halo","Perpetual Core","Immortal Sigil","Infinite Diadem"],
       omniversal:["Omniversal Heart","All-Crown","Totality Core","Panreality Halo","Absolute Sigil","Everything Rune","Boundless Star","Cosmos Crown","Axis of All","Prime Totality","Universal Eye","Omega Diadem"],
-      secret:["Eclipse Gem","Cosmic Gem"] // revealed only via events
+      exclusive:["Eclipse Gem","Cosmic Gem"] // event-only
     };
 
     /* ---------------- Consumables & Totems ---------------- */
@@ -215,10 +244,11 @@
       common:[
         { name:"Luck Potion", rarity:"common", type:"luck", amount:0.25, duration:90 },
         { name:"Charm of Fortune", rarity:"common", type:"bias", target:"rare", amount:0.07, duration:60 },
-        // Basic weather totems (now Legendary rarity baseline)
+        // Basic weather totems (Legendary)
         { name:"Storm Totem", rarity:"legendary", type:"totem", weather:"Storm" },
         { name:"Blizzard Totem", rarity:"legendary", type:"totem", weather:"Blizzard" },
         { name:"Sun Totem", rarity:"legendary", type:"totem", weather:"Sunny Radiance" },
+        { name:"Fog Totem", rarity:"legendary", type:"totem", weather:"Fog" },
         // Random Event Totem (Divine)
         { name:"Random Event Totem", rarity:"divine", type:"totem_random" }
       ],
@@ -272,26 +302,26 @@
         { name:"Origin Draught of Speed", rarity:"omniversal", type:"speed", amount:2.50, duration:25 },
         { name:"Origin Crystal", rarity:"omniversal", type:"guarantee", amount:1, duration:1 }
       ],
-      secret:[]
+      exclusive:[]
     };
 
-    const LUCK_TARGET_KEYS=["rare","epic","legendary","mythic","divine","celestial","transcendent","eternal","omniversal","secret"];
+    const LUCK_TARGET_KEYS=["rare","epic","legendary","mythic","divine","celestial","transcendent","eternal","omniversal","exclusive"];
 
     /* ---------------- Weather definitions & effects ---------------- */
     const WEATHERS = {
       normal: [
-        {name:"Storm", colorClass:"b-rare", effects:{luck:+0.10}},
-        {name:"Blizzard", colorClass:"b-epic", effects:{luck:+0.12}},
-        {name:"Sunny Radiance", colorClass:"b-common", effects:{luck:+0.05}}
+        {name:"Storm", colorClass:"b-rare", effects:{luck:+0.12}},
+        {name:"Blizzard", colorClass:"b-epic", effects:{luck:+0.15}},
+        {name:"Sunny Radiance", colorClass:"b-common", effects:{luck:+0.06}},
+        {name:"Fog", colorClass:"b-uncommon", effects:{luck:+0.08}}
       ],
       rare: [
-        {name:"Meteor Storm", colorClass:"b-legendary", effects:{luck:+0.20}},
-        {name:"Aurora Veil", colorClass:"b-mythic", effects:{luck:+0.25}}
+        {name:"Meteor Storm", colorClass:"b-legendary", effects:{luck:+0.22}},
+        {name:"Aurora Veil", colorClass:"b-mythic", effects:{luck:+0.28}}
       ],
       super: [
-        // These two unlock Secret drops and provide targeted boosts
-        {name:"Eternal Eclipse", colorClass:"b-divine", effects:{luck:+0.75, biasItem:{name:"Timeweaver Crest", boost:+0.50}}},
-        {name:"Cosmic Tempest", colorClass:"b-omniversal", effects:{luck:+0.60, biasItem:{name:"Axis of All", boost:+0.35}}}
+        {name:"Eternal Eclipse", colorClass:"b-divine", effects:{luck:+0.80, biasItem:{name:"Timeweaver Crest", boost:+0.50}}},
+        {name:"Cosmic Tempest", colorClass:"b-omniversal", effects:{luck:+0.65, biasItem:{name:"Axis of All", boost:+0.35}}}
       ]
     };
 
@@ -319,7 +349,7 @@
     /* ---------------- State ---------------- */
     const ROLLED_MAX=10;
     const ITEMS_MAX=50;
-    const BASE_AUTO_INTERVAL=140; // ms (slightly slower default; speed effect matters)
+    const BASE_AUTO_INTERVAL=140; // ms
     const MAX_EFFECT_SECONDS=250;
 
     const state={
@@ -333,8 +363,8 @@
       autoSellItems:"off",
       fullAnnouncedRolled:false,
       fullAnnouncedItems:false,
-      activeEffects:{ luck:0, speed:0, bias:{}, weatherBiasItem:null }, // derived totals (+ optional item bias)
-      effectInstances:[], // {name,type,amount,target?,expiresAt,rarityKey,weather?}
+      activeEffects:{ luck:0, speed:0, bias:{}, weatherBiasItem:null }, // derived totals
+      effectInstances:[], // {name,type,amount,target?,expiresAt,rarityKey,weather?,meta?}
       mode:"Rolled"
     };
 
@@ -381,7 +411,7 @@
     function spawnBanner(text,type,colorClass){
       const rollArea=document.getElementById("rollArea");
       const div=document.createElement("div");
-      const useType = type==="activate" ? "luck" : type; // activation at luck position
+      const useType = type==="activate" ? "luck" : type;
       div.className=`banner ${useType} fadeout ${colorClass?colorClass:''}`;
       div.textContent=text;
       div.addEventListener("animationend",()=>div.remove());
@@ -392,14 +422,14 @@
       const order=TIERS.map(t=>t.key);
       const thr=state.autoSellRolled;
       if(thr==="off") return false;
-      if(tierKey==="secret") return false;
+      if(tierKey==="exclusive") return false;
       return order.indexOf(tierKey) <= order.indexOf(thr);
     }
     function shouldAutoSellItems(tierKey){
       const order=TIERS.map(t=>t.key);
       const thr=state.autoSellItems;
       if(thr==="off") return false;
-      if(tierKey==="secret") return false;
+      if(tierKey==="exclusive") return false;
       return order.indexOf(tierKey) <= order.indexOf(thr);
     }
 
@@ -438,16 +468,14 @@
 
     /* Items much rarer; group rarity penalty (+2 tiers) and large divisor */
     function buildItemTierWeightsFromIndex(baseTiers){
-      // Shift item weights down by 2 rarity steps: epic items behave like mythic odds, etc.
       const order = baseTiers.map(t=>t.key);
-      const shifted = baseTiers.map(t=>{
-        let idx = order.indexOf(t.key);
-        let penalizedKey = order[Math.min(idx+2, order.length-1)];
+      return baseTiers.map(t=>{
+        const idx = order.indexOf(t.key);
+        const penalizedKey = order[Math.min(idx+2, order.length-1)];
         const penalizedTier = baseTiers.find(x=>x.key===penalizedKey);
-        const weight = (penalizedTier?.weight || t.weight) / 8000; // harsher divisor → items rarer
+        const weight = (penalizedTier?.weight || t.weight) / 8000; // harsher divisor → rarer items
         return { ...t, weight };
       });
-      return shifted;
     }
 
     function pickConsumableFromTier(tierKey){
@@ -456,14 +484,12 @@
       return list[Math.floor(Math.random()*list.length)];
     }
 
-    /* ---------------- Weather backdrop rendering ---------------- */
+    /* ---------------- Weather backdrop & animations ---------------- */
     function renderWeatherBackdrop(){
       const area = document.getElementById("rollArea");
-      // Remove old BG
       const old = area.querySelector(".weather-bg");
       if(old) old.remove();
 
-      // find active weather
       const now = Date.now();
       const weather = state.effectInstances.find(e=>e.type==="weather" && e.expiresAt>now);
       if(!weather) return;
@@ -475,40 +501,61 @@
         "Meteor Storm":"wb-meteor",
         "Aurora Veil":"wb-aurora",
         "Eternal Eclipse":"wb-eclipse",
-        "Cosmic Tempest":"wb-tempest"
+        "Cosmic Tempest":"wb-tempest",
+        "Fog":"wb-fog"
       };
       const bg = document.createElement("div");
-      bg.className = "weather-bg " + (map[weather.name] || "wb-sunny");
+      const cls = map[weather.name] || "wb-sunny";
+      bg.className = "weather-bg " + cls;
 
-      // Add minimal particles for premium feel
+      // Particle layer
       const particles = document.createElement("div");
       particles.className = "particles";
-      const colors = {
-        "wb-sunny":"rgba(255,255,240,0.6)",
-        "wb-storm":"rgba(160,180,230,0.8)",
-        "wb-blizzard":"rgba(230,240,255,0.9)",
-        "wb-meteor":"rgba(255,180,130,0.7)",
-        "wb-aurora":"rgba(160,255,220,0.8)",
-        "wb-eclipse":"rgba(200,150,255,0.65)",
-        "wb-tempest":"rgba(160,140,255,0.7)"
-      };
-      const color = colors[bg.classList[1]] || "rgba(255,255,255,0.6)";
-      for(let i=0;i<16;i++){
-        const p=document.createElement("span");
-        p.className="particle";
-        p.style.color = color;
-        p.style.width = (Math.random()*3+1)+"px";
-        p.style.height = p.style.width;
-        p.style.left = Math.floor(Math.random()*100)+"%";
-        p.style.animationDuration = (5+Math.random()*4)+"s";
-        p.style.animationDelay = (Math.random()*2)+"s";
-        particles.appendChild(p);
+
+      // Dynamic animation content per weather
+      if(cls==="wb-storm"){
+        for(let i=0;i<80;i++){
+          const p=document.createElement("span");
+          p.className="rain-drop";
+          p.style.left = Math.floor(Math.random()*100)+"%";
+          p.style.top = (-60 - Math.random()*120) + "px";
+          p.style.animation = `rainFall ${0.8 + Math.random()*0.6}s linear infinite`;
+          p.style.opacity = 0.5 + Math.random()*0.5;
+          particles.appendChild(p);
+        }
+      } else if(cls==="wb-blizzard"){
+        for(let i=0;i<50;i++){
+          const s=document.createElement("span");
+          s.className="snow-flake";
+          s.style.left = Math.floor(Math.random()*100)+"%";
+          s.style.top = (-40 - Math.random()*160) + "px";
+          s.style.animation = `snowFall ${3.5 + Math.random()*2}s linear infinite`;
+          s.style.opacity = 0.6 + Math.random()*0.4;
+          particles.appendChild(s);
+        }
+      } else if(cls==="wb-fog"){
+        const fog=document.createElement("div");
+        fog.className="fog-mist";
+        particles.appendChild(fog);
+      } else {
+        // Premium sparkles for aurora/meteor/tempest/eclipse
+        for(let i=0;i<16;i++){
+          const p=document.createElement("span");
+          p.className="snow-flake"; // reuse small glow dots
+          p.style.left = Math.floor(Math.random()*100)+"%";
+          p.style.top = (Math.random()*320) + "px";
+          p.style.width = p.style.height = (Math.random()*3+2)+"px";
+          p.style.animation = "none";
+          p.style.opacity = 0.35;
+          particles.appendChild(p);
+        }
       }
+
       bg.appendChild(particles);
       area.appendChild(bg);
     }
 
-    /* ---------------- Effects (timed instances + derived totals) ---------------- */
+    /* ---------------- Effects (timed instances + totals) ---------------- */
     function deriveEffectsTotals(){
       const totals={ luck:0, speed:0, bias:{}, weatherBiasItem:null };
       const now=Date.now();
@@ -518,15 +565,15 @@
         else if(e.type==="speed") totals.speed += e.amount;
         else if(e.type==="bias"){
           totals.bias[e.target] = (totals.bias[e.target]||0) + e.amount;
-        } else if(e.type==="weather" && e.meta && e.meta.biasItem){
-          totals.weatherBiasItem = e.meta.biasItem; // {name, boost}
+        } else if(e.type==="weather" && e.meta){
+          totals.weatherBiasItem = e.meta.biasItem || null;
           totals.luck += (e.meta.luck || 0);
         }
       }
       state.activeEffects = totals;
     }
 
-    // Stacking logic with max 250s cap; weather stacks duration only
+    // Stack with max cap; weather stacks duration only
     function addEffect(effect){
       const now = Date.now();
       const durMs = (effect.duration||0) * 1000;
@@ -535,7 +582,7 @@
       const keyMatch = e =>
         e.name === effect.name &&
         (effect.type === "weather" ? e.type==="weather" : e.type === effect.type) &&
-        (e.target || null) === (effect.target || null);
+        (e.target || null) === (e.type==="bias" ? (effect.target || null) : (e.target || null));
 
       const existingIdx = state.effectInstances.findIndex(keyMatch);
 
@@ -545,7 +592,7 @@
         const extended = Math.min(capMs, remaining + durMs);
         existing.expiresAt = now + extended;
         if(effect.type!=="weather"){
-          existing.amount += (effect.amount||0); // stack amount for non-weather
+          existing.amount += (effect.amount||0);
         } else {
           existing.meta = effect.meta || existing.meta;
         }
@@ -602,9 +649,8 @@
         const colorClass = TIERS.find(t=>t.key===e.rarityKey)?.colorClass || "";
         const div=document.createElement("div");
         div.className=`effect-entry ${colorClass}`;
-        const label = e.type==="weather" ? `${e.name}: ${left}`
-                   : `${e.name}: ${left}`;
-        div.textContent = label;
+        // Transparent format: [item_name]: [time]
+        div.textContent = `${e.name}: ${left}`;
         el.appendChild(div);
       }
     }
@@ -617,7 +663,7 @@
     function showGlow(){ const rollArea=document.getElementById("rollArea"); const g=document.createElement("div"); g.className="glow"; rollArea.appendChild(g); setTimeout(()=>g.remove(),1100); }
 
     /* ---------------- Mode & Auto-Sell carousels ---------------- */
-    const autoSellOptions=["off","worthless","trash","common","uncommon","rare","epic","legendary","mythic","divine","celestial","transcendent","eternal","omniversal","secret"];
+    const autoSellOptions=["off","worthless","trash","common","uncommon","rare","epic","legendary","mythic","divine","celestial","transcendent","eternal","omniversal","exclusive"];
 
     function setAutoSell(value){
       if(state.mode==="Items"){
@@ -718,14 +764,14 @@
       const milestone=luckMilestoneForRoll(upcoming);
       if(milestone>1) spawnBanner(`${milestone}x luck activated`,"luck");
 
-      // Build tiers; secret not normally rollable unless event gate
-      let tiers=TIERS.filter(t=>t.key!=="secret");
+      // Build tiers; exclusive is event-only
+      let tiers=TIERS.filter(t=>t.key!=="exclusive");
       tiers = applyWeightModifiers(tiers, milestone);
 
-      // Weather secret gate (only during Eternal Eclipse or Cosmic Tempest)
+      // Weather event gate (exclusive only during Eclipse or Tempest)
       const now = Date.now();
       const wEff = state.effectInstances.find(e=>e.type==="weather" && e.expiresAt>now);
-      const secretActive = wEff && (wEff.name==="Eternal Eclipse" || wEff.name==="Cosmic Tempest");
+      const exclusiveActive = wEff && (wEff.name==="Eternal Eclipse" || wEff.name==="Cosmic Tempest");
 
       // Weighted pick
       const chances=toChances(tiers);
@@ -733,23 +779,22 @@
       let tierKey = pickedTier.key;
       let tierName = pickedTier.name;
 
-      // Rare opportunity to override tier to secret during events (but far rarer than Omniversal)
-      if(secretActive){
-        const secretGateBase = 0.00005; // 0.005% baseline during event
+      // Rare override to Exclusive during events (rarer than Omniversal)
+      if(exclusiveActive){
+        const secretGateBase = 0.00005; // 0.005%
         const luckBoostSecret = Math.min(0.00002, (state.activeEffects.luck||0) * 0.000005);
-        const passSecret = Math.random() < (secretGateBase + luckBoostSecret);
-        if(passSecret){
-          tierKey = "secret";
-          tierName = "Secret";
+        const passExclusive = Math.random() < (secretGateBase + luckBoostSecret);
+        if(passExclusive){
+          tierKey = "exclusive";
+          tierName = "Exclusive";
         }
       }
 
-      // Items much rarer overall; base coin dramatically reduced and impacted by luck softly
-      const itemTiers = buildItemTierWeightsFromIndex(TIERS.filter(t=>t.key!=="secret"));
+      // Items: far rarer with penalties
+      const itemTiers = buildItemTierWeightsFromIndex(TIERS.filter(t=>t.key!=="exclusive"));
       const itemWeighted = applyWeightModifiers(itemTiers, milestone);
       const itemChances = toChances(itemWeighted);
 
-      // Base item coin, far lower + soft luck
       const baseItemChance = 0.02; // 2% base
       const luckBoost = Math.min(0.03, (state.activeEffects.luck||0) * 0.015);
       const rollItem = Math.random() < (baseItemChance + luckBoost);
@@ -760,7 +805,7 @@
       let displayName=null;
       let displayRarityClass=null;
 
-      // Weather item bias: boost chance a specific index item appears while rolling index
+      // Weather item bias: boost chance a specific index item appears
       function tryWeatherItemBias(defaultTierKey){
         const bias = state.activeEffects.weatherBiasItem; // {name, boost}
         if(!bias) return null;
@@ -774,11 +819,11 @@
         const itemTier = pickTier(itemChances);
         const drop = pickConsumableFromTier(itemTier.key);
         if(drop){
-          // Totem gates updated by category rarity
           const isTotem = drop.type==="totem" || drop.type==="totem_random";
           let allow = true;
           if(isTotem){
-            // Basic totems: Legendary → gate 1/220; Rare totems: Divine → 1/350; Super totems: Transcendent → 1/500; Random: Divine → 1/350
+            // Gates tuned to your spec
+            // basic (legendary): 1/220, rare (divine): 1/350, super (transcendent): 1/500, random (divine): 1/350
             if(drop.type==="totem_random"){ allow = Math.random() < (1/350); }
             else {
               const wName = drop.weather || "";
@@ -799,7 +844,7 @@
               }
             }
           } else {
-            // failed gate → fall back to index
+            // fallback to index on gate fail
             const biasPick = tryWeatherItemBias(tierKey);
             const itemName = biasPick || pickIndexItem(tierKey);
             displayName = itemName || tierName;
@@ -808,7 +853,6 @@
             if(itemName) isNew = markNew(tierKey, itemName);
           }
         } else {
-          // fallback to normal index
           const biasPick = tryWeatherItemBias(tierKey);
           const itemName = biasPick || pickIndexItem(tierKey);
           displayName = itemName || tierName;
@@ -817,18 +861,17 @@
           if(itemName) isNew = markNew(tierKey, itemName);
         }
       } else {
-        // Index roll, including secret event-only items
-        if(tierKey==="secret"){
-          // Decide which secret based on weather
+        // Index roll (including Exclusive event-only)
+        if(tierKey==="exclusive"){
           const wName = wEff?.name || "";
           let candidates = [];
           if(wName==="Eternal Eclipse") candidates = ["Eclipse Gem"];
           else if(wName==="Cosmic Tempest") candidates = ["Cosmic Gem"];
           const itemName = candidates.length ? candidates[Math.floor(Math.random()*candidates.length)] : null;
-          displayName = itemName || "Secret";
-          displayRarityClass = "b-secret";
-          processIndexItem("secret", "Secret", itemName, milestone);
-          if(itemName) isNew = markNew("secret", itemName);
+          displayName = itemName || "Exclusive";
+          displayRarityClass = "b-exclusive";
+          processIndexItem("exclusive", "Exclusive", itemName, milestone);
+          if(itemName) isNew = markNew("exclusive", itemName);
         } else {
           const biasPick = tryWeatherItemBias(tierKey);
           const itemName = biasPick || pickIndexItem(tierKey);
@@ -903,21 +946,21 @@
         const section=document.createElement("div");
         section.className="index-section";
         const comp=tierCompletion(tier.key);
-        const isSecret = tier.key==="secret";
-        const badge = `<span class="badge ${tier.colorClass}">${isSecret?'Secret (Event)':tier.name}</span>`;
-        const percentHtml = `<div class="completion ${isSecret?'locked':''}">${isSecret? '—' : comp.percent + '%'}</div>`;
+        const isExclusive = tier.key==="exclusive";
+        const badge = `<span class="badge ${tier.colorClass}">${isExclusive?'Exclusive':tier.name}</span>`;
+        const percentHtml = `<div class="completion ${isExclusive?'locked':''}">${isExclusive? '—' : comp.percent + '%'}</div>`;
         section.innerHTML=`
           <h4>${badge}</h4>
           ${percentHtml}
         `;
         const ul=document.createElement("ul"); ul.className="index-list";
         const items=INDEX_ITEMS[tier.key]||[];
-        if(isSecret){
+        if(isExclusive){
           ["Eclipse Gem","Cosmic Gem"].forEach(n=>{
             const li=document.createElement("li"); li.className="index-item";
             const unlocked=!!state.unlocks[tier.key][n];
             li.innerHTML=`<span class="${unlocked? "": "locked"}">${n}</span>
-                          <span class="${unlocked? "unlocked": "locked"}">${unlocked? "Unlocked": "Event-locked"}</span>`;
+                          <span class="${unlocked? "unlocked": "locked"}">${unlocked? "Unlocked": "Locked"}</span>`;
             ul.appendChild(li);
           });
         } else if(!items.length){
@@ -1024,7 +1067,8 @@
           const meta = { luck: (metaSrc?.effects?.luck)||0, biasItem: (metaSrc?.effects?.biasItem)||null };
           addEffect({ name: eff.weather, type:"weather", duration: dur, rarity: classToTierKey(colorClassForWeather(eff.weather)), meta });
           const colorClass = colorClassForWeather(eff.weather);
-          spawnBanner(`${entry.name} summoned ${eff.weather}`,"weather",colorClass);
+          spawnBanner(`Activated ${entry.name}`,"activate",colorClass); // same color as active effect entry
+          spawnBanner(`${eff.weather} started`, "weather", colorClass);
         } else if(eff.type==="totem_random"){
           // Summon random weather with category weights
           const r=Math.random();
@@ -1035,12 +1079,13 @@
           const dur = 100 + Math.floor(Math.random()*201);
           const meta = { luck: (w.effects?.luck)||0, biasItem: (w.effects?.biasItem)||null };
           addEffect({ name: w.name, type:"weather", duration: dur, rarity: classToTierKey(w.colorClass), meta });
-          spawnBanner(`${entry.name} summoned ${w.name}`,"weather",w.colorClass);
+          spawnBanner(`Activated ${entry.name}`,"activate",w.colorClass); // match effect color
+          spawnBanner(`${w.name} started`,"weather",w.colorClass);
         } else {
           // Timed stat effect with stacking
           addEffect({ name: eff.name, type: eff.type, amount: eff.amount, target: eff.target, duration: eff.duration, rarity: eff.rarity });
           const colorClass = TIERS.find(t=>t.key===eff.rarity)?.colorClass || "";
-          spawnBanner(`Activated ${entry.name}`,"activate",colorClass);
+          spawnBanner(`Activated ${entry.name}`,"activate",colorClass); // match active effect color
         }
       }
       deleteItemEntry(entry);
@@ -1079,7 +1124,6 @@
     } else {
       elAutoBtn.textContent=state.rolls>=50?"Auto Roll: Off":"Auto Roll (locked)";
     }
-    // Start weather scheduler
     scheduleNextWeather();
   </script>
 </body>
