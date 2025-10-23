@@ -25,9 +25,14 @@
     .fadeout{animation:fadeout 3.6s forwards;}
     @keyframes fadeout{0%{opacity:1;filter:blur(0)}70%{opacity:1;}100%{opacity:0;filter:blur(4px)}}
 
-    /* Active effects bottom-right (timed entries only) */
-    .active-effects{position:absolute;bottom:10px;right:10px;font-size:12px;text-align:right;max-width:46%;}
-    .effect-entry{margin-top:2px;font-weight:600;display:inline-block;padding:2px 6px;border-radius:8px;border:1px solid #2a3449;background:#1b2232;}
+    /* Active effects bottom-right (stacked vertically) */
+    .active-effects{
+      position:absolute;bottom:10px;right:10px;font-size:12px;text-align:right;max-width:46%;
+      display:flex;flex-direction:column;align-items:flex-end;gap:2px;
+    }
+    .effect-entry{
+      font-weight:600;display:block;padding:2px 6px;border-radius:8px;border:1px solid #2a3449;background:#1b2232;
+    }
 
     /* Controls */
     .controls{display:flex;gap:12px;padding-top:12px;flex-wrap:wrap;align-items:center;}
@@ -313,12 +318,16 @@
     /* ---------------- Utils ---------------- */
     function clone(o){ return JSON.parse(JSON.stringify(o)); }
     function sumWeights(a){ return a.reduce((s,r)=>s+r.weight,0); }
-    function luckMilestoneForRoll(n){ if(n===250) return 10; if(n===50) return 2; return 1; }
+
+    // Updated: 2x at 50, 10x at 200 to match your note
+    function luckMilestoneForRoll(n){ if(n===200) return 10; if(n===50) return 2; return 1; }
 
     function spawnBanner(text,type,colorClass){
       const rollArea=document.getElementById("rollArea");
       const div=document.createElement("div");
-      div.className=`banner ${type} fadeout ${colorClass?colorClass:''}`;
+      // Force activation banners to appear in the same top position as luck
+      const useType = type==="activate" ? "luck" : type;
+      div.className=`banner ${useType} fadeout ${colorClass?colorClass:''}`;
       div.textContent=text;
       div.addEventListener("animationend",()=>div.remove());
       rollArea.appendChild(div);
@@ -390,16 +399,36 @@
       state.activeEffects = totals;
     }
 
+    // Stacking logic: same-name effects merge (amount adds; timer extends by duration)
     function addEffect(effect){
-      const inst={
-        name: effect.name,
-        type: effect.type,
-        amount: effect.amount,
-        target: effect.target,
-        expiresAt: Date.now() + (effect.duration*1000),
-        rarityKey: effect.rarity
-      };
-      state.effectInstances.push(inst);
+      const now = Date.now();
+      const durMs = effect.duration * 1000;
+      const existingIdx = state.effectInstances.findIndex(e =>
+        e.name === effect.name &&
+        e.type === effect.type &&
+        (e.target || null) === (effect.target || null)
+      );
+
+      if(existingIdx >= 0){
+        const existing = state.effectInstances[existingIdx];
+        // Extend expiry by new duration (adds on top of remaining time)
+        existing.expiresAt = Math.max(existing.expiresAt, now) + durMs;
+        // Stack amounts
+        existing.amount += effect.amount;
+        // Keep the highest rarity color if you want; here we keep the newest rarity
+        existing.rarityKey = effect.rarity;
+      } else {
+        const inst={
+          name: effect.name,
+          type: effect.type,
+          amount: effect.amount,
+          target: effect.target,
+          expiresAt: now + durMs,
+          rarityKey: effect.rarity
+        };
+        state.effectInstances.push(inst);
+      }
+
       deriveEffectsTotals();
       saveState();
       renderActiveEffects();
@@ -416,7 +445,6 @@
         saveState();
         updateAutoInterval();
       }
-      // Always refresh the visible timers each tick
       renderActiveEffects();
     },1000);
 
@@ -429,13 +457,20 @@
       const el=document.getElementById("activeEffects");
       el.innerHTML="";
       const now=Date.now();
-      const active=state.effectInstances.filter(e=>e.expiresAt>now).sort((a,b)=>a.expiresAt-b.expiresAt);
+      const active=state.effectInstances
+        .filter(e=>e.expiresAt>now)
+        .sort((a,b)=>a.expiresAt-b.expiresAt);
       for(const e of active){
         const left = formatSecondsLeft(e.expiresAt - now);
-        const div=document.createElement("div");
         const colorClass = TIERS.find(t=>t.key===e.rarityKey)?.colorClass || "";
+        const div=document.createElement("div");
         div.className=`effect-entry ${colorClass}`;
-        div.textContent = `${e.name}: ${left}`;
+        // Compact stacked descriptor
+        const desc = e.type==="luck" ? `Luck +${Math.round(e.amount*100)}%`
+                  : e.type==="speed" ? `Speed +${Math.round(e.amount*100)}%`
+                  : e.type==="bias" ? `Bias → ${e.target.toUpperCase()} +${Math.round(e.amount*100)}%`
+                  : e.type==="guarantee" ? `Guarantee highest next roll` : "";
+        div.textContent = `${e.name}: ${left} ${desc? '• '+desc : ''}`;
         el.appendChild(div);
       }
     }
@@ -695,11 +730,11 @@
       }
     }
     function useItemEntry(entry){
-      // Apply timed effect and show colored activation banner
+      // Apply timed effect with stacking and show activation banner at luck position
       if(entry.effect){
         addEffect(entry.effect);
         const colorClass = TIERS.find(t=>t.key===entry.effect.rarity)?.colorClass || "";
-        spawnBanner(`Activated ${entry.name}`,"announce",colorClass);
+        spawnBanner(`Activated ${entry.name}`,"activate",colorClass);
       }
       // Remove one instance
       deleteItemEntry(entry);
