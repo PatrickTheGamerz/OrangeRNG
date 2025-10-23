@@ -83,8 +83,8 @@
     .b-transcendent{background:#1a1a2f;color:#a0a7ff;} .b-eternal{background:#1a2f2a;color:#9cf2c7;}
     .b-omniversal{background:#2f1a2f;color:#ff9cff;}
     .b-exclusive{background:linear-gradient(270deg,red,orange,yellow,green,blue,indigo,violet);background-size:400% 400%;animation:rainbow 6s linear infinite;color:white;}
-    .b-eclipse{background:#120f22;color:#a38bff;} /* eclipse gem vibe */
-    .b-cosmic{background:#0f1a22;color:#7affff;} /* cosmic gem vibe */
+    .b-eclipse{background:#120f22;color:#a38bff;}
+    .b-cosmic{background:#0f1a22;color:#7affff;}
     @keyframes rainbow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 
     /* Glow effect */
@@ -197,6 +197,33 @@
   </div>
 
   <script>
+    /* ---------------- DOM Handles (first) ---------------- */
+    const elRollArea = document.getElementById("rollArea");
+    const elResult = document.getElementById("resultText");
+    const elRarity = document.getElementById("rarityText");
+    const elActiveEffects = document.getElementById("activeEffects");
+    const elWeatherBg = document.getElementById("weatherBg");
+
+    const elBtnRoll = document.getElementById("btnRoll");
+    const elBtnAuto = document.getElementById("btnAuto");
+    const elBtnIndex = document.getElementById("btnIndex");
+    const elBtnInventory = document.getElementById("btnInventory");
+
+    const elIndexPanel = document.getElementById("indexPanel");
+    const elIndexGrid = document.getElementById("indexGrid");
+    const elIndexCompletion = document.getElementById("indexCompletion");
+
+    const elInventoryPanel = document.getElementById("inventoryPanel");
+    const elInventoryList = document.getElementById("inventoryList");
+
+    const elAutoSellPrev = document.getElementById("autoSellPrev");
+    const elAutoSellNext = document.getElementById("autoSellNext");
+    const elAutoSellValue = document.getElementById("autoSellValue");
+
+    const elModePrev = document.getElementById("modePrev");
+    const elModeNext = document.getElementById("modeNext");
+    const elModeValue = document.getElementById("modeValue");
+
     /* ---------------- Tiers & Items ---------------- */
     const TIERS=[
       {key:"worthless",name:"Worthless",weight:1200000,colorClass:"b-worthless"},
@@ -212,7 +239,7 @@
       {key:"transcendent",name:"Transcendent",weight:4,colorClass:"b-transcendent"},
       {key:"eternal",name:"Eternal",weight:2,colorClass:"b-eternal"},
       {key:"omniversal",name:"Omniversal",weight:1,colorClass:"b-omniversal"},
-      {key:"exclusive",name:"Exclusive",weight:0,colorClass:"b-exclusive"} // placeholder
+      {key:"exclusive",name:"Exclusive",weight:0,colorClass:"b-exclusive"} // event drops only
     ];
 
     const INDEX_ITEMS={
@@ -229,7 +256,7 @@
       transcendent:["Transcendent Eye","Omni Sigil","Hyperion Core","Timeweaver Crest","Axis Heart","Prime Star","Beyond Rune","Unbound Halo","Perennial Flame","Limitless Gem","Meta Crown","Supernal Tear"],
       eternal:["Eternal Bloom","Forever Star","Unending Crown","Ceaseless Orb","Timeless Fang","Endless Prism","Sempiternal Rune","Undying Flame","Ageless Halo","Perpetual Core","Immortal Sigil","Infinite Diadem"],
       omniversal:["Omniversal Heart","All-Crown","Totality Core","Panreality Halo","Absolute Sigil","Everything Rune","Boundless Star","Cosmos Crown","Axis of All","Prime Totality","Universal Eye","Omega Diadem"],
-      exclusive:["Eclipse Gem","Cosmic Gem"] // only during specific weather events
+      exclusive:["Eclipse Gem","Cosmic Gem"] // event-only
     };
 
     /* ---------------- Consumables & Totems ---------------- */
@@ -245,11 +272,9 @@
       common:[
         { name:"Luck Potion", rarity:"common", type:"luck", amount:0.25, duration:90 },
         { name:"Charm of Fortune", rarity:"common", type:"bias", target:"rare", amount:0.07, duration:60 },
-        // Basic weather totems (Legendary rarity)
         { name:"Storm Totem", rarity:"legendary", type:"totem", weather:"Storm" },
         { name:"Blizzard Totem", rarity:"legendary", type:"totem", weather:"Blizzard" },
         { name:"Sun Totem", rarity:"legendary", type:"totem", weather:"Sunny Radiance" },
-        // Random Event Totem (Divine)
         { name:"Random Event Totem", rarity:"divine", type:"totem_random" }
       ],
       uncommon:[
@@ -259,7 +284,6 @@
       rare:[
         { name:"Greater Luck Potion", rarity:"rare", type:"luck", amount:1.00, duration:60 },
         { name:"Greater Luck Charm", rarity:"rare", type:"bias", target:"legendary", amount:0.10, duration:60 },
-        // Rare weather totems (Divine)
         { name:"Meteor Storm Totem", rarity:"divine", type:"totem", weather:"Meteor Storm" },
         { name:"Aurora Veil Totem", rarity:"divine", type:"totem", weather:"Aurora Veil" }
       ],
@@ -289,7 +313,6 @@
         { name:"Paradox Brew", rarity:"transcendent", type:"luck", amount:10.00, duration:15 },
         { name:"Paradox Shard", rarity:"transcendent", type:"bias", target:"omniversal", amount:0.30, duration:60 },
         { name:"Godly Potion of Haste", rarity:"transcendent", type:"speed", amount:1.00, duration:30 },
-        // Super-rare weather totems (Transcendent)
         { name:"Eternal Eclipse Totem", rarity:"transcendent", type:"totem", weather:"Eternal Eclipse" },
         { name:"Cosmic Tempest Totem", rarity:"transcendent", type:"totem", weather:"Cosmic Tempest" }
       ],
@@ -362,7 +385,7 @@
       fullAnnouncedRolled:false,
       fullAnnouncedItems:false,
       activeEffects:{ luck:0, speed:0, bias:{} },
-      effectInstances:[], // {name,type,amount,target?,expiresAt,rarityKey,weather?}
+      effectInstances:[], // {name,type,amount,target?,expiresAt,rarityKey,weather?,bg?}
       mode:"Rolled"
     };
 
@@ -407,13 +430,12 @@
     function luckMilestoneForRoll(n){ if(n===200) return 10; if(n===50) return 2; return 1; }
 
     function spawnBanner(text,type,colorClass){
-      const rollArea=document.getElementById("rollArea");
       const div=document.createElement("div");
       const useType = type==="activate" ? "luck" : type;
       div.className=`banner ${useType} fadeout ${colorClass?colorClass:''}`;
       div.textContent=text;
       div.addEventListener("animationend",()=>div.remove());
-      rollArea.appendChild(div);
+      elRollArea.appendChild(div);
     }
 
     function shouldAutoSellRolled(tierKey){
@@ -545,7 +567,6 @@
         deriveEffectsTotals();
         saveState();
         updateAutoInterval();
-        // Reset background if weather ended
         const activeWeather = getActiveWeather();
         applyWeatherBg(activeWeather?.bg ? activeWeather.bg : "");
       }
@@ -558,8 +579,7 @@
     }
 
     function renderActiveEffects(){
-      const el=document.getElementById("activeEffects");
-      el.innerHTML="";
+      elActiveEffects.innerHTML="";
       const now=Date.now();
       const others = state.effectInstances.filter(e=>e.expiresAt>now && !e.weather).sort((a,b)=>a.expiresAt-b.expiresAt);
       const weathers = state.effectInstances.filter(e=>e.expiresAt>now && e.weather).sort((a,b)=>a.expiresAt-b.expiresAt);
@@ -572,12 +592,11 @@
         const desc = e.type==="luck" ? `Luck +${Math.round(e.amount*100)}%`
                   : e.type==="speed" ? `Speed +${Math.round(e.amount*100)}%`
                   : e.type==="bias" ? `Bias → ${e.target?.toUpperCase()} +${Math.round(e.amount*100)}%`
-                  : e.type==="guarantee" ? `Guarantee highest next roll`
-                  : e.type==="weather" ? `` : "";
+                  : e.type==="guarantee" ? `Guarantee highest next roll` : "";
         div.textContent = e.type==="weather"
           ? `${e.name}: ${left}`
           : `${e.name}: ${left}${desc? ' • '+desc : ''}`;
-        el.appendChild(div);
+        elActiveEffects.appendChild(div);
       }
     }
 
@@ -586,7 +605,7 @@
       if(state.auto){
         const mult = 1 + (state.activeEffects.speed||0);
         const interval = Math.max(40, Math.round(BASE_AUTO_INTERVAL / mult));
-        state.autoInterval = setInterval(()=>{ if(elAutoBtn.disabled){ toggleAuto(); return; } rollOnce(); }, interval);
+        state.autoInterval = setInterval(()=>{ if(elBtnAuto.disabled){ toggleAuto(); return; } rollOnce(); }, interval);
       }
     }
 
@@ -604,7 +623,6 @@
       const dur = 100 + Math.floor(Math.random()*201); // 100–300s
       addEffect({ name:w.name, type:"weather", duration: dur, rarity: classToTierKey(w.colorClass), bg: w.bg });
       spawnBanner(`${w.name} started`, "weather", w.colorClass);
-      // Apply the weather's stat bonus as a separate effect with same timer (stacking safe)
       const bonus = w.effect;
       if(bonus){
         addEffect({ name:`${w.name} Bonus`, type:bonus.type, target:bonus.target, amount:bonus.amount, duration: dur, rarity: classToTierKey(w.colorClass) });
@@ -619,15 +637,13 @@
       return state.effectInstances.find(e=>e.weather && e.expiresAt>now) || null;
     }
     function applyWeatherBg(bgClass){
-      const bg=document.getElementById("weatherBg");
-      bg.className = "weather-bg " + (bgClass||"");
+      elWeatherBg.className = "weather-bg " + (bgClass||"");
     }
 
     /* ---------------- Special weather-only drops ---------------- */
-    function maybeWeatherExclusiveOverride(currentTierKey){
+    function maybeWeatherExclusiveOverride(){
       const w = getActiveWeather();
       if(!w) return null;
-      // Extremely rare: rarer than omniversal; gate with tiny probabilities
       if(w.name==="Eternal Eclipse"){
         if(Math.random() < 1/200000) return { name:"Eclipse Gem", colorClass:"b-eclipse", tierKey:"exclusive" };
       } else if(w.name==="Cosmic Tempest"){
@@ -642,25 +658,20 @@
       const milestone=luckMilestoneForRoll(upcoming);
       if(milestone>1) spawnBanner(`${milestone}x luck activated`,"luck");
 
-      // Build tiers; exclusive not rollable
       let tiers=TIERS.filter(t=>t.key!=="exclusive");
       tiers = applyWeightModifiers(tiers, milestone);
 
-      // Weighted pick
       const chances=toChances(tiers);
       const pickedTier = pickTier(chances);
       const tierKey = pickedTier.key;
       const tierName = pickedTier.name;
 
-      // Weather-only overrides (Eclipse Gem / Cosmic Gem)
-      const special = maybeWeatherExclusiveOverride(tierKey);
+      const special = maybeWeatherExclusiveOverride();
 
-      // Items (consumables & totems): much rarer weights + base gate
       const itemTiers = buildItemTierWeightsShifted(TIERS.filter(t=>t.key!=="exclusive"));
       const itemWeighted = applyWeightModifiers(itemTiers, milestone);
       const itemChances = toChances(itemWeighted);
 
-      // Base item coin, much lower now
       const baseItemChance = 0.03;
       const luckBoost = Math.min(0.30, state.activeEffects.luck * 0.03);
       const rollItem = Math.random() < (baseItemChance + luckBoost);
@@ -672,7 +683,6 @@
       let displayRarityClass=null;
 
       if(special){
-        // Override to special weather-exclusive item
         displayName = special.name;
         displayRarityClass = special.colorClass;
         processIndexItem("exclusive", "Exclusive", special.name, milestone);
@@ -682,7 +692,6 @@
         const drop = pickConsumableFromTier(itemTier.key);
         if(drop){
           const isTotem = drop.type==="totem" || drop.type==="totem_random";
-          // Extra rarity gate for totems: legendary/divine/transcendent categories
           let allow = true;
           if(isTotem){
             if(drop.type==="totem_random"){ allow = Math.random() < (1/150); }
@@ -761,25 +770,6 @@
     }
 
     /* ---------------- UI ---------------- */
-    const elResult=document.getElementById("resultText");
-    const elRarity=document.getElementById("rarityText");
-    const elAutoBtn=document.getElementById("btnAuto");
-    const elIndexBtn=document.getElementById("btnIndex");
-    const elInventoryBtn=document.getElementById("btnInventory");
-    const elIndexPanel=document.getElementById("indexPanel");
-    const elIndexGrid=document.getElementById("indexGrid");
-    const elIndexCompletion=document.getElementById("indexCompletion");
-    const elInventoryPanel=document.getElementById("inventoryPanel");
-    const elInventoryList=document.getElementById("inventoryList");
-
-    const elAutoSellPrev=document.getElementById("autoSellPrev");
-    const elAutoSellNext=document.getElementById("autoSellNext");
-    const elAutoSellValue=document.getElementById("autoSellValue");
-
-    const elModePrev=document.getElementById("modePrev");
-    const elModeNext=document.getElementById("modeNext");
-    const elModeValue=document.getElementById("modeValue");
-
     function renderResult(name, tierKey, rarityClass){
       elResult.textContent = name || "Unknown";
       elRarity.textContent = tierKey ? tierKey.toUpperCase() : "";
@@ -787,8 +777,8 @@
     }
 
     function renderButtonsState(){
-      if(state.rolls>=50){ elAutoBtn.disabled=false; elAutoBtn.textContent=state.auto?"Auto Roll: On":"Auto Roll: Off"; }
-      else { elAutoBtn.disabled=true; elAutoBtn.textContent="Auto Roll (locked)"; }
+      if(state.rolls>=50){ elBtnAuto.disabled=false; elBtnAuto.textContent=state.auto?"Auto Roll: On":"Auto Roll: Off"; }
+      else { elBtnAuto.disabled=true; elBtnAuto.textContent="Auto Roll (locked)"; }
 
       const currentThreshold = state.mode==="Items" ? state.autoSellItems : state.autoSellRolled;
       elAutoSellValue.textContent = currentThreshold==="off" ? "Off" : labelForAutoSell(currentThreshold);
@@ -815,16 +805,12 @@
         const comp=tierCompletion(tier.key);
         const isExclusive = tier.key==="exclusive";
         const badgeClass = isExclusive ? "b-exclusive" : tier.colorClass;
-        const badge = `<span class="badge ${badgeClass} ${isExclusive?'': ''}">${isExclusive? "Exclusive" : tier.name}</span>`;
+        const badge = `<span class="badge ${badgeClass}">${isExclusive? "Exclusive" : tier.name}</span>`;
         const percentHtml = `<div class="completion ${isExclusive?'locked':''}">${isExclusive? '—' : comp.percent + '%'}</div>`;
-        section.innerHTML=`
-          <h4>${badge}</h4>
-          ${percentHtml}
-        `;
+        section.innerHTML=`<h4>${badge}</h4>${percentHtml}`;
         const ul=document.createElement("ul"); ul.className="index-list";
         const items=INDEX_ITEMS[tier.key]||[];
         if(isExclusive){
-          // Show entries but locked unless collected
           items.forEach(name=>{
             const unlocked=!!state.unlocks[tier.key][name];
             const li=document.createElement("li"); li.className="index-item";
@@ -835,9 +821,6 @@
             `;
             ul.appendChild(li);
           });
-        } else if(!items.length){
-          const li=document.createElement("li"); li.className="index-item";
-          li.innerHTML=`<span class="locked">No items defined</span>`; ul.appendChild(li);
         } else {
           items.forEach(name=>{
             const li=document.createElement("li"); li.className="index-item";
@@ -908,12 +891,6 @@
     }
 
     function deleteRolledEntry(entry){
-      const order=TIERS.map(t=>t.key);
-      const high=order.indexOf(entry.tier) >= order.indexOf("divine");
-      if(high){
-        const ok=confirm(`Delete "${entry.name}" [${entry.tierName}]?`);
-        if(!ok) return;
-      }
       const idx=state.inventoryRolled.findIndex(i=>i.roll===entry.roll && i.name===entry.name);
       if(idx>=0){
         state.inventoryRolled.splice(idx,1);
@@ -968,7 +945,7 @@
       return [...WEATHERS.normal, ...WEATHERS.rare, ...WEATHERS.super].find(w=>w.name===name) || null;
     }
 
-    function showGlow(){ const rollArea=document.getElementById("rollArea"); const g=document.createElement("div"); g.className="glow"; rollArea.appendChild(g); setTimeout(()=>g.remove(),1100); }
+    function showGlow(){ const g=document.createElement("div"); g.className="glow"; elRollArea.appendChild(g); setTimeout(()=>g.remove(),1100); }
 
     /* ---------------- Mode & Auto-Sell carousels ---------------- */
     const autoSellOptions=["off","worthless","trash","common","uncommon","rare","epic","legendary","mythic","divine","celestial","transcendent","eternal","omniversal"];
@@ -1001,26 +978,26 @@
 
     /* ---------------- Auto clicker ---------------- */
     function toggleAuto(){
-      if(elAutoBtn.disabled) return;
+      if(elBtnAuto.disabled) return;
       if(state.auto){
-        state.auto=false; clearInterval(state.autoInterval); state.autoInterval=null; elAutoBtn.textContent="Auto Roll: Off";
+        state.auto=false; clearInterval(state.autoInterval); state.autoInterval=null; elBtnAuto.textContent="Auto Roll: Off";
       } else {
-        state.auto=true; elAutoBtn.textContent="Auto Roll: On";
+        state.auto=true; elBtnAuto.textContent="Auto Roll: On";
         updateAutoInterval();
       }
       saveState();
     }
 
     /* ---------------- Hooks ---------------- */
-    document.getElementById("btnRoll").addEventListener("click",rollOnce);
-    document.getElementById("btnAuto").addEventListener("click",toggleAuto);
+    elBtnRoll.addEventListener("click",rollOnce);
+    elBtnAuto.addEventListener("click",toggleAuto);
 
-    elIndexBtn.addEventListener("click",()=>{
+    elBtnIndex.addEventListener("click",()=>{
       const vis=elIndexPanel.style.display!=="none";
       if(vis){ elIndexPanel.style.display="none"; }
       else { elIndexPanel.style.display="block"; elInventoryPanel.style.display="none"; renderIndex(); }
     });
-    elInventoryBtn.addEventListener("click",()=>{
+    elBtnInventory.addEventListener("click",()=>{
       const vis=elInventoryPanel.style.display!=="none";
       if(vis){ elInventoryPanel.style.display="none"; }
       else { elInventoryPanel.style.display="block"; elIndexPanel.style.display="none"; renderInventory(); }
@@ -1033,20 +1010,14 @@
     elModeNext.addEventListener("click",()=>setMode(cycle(modes,state.mode,1)));
 
     /* ---------------- Init ---------------- */
-    const elAutoBtn=document.getElementById("btnAuto");
-    const elIndexBtn=document.getElementById("btnIndex");
-    const elInventoryBtn=document.getElementById("btnInventory");
-    const elAutoSellValue=document.getElementById("autoSellValue");
-    const elModeValue=document.getElementById("modeValue");
-
     loadState();
     renderButtonsState();
     renderActiveEffects();
     if(state.auto && state.rolls>=50){
-      elAutoBtn.disabled=false; elAutoBtn.textContent="Auto Roll: On";
+      elBtnAuto.disabled=false; elBtnAuto.textContent="Auto Roll: On";
       updateAutoInterval();
     } else {
-      elAutoBtn.textContent=state.rolls>=50?"Auto Roll: Off":"Auto Roll (locked)";
+      elBtnAuto.textContent=state.rolls>=50?"Auto Roll: Off":"Auto Roll (locked)";
     }
     scheduleNextWeather();
   </script>
