@@ -19,9 +19,9 @@
     .result{font-size:28px;font-weight:700;text-align:center;}
     .rarity{margin-top:6px;font-size:14px;font-weight:600;text-transform:uppercase;}
     .banner{position:absolute;left:50%;transform:translateX(-50%);font-weight:700;text-align:center;opacity:0;pointer-events:none;padding:6px 10px;border-radius:10px;}
-    .banner.luck{top:14px;color:var(--gold);font-size:18px;}
+    .banner.luck{top:14px;font-size:18px;}
     .banner.new{top:120px;color:var(--accent);font-size:16px;}
-    .banner.announce{top:-34px;font-size:16px;border:1px solid #2a3449;background:#1b2232;}
+    .banner.announce{top:14px;font-size:16px;border:1px solid #2a3449;background:#1b2232;}
     .fadeout{animation:fadeout 3.6s forwards;}
     @keyframes fadeout{0%{opacity:1;filter:blur(0)}70%{opacity:1;}100%{opacity:0;filter:blur(4px)}}
 
@@ -58,9 +58,7 @@
 
     /* Inventory */
     .inv-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;}
-    .inv-title{display:flex;align-items:center;gap:10px;}
     .inv-stats{font-size:13px;color:var(--muted);}
-    .inv-warning{color:var(--warn);font-size:13px;}
     .inv-list{list-style:none;padding:0;margin:0;}
     .inv-list li{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #242a38;padding:6px 0;}
     .inv-actions{display:flex;gap:8px;}
@@ -75,8 +73,7 @@
     .autosell-wrap{display:flex;align-items:center;gap:8px; margin-left:auto;}
     .autosell-label{font-size:13px;color:var(--muted);}
     .autosell-carousel{display:flex;align-items:center;gap:6px;}
-    .autosell-value{min-width:120px;text-align:center;padding:8px 10px;border:1px solid #2a3449;border-radius:8px;background:#1b2232;}
-    .autosell-arrow{padding:6px 10px;}
+    .autosell-value{min-width:160px;text-align:center;padding:8px 10px;border:1px solid #2a3449;border-radius:8px;background:#1b2232;}
 
     /* Rarity colors */
     .b-worthless{background:#1a1a1a;color:#b3b3b3;} .b-trash{background:#211616;color:#d28f8f;}
@@ -249,7 +246,8 @@
       unlocks:"sol_rng_unlocks",
       auto:"sol_rng_auto",
       inv:"sol_rng_inventory",
-      autoSell:"sol_rng_autosell",
+      autoSellRolled:"sol_rng_autosell_rolled",
+      autoSellItems:"sol_rng_autosell_items",
       effects:"sol_rng_effects_instances",
       mode:"sol_rng_mode"
     };
@@ -267,6 +265,7 @@
     const ROLLED_MAX=10;
     const ITEMS_MAX=50;
     const BASE_AUTO_INTERVAL=120; // ms
+    const MAX_EFFECT_SECONDS=250;
 
     const state={
       rolls:0,
@@ -275,7 +274,8 @@
       autoInterval:null,
       inventoryRolled:[],   // index items; capacity 10
       inventoryItems:[],    // consumables; capacity 50
-      autoSell:"off",
+      autoSellRolled:"off",
+      autoSellItems:"off",
       fullAnnouncedRolled:false,
       fullAnnouncedItems:false,
       activeEffects:{ luck:0, speed:0, bias:{} }, // derived totals
@@ -288,7 +288,8 @@
       const unlocksRaw=localStorage.getItem(STORAGE_KEYS.unlocks);
       const autoRaw=localStorage.getItem(STORAGE_KEYS.auto);
       const invRaw=localStorage.getItem(STORAGE_KEYS.inv);
-      const autoSellRaw=localStorage.getItem(STORAGE_KEYS.autoSell);
+      const autoSellRolledRaw=localStorage.getItem(STORAGE_KEYS.autoSellRolled);
+      const autoSellItemsRaw=localStorage.getItem(STORAGE_KEYS.autoSellItems);
       const effInstRaw=localStorage.getItem(STORAGE_KEYS.effects);
       const modeRaw=localStorage.getItem(STORAGE_KEYS.mode);
 
@@ -298,7 +299,8 @@
       const inv = invRaw?JSON.parse(invRaw):{rolled:[],items:[]};
       state.inventoryRolled = inv.rolled || [];
       state.inventoryItems = inv.items || [];
-      state.autoSell=autoSellRaw||"off";
+      state.autoSellRolled=autoSellRolledRaw||"off";
+      state.autoSellItems=autoSellItemsRaw||"off";
       state.effectInstances = effInstRaw ? JSON.parse(effInstRaw) : [];
       const now=Date.now();
       state.effectInstances = state.effectInstances.filter(e=>e.expiresAt>now);
@@ -310,7 +312,8 @@
       localStorage.setItem(STORAGE_KEYS.unlocks,JSON.stringify(state.unlocks));
       localStorage.setItem(STORAGE_KEYS.auto,state.auto?"true":"false");
       localStorage.setItem(STORAGE_KEYS.inv,JSON.stringify({rolled:state.inventoryRolled,items:state.inventoryItems}));
-      localStorage.setItem(STORAGE_KEYS.autoSell,state.autoSell);
+      localStorage.setItem(STORAGE_KEYS.autoSellRolled,state.autoSellRolled);
+      localStorage.setItem(STORAGE_KEYS.autoSellItems,state.autoSellItems);
       localStorage.setItem(STORAGE_KEYS.effects,JSON.stringify(state.effectInstances));
       localStorage.setItem(STORAGE_KEYS.mode,state.mode);
     }
@@ -319,23 +322,29 @@
     function clone(o){ return JSON.parse(JSON.stringify(o)); }
     function sumWeights(a){ return a.reduce((s,r)=>s+r.weight,0); }
 
-    // Updated: 2x at 50, 10x at 200 to match your note
+    // Milestones: 2x at 50, 10x at 200
     function luckMilestoneForRoll(n){ if(n===200) return 10; if(n===50) return 2; return 1; }
 
     function spawnBanner(text,type,colorClass){
       const rollArea=document.getElementById("rollArea");
       const div=document.createElement("div");
-      // Force activation banners to appear in the same top position as luck
-      const useType = type==="activate" ? "luck" : type;
+      const useType = type==="activate" ? "luck" : type; // put activation at same spot as luck
       div.className=`banner ${useType} fadeout ${colorClass?colorClass:''}`;
       div.textContent=text;
       div.addEventListener("animationend",()=>div.remove());
       rollArea.appendChild(div);
     }
 
-    function shouldAutoSell(tierKey){
+    function shouldAutoSellRolled(tierKey){
       const order=TIERS.map(t=>t.key);
-      const thr=state.autoSell;
+      const thr=state.autoSellRolled;
+      if(thr==="off") return false;
+      if(tierKey==="exclusive") return false;
+      return order.indexOf(tierKey) <= order.indexOf(thr);
+    }
+    function shouldAutoSellItems(tierKey){
+      const order=TIERS.map(t=>t.key);
+      const thr=state.autoSellItems;
       if(thr==="off") return false;
       if(tierKey==="exclusive") return false;
       return order.indexOf(tierKey) <= order.indexOf(thr);
@@ -374,7 +383,7 @@
       return list[Math.floor(Math.random()*list.length)];
     }
 
-    /* Items 20x rarer: divide weights by 60 (instead of 3) */
+    /* Items 20x rarer: divide weights by 60 */
     function buildItemTierWeightsFromIndex(baseTiers){
       return baseTiers.map(t=>({ ...t, weight: t.weight/60 }));
     }
@@ -399,10 +408,12 @@
       state.activeEffects = totals;
     }
 
-    // Stacking logic: same-name effects merge (amount adds; timer extends by duration)
+    // Stacking logic with max 250s cap
     function addEffect(effect){
       const now = Date.now();
       const durMs = effect.duration * 1000;
+      const capMs = MAX_EFFECT_SECONDS * 1000;
+
       const existingIdx = state.effectInstances.findIndex(e =>
         e.name === effect.name &&
         e.type === effect.type &&
@@ -411,19 +422,18 @@
 
       if(existingIdx >= 0){
         const existing = state.effectInstances[existingIdx];
-        // Extend expiry by new duration (adds on top of remaining time)
-        existing.expiresAt = Math.max(existing.expiresAt, now) + durMs;
-        // Stack amounts
-        existing.amount += effect.amount;
-        // Keep the highest rarity color if you want; here we keep the newest rarity
-        existing.rarityKey = effect.rarity;
+        const remaining = Math.max(0, existing.expiresAt - now);
+        const extended = Math.min(capMs, remaining + durMs);
+        existing.expiresAt = now + extended;
+        existing.amount += effect.amount; // stack amount
+        existing.rarityKey = effect.rarity; // reflect latest rarity color
       } else {
         const inst={
           name: effect.name,
           type: effect.type,
           amount: effect.amount,
           target: effect.target,
-          expiresAt: now + durMs,
+          expiresAt: now + Math.min(capMs, durMs),
           rarityKey: effect.rarity
         };
         state.effectInstances.push(inst);
@@ -465,7 +475,6 @@
         const colorClass = TIERS.find(t=>t.key===e.rarityKey)?.colorClass || "";
         const div=document.createElement("div");
         div.className=`effect-entry ${colorClass}`;
-        // Compact stacked descriptor
         const desc = e.type==="luck" ? `Luck +${Math.round(e.amount*100)}%`
                   : e.type==="speed" ? `Speed +${Math.round(e.amount*100)}%`
                   : e.type==="bias" ? `Bias → ${e.target.toUpperCase()} +${Math.round(e.amount*100)}%`
@@ -480,7 +489,10 @@
       if(state.auto){
         const mult = 1 + (state.activeEffects.speed||0);
         const interval = Math.max(40, Math.round(BASE_AUTO_INTERVAL / mult));
-        state.autoInterval = setInterval(()=>{ if(elAutoBtn.disabled){ toggleAuto(); return; } rollOnce(); }, interval);
+        state.autoInterval = setInterval(()=>{
+          if(elAutoBtn.disabled){ toggleAuto(); return; }
+          rollOnce();
+        }, interval);
       }
     }
 
@@ -488,7 +500,7 @@
     function rollOnce(){
       const upcoming=state.rolls+1;
       const milestone=luckMilestoneForRoll(upcoming);
-      if(milestone>1) spawnBanner(`${milestone}x luck activated`,"luck");
+      if(milestone>1) spawnBanner(`${milestone}x luck activated`,"luck","b-divine"); // keep gold vibe via class
 
       // Build tiers; exclusive not rollable
       let tiers=TIERS.filter(t=>t.key!=="exclusive");
@@ -518,14 +530,16 @@
         const itemTier = pickTier(itemChances);
         const drop = pickConsumableFromTier(itemTier.key);
         if(drop){
-          if(state.inventoryItems.length < ITEMS_MAX){
-            state.inventoryItems.push({ type:"consumable", tier:itemTier.key, tierName:itemTier.name, name:drop.name, roll:state.rolls, effect:drop });
-            displayName = drop.name;
-            displayRarityClass = TIERS.find(t=>t.key===drop.rarity)?.colorClass || "";
-          } else {
-            if(!state.fullAnnouncedItems){ spawnBanner(`Items inventory is full ${ITEMS_MAX}/${ITEMS_MAX}`,"announce"); state.fullAnnouncedItems=true; }
-            displayName = drop.name;
-            displayRarityClass = TIERS.find(t=>t.key===drop.rarity)?.colorClass || "";
+          displayName = drop.name;
+          displayRarityClass = TIERS.find(t=>t.key===drop.rarity)?.colorClass || "";
+          // Auto-sell for items threshold
+          const autosell = shouldAutoSellItems(itemTier.key);
+          if(!autosell){
+            if(state.inventoryItems.length < ITEMS_MAX){
+              state.inventoryItems.push({ type:"consumable", tier:itemTier.key, tierName:itemTier.name, name:drop.name, roll:state.rolls, effect:drop });
+            } else {
+              if(!state.fullAnnouncedItems){ spawnBanner(`Items inventory is full ${ITEMS_MAX}/${ITEMS_MAX}`,"announce"); state.fullAnnouncedItems=true; }
+            }
           }
         } else {
           // fallback to normal index
@@ -555,7 +569,7 @@
     }
 
     function processIndexItem(tierKey, tierName, itemName, milestone){
-      const toKeep = !shouldAutoSell(tierKey);
+      const toKeep = !shouldAutoSellRolled(tierKey);
       if(toKeep){
         if(state.inventoryRolled.length < ROLLED_MAX){
           state.inventoryRolled.push({ type:"index", tier:tierKey, tierName, name:itemName, roll:state.rolls, milestone });
@@ -601,7 +615,10 @@
     function renderButtonsState(){
       if(state.rolls>=50){ elAutoBtn.disabled=false; elAutoBtn.textContent=state.auto?"Auto Roll: On":"Auto Roll: Off"; }
       else { elAutoBtn.disabled=true; elAutoBtn.textContent="Auto Roll (locked)"; }
-      elAutoSellValue.textContent = state.autoSell==="off" ? "Off" : labelForAutoSell(state.autoSell);
+
+      // Show the correct auto-sell threshold based on mode
+      const currentThreshold = state.mode==="Items" ? state.autoSellItems : state.autoSellRolled;
+      elAutoSellValue.textContent = currentThreshold==="off" ? "Off" : labelForAutoSell(currentThreshold);
       elModeValue.textContent = state.mode;
     }
     function labelForAutoSell(val){ const t=TIERS.find(x=>x.key===val); return t? `${t.name}+` : "Off"; }
@@ -730,7 +747,7 @@
       }
     }
     function useItemEntry(entry){
-      // Apply timed effect with stacking and show activation banner at luck position
+      // Apply timed effect and show activation banner with rarity color
       if(entry.effect){
         addEffect(entry.effect);
         const colorClass = TIERS.find(t=>t.key===entry.effect.rarity)?.colorClass || "";
@@ -741,14 +758,34 @@
       renderActiveEffects();
     }
 
-    function showGlow(){ const rollArea=document.getElementById("rollArea"); const g=document.createElement("div"); g.className="glow"; rollArea.appendChild(g); setTimeout(()=>g.remove(),1100); }
+    function showGlow(){
+      const rollArea=document.getElementById("rollArea");
+      const g=document.createElement("div");
+      g.className="glow";
+      rollArea.appendChild(g);
+      setTimeout(()=>g.remove(),1100);
+    }
 
     /* ---------------- Mode & Auto-Sell carousels ---------------- */
     const autoSellOptions=["off","worthless","trash","common","uncommon","rare","epic","legendary","mythic","divine","celestial","transcendent","eternal","omniversal"];
-    function setAutoSell(value){ state.autoSell=value; saveState(); renderButtonsState(); }
+
+    function setAutoSell(value){
+      if(state.mode==="Items"){
+        state.autoSellItems=value;
+      } else {
+        state.autoSellRolled=value;
+      }
+      saveState();
+      renderButtonsState();
+    }
 
     const modes=["Rolled","Items"];
-    function setMode(value){ state.mode=value; saveState(); renderButtonsState(); renderInventory(); }
+    function setMode(value){
+      state.mode=value;
+      saveState();
+      renderButtonsState();
+      renderInventory();
+    }
 
     function cycle(list, current, dir){
       const idx=list.indexOf(current);
@@ -785,8 +822,8 @@
       else { elInventoryPanel.style.display="block"; elIndexPanel.style.display="none"; renderInventory(); }
     });
 
-    elAutoSellPrev.addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,state.autoSell,-1)));
-    elAutoSellNext.addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,state.autoSell,1)));
+    elAutoSellPrev.addEventListener("click",()=>setAutoSell(cycle(autoSellOptions, (state.mode==="Items"?state.autoSellItems:state.autoSellRolled), -1)));
+    elAutoSellNext.addEventListener("click",()=>setAutoSell(cycle(autoSellOptions, (state.mode==="Items"?state.autoSellItems:state.autoSellRolled), 1)));
 
     elModePrev.addEventListener("click",()=>setMode(cycle(modes,state.mode,-1)));
     elModeNext.addEventListener("click",()=>setMode(cycle(modes,state.mode,1)));
