@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sol’s RNG — Exclusive, Weather, and Effects Upgrade</title>
+  <title>Sol’s RNG — Exclusive, Weather, and Effects Upgrade (Fixed)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -126,7 +126,7 @@
     .b-divine{background:#2a2a12;color:#ffd700;} .b-celestial{background:#142a2a;color:#7affff;}
     .b-transcendent{background:#1a1a2f;color:#a0a7ff;} .b-eternal{background:#1a2f2a;color:#9cf2c7;}
     .b-omniversal{background:#2f1a2f;color:#ff9cff;}
-    /* Exclusive continuous rainbow */
+    /* Exclusive continuous rainbow (infinite and smooth) */
     .b-exclusive{
       background:conic-gradient(from 0deg, red, orange, yellow, green, blue, indigo, violet, red);
       animation:exclusiveSpin 8s linear infinite; color:white;
@@ -178,9 +178,9 @@
           <div class="autosell-wrap">
             <span class="autosell-label">Auto-Sell:</span>
             <div class="autosell-carousel">
-              <button class="autosell-arrow" id="autoSellPrev">‹</button>
+              <button class="mode-arrow" id="autoSellPrev">‹</button>
               <div class="autosell-value" id="autoSellValue">Off</div>
-              <button class="autosell-arrow" id="autoSellNext">›</button>
+              <button class="mode-arrow" id="autoSellNext">›</button>
             </div>
           </div>
         </div>
@@ -238,12 +238,10 @@
       common:[
         { name:"Luck Potion", rarity:"common", type:"luck", amount:0.25, duration:90 },
         { name:"Charm of Fortune", rarity:"common", type:"bias", target:"rare", amount:0.07, duration:60 },
-        // Basic weather totems (Legendary)
         { name:"Storm Totem", rarity:"legendary", type:"totem", weather:"Storm" },
         { name:"Blizzard Totem", rarity:"legendary", type:"totem", weather:"Blizzard" },
         { name:"Sun Totem", rarity:"legendary", type:"totem", weather:"Sunny Radiance" },
         { name:"Fog Totem", rarity:"legendary", type:"totem", weather:"Fog" },
-        // Random Event Totem (Divine)
         { name:"Random Event Totem", rarity:"divine", type:"totem_random" }
       ],
       uncommon:[
@@ -253,7 +251,6 @@
       rare:[
         { name:"Greater Luck Potion", rarity:"rare", type:"luck", amount:1.00, duration:60 },
         { name:"Greater Luck Charm", rarity:"rare", type:"bias", target:"legendary", amount:0.10, duration:60 },
-        // Rare weather totems (Divine)
         { name:"Meteor Storm Totem", rarity:"divine", type:"totem", weather:"Meteor Storm" },
         { name:"Aurora Veil Totem", rarity:"divine", type:"totem", weather:"Aurora Veil" }
       ],
@@ -265,7 +262,6 @@
         { name:"Elixir of Destiny", rarity:"legendary", type:"luck", amount:2.50, duration:30 },
         { name:"Relic of Destiny", rarity:"legendary", type:"bias", target:"divine", amount:0.15, duration:60 },
         { name:"Speed Potion", rarity:"legendary", type:"speed", amount:0.25, duration:60 },
-        // Super-rare weather totems (Transcendent)
         { name:"Eternal Eclipse Totem", rarity:"transcendent", type:"totem", weather:"Eternal Eclipse" },
         { name:"Cosmic Tempest Totem", rarity:"transcendent", type:"totem", weather:"Cosmic Tempest" }
       ],
@@ -343,7 +339,7 @@
     /* ---------------- State ---------------- */
     const ROLLED_MAX=10;
     const ITEMS_MAX=50;
-    const BASE_AUTO_INTERVAL=140; // ms
+    const BASE_AUTO_INTERVAL=140;
     const MAX_EFFECT_SECONDS=250;
 
     const state={
@@ -405,7 +401,7 @@
     function spawnBanner(text,type,colorClass){
       const rollArea=document.getElementById("rollArea");
       const div=document.createElement("div");
-      const useType = type==="activate" ? "announce" : type;
+      const useType = type==="activate" ? "announce" : type; // polished panel
       div.className=`banner ${useType} show ${colorClass?colorClass:''}`;
       div.textContent=text;
       div.addEventListener("animationend",()=>div.remove());
@@ -447,8 +443,7 @@
       return tiers.map(t=>({ ...t, chance: total>0 ? t.weight/total : 0 }));
     }
     function pickTier(chances){
-      // Improved rarity selection: iterate forward accumulating chance, fallback to lowest rarity when precision issues
-      let r=Math.random(), acc=0;
+      const r=Math.random(); let acc=0;
       for(let i=0;i<chances.length;i++){
         acc += chances[i].chance;
         if(r<=acc) return chances[i];
@@ -507,7 +502,6 @@
       particles.className = "particles";
 
       if(cls==="wb-storm"){
-        // heavy rain
         for(let i=0;i<100;i++){
           const p=document.createElement("span");
           p.className="rain-drop";
@@ -584,7 +578,6 @@
       state.activeEffects = totals;
     }
 
-    // Stack with max cap; weather stacks duration only
     function addEffect(effect){
       const now = Date.now();
       const durMs = (effect.duration||0) * 1000;
@@ -629,7 +622,6 @@
       updateAutoInterval();
     }
 
-    /* prune expired effects and update display every second */
     setInterval(()=>{
       const now=Date.now();
       const before=state.effectInstances.length;
@@ -711,6 +703,7 @@
       }
     }
     function toggleAuto(){
+      const elAutoBtn=document.getElementById("btnAuto");
       if(elAutoBtn.disabled) return;
       if(state.auto){
         state.auto=false; clearInterval(state.autoInterval); state.autoInterval=null; elAutoBtn.textContent="Auto Roll: Off";
@@ -907,11 +900,9 @@
     const elIndexCompletion=document.getElementById("indexCompletion");
     const elInventoryPanel=document.getElementById("inventoryPanel");
     const elInventoryList=document.getElementById("inventoryList");
-
     const elAutoSellPrev=document.getElementById("autoSellPrev");
     const elAutoSellNext=document.getElementById("autoSellNext");
     const elAutoSellValue=document.getElementById("autoSellValue");
-
     const elModePrev=document.getElementById("modePrev");
     const elModeNext=document.getElementById("modeNext");
     const elModeValue=document.getElementById("modeValue");
@@ -1097,27 +1088,22 @@
     document.getElementById("btnRoll").addEventListener("click",rollOnce);
     document.getElementById("btnAuto").addEventListener("click",toggleAuto);
 
-    const elAutoSellPrev=document.getElementById("autoSellPrev");
-    const elAutoSellNext=document.getElementById("autoSellNext");
-    const elModePrev=document.getElementById("modePrev");
-    const elModeNext=document.getElementById("modeNext");
-
-    elIndexBtn.addEventListener("click",()=>{
+    document.getElementById("btnIndex").addEventListener("click",()=>{
       const vis=elIndexPanel.style.display!=="none";
       if(vis){ elIndexPanel.style.display="none"; }
       else { elIndexPanel.style.display="block"; elInventoryPanel.style.display="none"; renderIndex(); }
     });
-    elInventoryBtn.addEventListener("click",()=>{
+    document.getElementById("btnInventory").addEventListener("click",()=>{
       const vis=elInventoryPanel.style.display!=="none";
       if(vis){ elInventoryPanel.style.display="none"; }
       else { elInventoryPanel.style.display="block"; elIndexPanel.style.display="none"; renderInventory(); }
     });
 
-    elAutoSellPrev.addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,(state.mode==="Items"?state.autoSellItems:state.autoSellRolled),-1)));
-    elAutoSellNext.addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,(state.mode==="Items"?state.autoSellItems:state.autoSellRolled),1)));
+    document.getElementById("autoSellPrev").addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,(state.mode==="Items"?state.autoSellItems:state.autoSellRolled),-1)));
+    document.getElementById("autoSellNext").addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,(state.mode==="Items"?state.autoSellItems:state.autoSellRolled),1)));
 
-    elModePrev.addEventListener("click",()=>setMode(cycle(modes,state.mode,-1)));
-    elModeNext.addEventListener("click",()=>setMode(cycle(modes,state.mode,1)));
+    document.getElementById("modePrev").addEventListener("click",()=>setMode(cycle(modes,state.mode,-1)));
+    document.getElementById("modeNext").addEventListener("click",()=>setMode(cycle(modes,state.mode,1)));
 
     /* ---------------- Init ---------------- */
     loadState();
