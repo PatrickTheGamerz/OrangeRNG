@@ -332,9 +332,7 @@
       celestial:["Stellar Crown","Singularity Shard","Event Horizon","Nebula Heart","Galactic Sigil","Nova Crown","Comet Ring","Quasar Core","Ecliptic Rune","Parhelion Gem","Aurora Diadem","Aether Crown"],
       transcendent:["Transcendent Eye","Omni Sigil","Hyperion Core","Timeweaver Crest","Axis Heart","Prime Star","Beyond Rune","Unbound Halo","Perennial Flame","Limitless Gem","Meta Crown","Supernal Tear"],
       eternal:["Eternal Bloom","Forever Star","Unending Crown","Ceaseless Orb","Timeless Fang","Endless Prism","Sempiternal Rune","Undying Flame","Ageless Halo","Perpetual Core","Immortal Sigil","Infinite Diadem"],
-      /* Omniversal replacements per request */
       omniversal:["Omniversal Heart","All-Crown","Totality Core","Panreality Halo","Absolute Sigil","Everything Rune","Boundless Star","Cosmos Crown","Axis of All","Prime Totality","Eclipse Gem","Cosmic Gem"],
-      /* Exclusive: single item */
       exclusive:["Gem Of Gem"]
     };
 
@@ -722,10 +720,10 @@
 
     function addEffect(effect){
       if(effect.type==="guarantee" && effect.name==="Origin Crystal"){
-        // persist until next roll consumes it
         state.persistentGuarantees.push({ name:effect.name, type:"guarantee", rarity:effect.rarity || "omniversal" });
         saveState();
         spawnBanner(`Stored: ${effect.name}`,"activate","b-omniversal");
+        renderActiveEffects();
         return;
       }
 
@@ -772,7 +770,6 @@
       updateAutoInterval();
     }
 
-    /* prune expired effects every second */
     setInterval(()=>{
       const now=Date.now();
       const before=state.effectInstances.length;
@@ -802,7 +799,6 @@
         div.textContent = `${e.name}: ${left}`;
         el.appendChild(div);
       }
-      // Show persistent guarantees as badges (no timer)
       state.persistentGuarantees.forEach(g=>{
         const colorClass = TIERS.find(t=>t.key===g.rarity)?.colorClass || "";
         const div=document.createElement("div");
@@ -924,7 +920,6 @@
     }
 
     function consumeGuaranteeIfAny(){
-      // Use and remove only one guarantee (Origin Crystal) for this roll
       if(!state.persistentGuarantees.length) return null;
       const idx = state.persistentGuarantees.findIndex(g=>g.name==="Origin Crystal");
       if(idx>=0){
@@ -953,14 +948,11 @@
       const wEff = state.effectInstances.find(e=>e.type==="weather" && e.expiresAt>now);
       const exclusiveActive = wEff && (wEff.name==="Eternal Eclipse" || wEff.name==="Cosmic Tempest");
 
-      // Forced next roll via commands
       const forced = (state.cmdQueue && state.cmdQueue.nextRoll && !state.cmdQueue.nextRoll.applied) ? state.cmdQueue.nextRoll : null;
-
-      const guarantee = consumeGuaranteeIfAny(); // Origin Crystal
+      const guarantee = consumeGuaranteeIfAny();
 
       let tierKey, tierName;
       if(guarantee){
-        // Guarantee a high-tier: Celestial+ (no Exclusive)
         const pool = ["celestial","transcendent","eternal","omniversal"];
         tierKey = pool[Math.floor(Math.random()*pool.length)];
         tierName = TIERS.find(t=>t.key===tierKey)?.name || "Unknown";
@@ -974,7 +966,6 @@
         tierKey = pickedTier.key;
         tierName = pickedTier.name;
 
-        // Exclusive override gate during specific weathers (rarer than Omniversal); Origin Crystal cannot force Exclusive
         if(exclusiveActive){
           const secretGateBase = 0.00002;
           const luckBoostSecret = Math.min(0.00002, (state.activeEffects.luck||0) * 0.000004);
@@ -986,7 +977,6 @@
         }
       }
 
-      // Items chance
       const itemTiers = buildItemTierWeightsFromIndex(TIERS.filter(t=>t.key!=="exclusive"));
       const itemWeighted = applyWeightModifiers(itemTiers, surge);
       const itemChances = toChances(itemWeighted);
@@ -1030,7 +1020,7 @@
             const autosell = shouldAutoSellItems(itemTier.key);
             if(!autosell){
               if(state.inventoryItems.length < ITEMS_MAX){
-                state.inventoryItems.push({ type: isTotem? drop.type : drop.type, tier:itemTier.key, tierName:itemTier.name, name:drop.name, roll:state.rolls, effect:drop });
+                state.inventoryItems.push({ type: drop.type, tier:itemTier.key, tierName:itemTier.name, name:drop.name, roll:state.rolls, effect:drop });
               } else {
                 if(!state.fullAnnouncedItems){ spawnBanner(`Items inventory is full ${ITEMS_MAX}/${ITEMS_MAX}`,"announce",""); state.fullAnnouncedItems=true; }
               }
@@ -1052,7 +1042,6 @@
           if(itemName) isNew = markNew(tierKey, itemName);
         }
       } else {
-        // Index roll
         if(tierKey==="exclusive"){
           const itemName = (wEff && (wEff.name==="Eternal Eclipse" || wEff.name==="Cosmic Tempest")) ? "Gem Of Gem" : null;
           displayName = forced?.name || itemName || "Exclusive";
@@ -1074,7 +1063,6 @@
       renderResult(displayName, tierKey, displayRarityClass);
       if(isNew) spawnBanner(`NEW collected: [${tierName}] ${displayName}`,"new",displayRarityClass);
 
-      // Cutscenes for Divine+ tiers
       const highOrder = ["divine","celestial","transcendent","eternal","omniversal"];
       if(highOrder.includes(tierKey)){
         playCutscene(tierKey, displayName);
@@ -1134,7 +1122,6 @@
         const comp=tierCompletion(tier.key);
         const isExclusive = tier.key==="exclusive";
 
-        // Blur the Exclusive badge and completion text per request
         const badgeClasses = `badge ${tier.colorClass} ${isExclusive?'locked':''}`;
         const badgeText = tier.name;
         const percentHtml = `<div class="completion ${isExclusive?'locked':''}">${isExclusive? '—' : comp.percent + '%'}</div>`;
@@ -1274,7 +1261,7 @@
           const icon = w.name==="Eternal Eclipse" ? "icon-eclipse" : w.name==="Storm" ? "icon-storm" : w.name==="Aurora Veil" ? "icon-aurora" : w.name==="Cosmic Tempest" ? "icon-tempest" : "";
           spawnBanner(`${w.name} started`,"weather",w.colorClass,icon);
         } else if(eff.type==="guarantee" && eff.name==="Origin Crystal"){
-          addEffect(eff); // store persistent guarantee
+          addEffect(eff);
         } else {
           addEffect({ name: eff.name, type: eff.type, amount: eff.amount, target: eff.target, duration: eff.duration, rarity: eff.rarity });
           const colorClass = TIERS.find(t=>t.key===eff.rarity)?.colorClass || "";
@@ -1298,7 +1285,7 @@
       const btn=document.createElement("button");
       btn.id="btnCommands";
       btn.textContent="Commands";
-      btn.style.margin-left="auto";
+      btn.style.marginLeft="auto"; // FIXED: correct camelCase
       btn.addEventListener("click",()=>{
         const panel=document.getElementById("commandsPanel");
         const vis=panel.style.display!=="none";
@@ -1345,7 +1332,7 @@
       cmdNextRaritySel.addEventListener("change",()=>refreshNamesForRarity(cmdNextRaritySel.value, cmdNextNameSel));
 
       function refreshGiveItemsForRarity(key){
-        const items = (ITEM_DROPS[key]||[]).filter(d=>true);
+        const items = (ITEM_DROPS[key]||[]);
         cmdGiveItemSel.innerHTML = items.length
           ? items.map(d=>`<option value="${encodeURIComponent(JSON.stringify(d))}">${d.name}</option>`).join("")
           : `<option>(none)</option>`;
@@ -1439,7 +1426,6 @@
         if(eff){ addEffect(eff); const colorClass = TIERS.find(t=>t.key===eff.rarity)?.colorClass || ""; spawnBanner(`Activated ${eff.name}`,"activate",colorClass); }
       }
 
-      // Keep nextRoll until used
       if(q.nextRoll){ state.cmdQueue = { nextRoll: q.nextRoll }; }
       else { state.cmdQueue=null; }
       saveState();
