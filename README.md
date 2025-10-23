@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sol’s RNG — Origin Crystal + Sorted Commands + Per-Item Cinematic Cutscenes</title>
+  <title>Sol’s RNG — Cinematic Per-Item Cutscenes (Real Index Rarities)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -147,16 +147,13 @@
     .cut-title{position:absolute;top:30px;left:50%;transform:translateX(-50%);color:#fff;font-weight:900;letter-spacing:1px;z-index:101;text-shadow:0 3px 12px rgba(0,0,0,0.6);}
     .cut-sub{position:absolute;top:80px;left:50%;transform:translateX(-50%);color:#cfd6ff;z-index:101;text-shadow:0 3px 12px rgba(0,0,0,0.6);}
 
-    /* Generic cinematic primitives */
+    /* Cinematic primitives */
     .star{position:absolute;border-radius:50%;background:radial-gradient(circle, rgba(255,255,255,0.95), rgba(255,255,255,0));filter:blur(0.2px);}
     @keyframes twinkle{0%,100%{opacity:0.3}50%{opacity:1}}
     .ring{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,0.25);}
     @keyframes pulseRing{0%{transform:scale(0.6);opacity:0.0}50%{opacity:1}100%{transform:scale(1.4);opacity:0}}
     .beam{position:absolute;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0));filter:blur(1.2px);mix-blend-mode:screen;}
     .shard{position:absolute;width:8px;height:24px;background:linear-gradient(180deg,rgba(150,200,255,0.9),rgba(150,200,255,0));transform-origin:center;filter:blur(0.4px);}
-
-    /* Named item special classes (used by per-item sequences) */
-    .seq-gold{color:#ffd700} .seq-aqua{color:#79f2ff} .seq-violet{color:#caa6ff} .seq-pink{color:#ff9cff}
   </style>
 </head>
 <body>
@@ -594,43 +591,13 @@
     function scheduleNextWeather(){ const delayMs=(240+Math.random()*480)*1000; setTimeout(()=>{ triggerRandomWeather(); scheduleNextWeather(); },delayMs); }
     function classToTierKey(colorClass){ const t=TIERS.find(x=>x.colorClass===colorClass); return t?t.key:"common"; }
 
-    /* ---------------- Cinematic cutscenes (per tier and per item) ---------------- */
-    const CUT_BASE={
-      divine:{bg:"radial-gradient(circle at 50% 50%, rgba(255,215,120,0.18), rgba(0,0,0,0.95))", title:"Divine Revelation"},
-      celestial:{bg:"linear-gradient(120deg, rgba(120,255,255,0.18), rgba(0,0,0,0.95))", title:"Celestial Ascent"},
-      transcendent:{bg:"linear-gradient(120deg, rgba(160,140,255,0.22), rgba(0,0,0,0.95))", title:"Transcendent Echo"},
-      eternal:{bg:"radial-gradient(circle at 50% 50%, rgba(140,255,200,0.18), rgba(0,0,0,0.95))", title:"Eternal Dawning"},
-      omniversal:{bg:"conic-gradient(from 0deg, rgba(255,160,220,0.22), rgba(120,255,220,0.22), rgba(180,120,255,0.22), rgba(255,160,220,0.22))", title:"Omniversal Bloom"}
-    };
+    /* ---------------- Cinematic cutscenes per REAL Index item ---------------- */
 
-    // Per-item sequences: each function receives stage and runs a 3–5s animation
-    const ITEM_SEQUENCES={
-      // Divine
-      "Sol’s Core": (stage)=>sequenceSolarCore(stage),
-      "Divine Halo": (stage)=>sequenceHalo(stage),
-      "Phoenix Soul": (stage)=>sequencePhoenix(stage),
-
-      // Celestial
-      "Singularity Shard": (stage)=>sequenceSingularity(stage),
-      "Quasar Core": (stage)=>sequenceQuasar(stage),
-      "Aurora Diadem": (stage)=>sequenceAuroraDiadem(stage),
-
-      // Transcendent
-      "Timeweaver Crest": (stage)=>sequenceTimeweaver(stage),
-      "Hyperion Core": (stage)=>sequenceHyperion(stage),
-      "Omni Sigil": (stage)=>sequenceOmniSigil(stage),
-
-      // Eternal
-      "Eternal Bloom": (stage)=>sequenceEternalBloom(stage),
-      "Undying Flame": (stage)=>sequenceUndyingFlame(stage),
-      "Immortal Sigil": (stage)=>sequenceImmortalSigil(stage),
-
-      // Omniversal
-      "Axis of All": (stage)=>sequenceAxis(stage),
-      "Prime Totality": (stage)=>sequenceTotality(stage),
-      "Cosmic Gem": (stage)=>sequenceCosmicGem(stage),
-      "Origin Crystal": (stage)=>sequenceOriginCrystal(stage)
-    };
+    // Build a deterministic variant index for a name
+    function variantForName(name, max=8){
+      let h=0; for(let i=0;i<name.length;i++){ h=(h*31 + name.charCodeAt(i))>>>0; }
+      return h % max;
+    }
 
     function playCutscene(tierKey,itemName){
       const overlay=document.getElementById("cutsceneOverlay");
@@ -638,189 +605,199 @@
       const title=document.getElementById("cutsceneTitle");
       const text=document.getElementById("cutsceneText");
       overlay.style.display="flex";
-      overlay.querySelector(".cutscene-bg").style.background = CUT_BASE[tierKey]?.bg || "rgba(0,0,0,0.96)";
       stage.innerHTML="";
-      title.textContent=(CUT_BASE[tierKey]?.title || "A Rarity Appears");
-      text.textContent=itemName;
+      title.textContent=itemName || (tierKey? tierKey.toUpperCase(): "RARITY");
+      text.textContent=tierKey ? `${tierKey.toUpperCase()}` : "";
 
-      const run = ITEM_SEQUENCES[itemName] || defaultTierSequence(tierKey);
-      run(stage);
+      // Background tint by tier
+      const tierBG={
+        divine:"radial-gradient(circle at 50% 50%, rgba(255,215,120,0.18), rgba(0,0,0,0.96))",
+        celestial:"linear-gradient(120deg, rgba(120,255,255,0.18), rgba(0,0,0,0.96))",
+        transcendent:"linear-gradient(120deg, rgba(160,140,255,0.22), rgba(0,0,0,0.96))",
+        eternal:"radial-gradient(circle at 50% 50%, rgba(140,255,200,0.18), rgba(0,0,0,0.96))",
+        omniversal:"conic-gradient(from 0deg, rgba(255,160,220,0.22), rgba(120,255,220,0.22), rgba(180,120,255,0.22), rgba(255,160,220,0.22))"
+      };
+      document.querySelector(".cutscene-bg").style.background = tierBG[tierKey] || "rgba(0,0,0,0.96)";
 
-      // Skip ends immediately; Continue fades out at the end timeout
+      // Run a unique, high-quality procedural sequence based on item name
+      runProceduralCutscene(itemName, tierKey, stage);
+
       const end = ()=>{ overlay.style.display="none"; stage.innerHTML=""; };
       document.getElementById("cutsceneSkip").onclick = end;
       document.getElementById("cutsceneContinue").onclick = end;
-      // Auto-end after 5.5s to keep flow
-      setTimeout(end, 5500);
+      setTimeout(end, 6500);
     }
 
-    function defaultTierSequence(tierKey){
-      return (stage)=>{
-        // Starfield + pulsing rings (generic elegant)
-        for(let i=0;i<80;i++){
-          const s=document.createElement("div"); s.className="star";
-          s.style.left=Math.floor(Math.random()*100)+"%";
-          s.style.top=Math.floor(Math.random()*100)+"%";
-          s.style.width=s.style.height=(Math.random()*2+1)+"px";
-          s.style.animation=`twinkle ${2+Math.random()*2}s ease-in-out infinite`;
-          stage.appendChild(s);
-        }
-        for(let i=0;i<6;i++){
-          const r=document.createElement("div"); r.className="ring";
-          r.style.left="50%"; r.style.top="50%"; r.style.transform="translate(-50%,-50%) scale(0.6)";
-          r.style.width = 120 + i*40 + "px"; r.style.height = 120 + i*40 + "px";
-          r.style.animation=`pulseRing ${2.8+i*0.2}s ease-out infinite`;
-          stage.appendChild(r);
-        }
-        const label=document.createElement("div");
-        label.style.position="absolute"; label.style.left="50%"; label.style.top="50%"; label.style.transform="translate(-50%,-50%)";
-        label.style.fontSize="38px"; label.style.fontWeight="900"; label.style.color="#fff"; label.style.textShadow="0 6px 18px rgba(0,0,0,0.7)";
-        label.textContent=tierKey.toUpperCase();
-        stage.appendChild(label);
-      };
-    }
+    // Procedural library of distinct sequences: intro → build → BOOM
+    function runProceduralCutscene(name, tierKey, stage){
+      const v = variantForName(name, 10);
 
-    /* ---------------- Named sequences ---------------- */
-    function sequenceSolarCore(stage){
-      // Golden corona pulses, beams converge to a blazing core
-      const corona=document.createElement("div"); corona.className="corona"; stage.appendChild(corona);
-      for(let i=0;i<6;i++){
-        const b=document.createElement("div"); b.className="beam";
-        b.style.width="6px"; b.style.height="240px"; b.style.left=(10+i*16)+"%"; b.style.top="0%";
-        b.style.animation=`beamDown ${1.8+i*0.15}s ease-in-out infinite`;
-        stage.appendChild(b);
-      }
-      injectKeyframesOnce("beamDown","0%{transform:translateY(-120px);opacity:.0}50%{opacity:1}100%{transform:translateY(220px);opacity:.0}");
-      const core=document.createElement("div");
-      core.style.position="absolute"; core.style.left="50%"; core.style.top="50%"; core.style.transform="translate(-50%,-50%)";
-      core.style.width="120px"; core.style.height="120px"; core.style.borderRadius="50%";
-      core.style.boxShadow="0 0 60px rgba(255,215,120,0.65), inset 0 0 40px rgba(255,215,120,0.85)";
-      stage.appendChild(core);
-    }
-
-    function sequenceHalo(stage){
-      // Multiple rotating halos with shimmering shards
-      for(let i=0;i<4;i++){
-        const halo=document.createElement("div"); halo.className="ring";
-        halo.style.left="50%"; halo.style.top="50%"; halo.style.width=220+i*40+"px"; halo.style.height=220+i*40+"px";
-        halo.style.borderColor="rgba(255,255,255,"+(0.25-0.05*i)+")";
-        halo.style.animation=`spin ${6+i}s linear infinite`;
-        stage.appendChild(halo);
-      }
-      injectKeyframesOnce("spin","0%{transform:translate(-50%,-50%) rotate(0deg)}100%{transform:translate(-50%,-50%) rotate(360deg)}");
-      for(let i=0;i<40;i++){ const s=document.createElement("div"); s.className="shard"; s.style.left=Math.floor(Math.random()*100)+"%"; s.style.top=Math.floor(Math.random()*100)+"%"; s.style.transform=`rotate(${Math.random()*360}deg)`; s.style.opacity=0.6; stage.appendChild(s); }
-    }
-
-    function sequencePhoenix(stage){
-      // Rising phoenix silhouette made by particles ascending
-      for(let i=0;i<160;i++){
-        const p=document.createElement("div"); p.className="star";
-        p.style.left=(40+Math.random()*20)+"%"; p.style.top=(60+Math.random()*30)+"%";
-        p.style.width=p.style.height=(Math.random()*2+1)+"px";
-        p.style.animation=`rise ${2+Math.random()*2}s ease-out infinite`;
-        stage.appendChild(p);
-      }
-      injectKeyframesOnce("rise","0%{transform:translateY(0);opacity:.2}50%{opacity:1}100%{transform:translateY(-240px);opacity:.0}");
-    }
-
-    function sequenceSingularity(stage){
-      // Warping space tunnel
-      for(let i=0;i<15;i++){
-        const ring=document.createElement("div"); ring.className="ring";
-        ring.style.left="50%"; ring.style.top="50%";
-        ring.style.width=40+i*40+"px"; ring.style.height=40+i*40+"px";
-        ring.style.animation=`warp ${1.2+i*0.15}s ease-in-out infinite`;
-        stage.appendChild(ring);
-      }
-      injectKeyframesOnce("warp","0%{transform:translate(-50%,-50%) scale(0.8);opacity:.6}50%{opacity:1}100%{transform:translate(-50%,-50%) scale(1.5);opacity:.1}");
-    }
-
-    function sequenceQuasar(stage){
-      // Twin beams crossing with explosive pulse
-      const b1=document.createElement("div"); b1.className="beam"; b1.style.left="30%"; b1.style.top="10%"; b1.style.width="4px"; b1.style.height="340px"; b1.style.animation="osc 2.2s ease-in-out infinite";
-      const b2=document.createElement("div"); b2.className="beam"; b2.style.left="70%"; b2.style.top="10%"; b2.style.width="4px"; b2.style.height="340px"; b2.style.animation="osc 2.2s ease-in-out infinite";
-      stage.appendChild(b1); stage.appendChild(b2);
-      injectKeyframesOnce("osc","0%{transform:translateY(-40px);opacity:.3}50%{transform:translateY(40px);opacity:1}100%{transform:translateY(-40px);opacity:.3}");
-      for(let i=0;i<6;i++){ const ring=document.createElement("div"); ring.className="ring"; ring.style.left="50%"; ring.style.top="50%"; ring.style.width=80+i*36+"px"; ring.style.height=80+i*36+"px"; ring.style.animation=`pulseRing ${2+i*0.2}s ease-out infinite`; stage.appendChild(ring); }
-    }
-
-    function sequenceAuroraDiadem(stage){
-      // Flowing aurora ribbons crown center
-      for(let i=0;i<3;i++){ const r=document.createElement("div"); r.className="ribbon"; r.style.left="15%"; r.style.top=(16+i*12)+"%"; r.style.animationDuration=12+i*2+"s"; stage.appendChild(r); }
-      const crown=document.createElement("div"); crown.style.position="absolute"; crown.style.left="50%"; crown.style.top="50%"; crown.style.transform="translate(-50%,-50%)"; crown.style.width="160px"; crown.style.height="160px"; crown.style.borderRadius="50%"; crown.style.boxShadow="0 0 40px rgba(120,255,255,0.6), inset 0 0 40px rgba(120,255,255,0.35)"; stage.appendChild(crown);
-    }
-
-    function sequenceTimeweaver(stage){
-      // Clock hands sweeping with star trails
-      for(let i=0;i<70;i++){ const s=document.createElement("div"); s.className="star"; s.style.left=Math.floor(Math.random()*100)+"%"; s.style.top=Math.floor(Math.random()*100)+"%"; s.style.width=s.style.height=(Math.random()*2+1)+"px"; s.style.animation=`twinkle ${1.8+Math.random()*1.6}s ease-in-out infinite`; stage.appendChild(s); }
-      const hand=document.createElement("div"); hand.className="beam"; hand.style.left="50%"; hand.style.top="20%"; hand.style.width="3px"; hand.style.height="260px"; hand.style.transformOrigin="bottom center"; hand.style.animation="handRotate 5s linear infinite"; stage.appendChild(hand);
-      injectKeyframesOnce("handRotate","0%{transform:translateX(-50%) rotate(0)}100%{transform:translateX(-50%) rotate(360deg)}");
-    }
-
-    function sequenceHyperion(stage){
-      // Growing core and shockwaves
-      const core=document.createElement("div"); core.style.position="absolute"; core.style.left="50%"; core.style.top="50%"; core.style.transform="translate(-50%,-50%)"; core.style.width="60px"; core.style.height="60px"; core.style.borderRadius="50%"; core.style.boxShadow="0 0 30px rgba(160,140,255,0.7), inset 0 0 28px rgba(160,140,255,0.85)"; core.style.animation="corePulse 2s ease-in-out infinite"; stage.appendChild(core);
-      injectKeyframesOnce("corePulse","0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.3)}100%{transform:translate(-50%,-50%) scale(1)}");
-      for(let i=0;i<5;i++){ const ring=document.createElement("div"); ring.className="ring"; ring.style.left="50%"; ring.style.top="50%"; ring.style.width=120+i*40+"px"; ring.style.height=120+i*40+"px"; ring.style.animation=`pulseRing ${2.4+i*0.2}s ease-out infinite`; stage.appendChild(ring); }
-    }
-
-    function sequenceOmniSigil(stage){
-      // Rotating sigil with shards orbiting
-      const sig=document.createElement("div"); sig.className="ring"; sig.style.left="50%"; sig.style.top="50%"; sig.style.width="220px"; sig.style.height="220px"; sig.style.border="3px dashed rgba(255,255,255,0.35)"; sig.style.animation="spinSig 6s linear infinite"; stage.appendChild(sig);
-      injectKeyframesOnce("spinSig","0%{transform:translate(-50%,-50%) rotate(0)}100%{transform:translate(-50%,-50%) rotate(360deg)}");
-      for(let i=0;i<24;i++){ const s=document.createElement("div"); s.className="shard"; s.style.left=(30+Math.random()*40)+"%"; s.style.top=(30+Math.random()*40)+"%"; s.style.animation=`orbit ${3+Math.random()*2}s linear infinite`; stage.appendChild(s); }
-      injectKeyframesOnce("orbit","0%{transform:rotate(0) translateY(0)}50%{transform:rotate(180deg) translateY(6px)}100%{transform:rotate(360deg) translateY(0)}");
-    }
-
-    function sequenceEternalBloom(stage){
-      // Petal-like stars spiral outward
-      for(let i=0;i<120;i++){
-        const s=document.createElement("div"); s.className="star";
-        s.style.left="50%"; s.style.top="50%"; s.style.width=s.style.height=(Math.random()*2+1)+"px";
-        s.style.animation=`flower ${2.2+Math.random()*2}s ease-out infinite`;
+      // Shared starfield intro for presence
+      for(let i=0;i<90;i++){
+        const s=document.createElement("div");
+        s.className="star";
+        s.style.left=Math.random()*100+"%";
+        s.style.top=Math.random()*100+"%";
+        s.style.width=s.style.height=(Math.random()*2+1)+"px";
+        s.style.animation=`twinkle ${1.8+Math.random()*1.6}s ease-in-out infinite`;
         stage.appendChild(s);
       }
-      injectKeyframesOnce("flower","0%{transform:translate(-50%,-50%) scale(0.3);opacity:.2}50%{opacity:1}100%{transform:translate(-50%,-50%) scale(2.2);opacity:.0}");
+
+      // Choose style family
+      if(v===0) styleGalacticSpiral(stage, tierKey, name);
+      else if(v===1) styleCrownRings(stage, tierKey, name);
+      else if(v===2) styleAuroraWeave(stage, tierKey, name);
+      else if(v===3) styleShardBurst(stage, tierKey, name);
+      else if(v===4) styleBeamConvergence(stage, tierKey, name);
+      else if(v===5) styleVortexCollapse(stage, tierKey, name);
+      else if(v===6) styleSigilEngrave(stage, tierKey, name);
+      else if(v===7) styleGridAxis(stage, tierKey, name);
+      else if(v===8) stylePrismWave(stage, tierKey, name);
+      else styleHeartPulse(stage, tierKey, name);
+
+      // Label at center
+      const label=document.createElement("div");
+      label.style.position="absolute"; label.style.left="50%"; label.style.top="50%";
+      label.style.transform="translate(-50%,-50%)";
+      label.style.fontSize="36px"; label.style.fontWeight="900";
+      label.style.color="#fff"; label.style.textShadow="0 8px 24px rgba(0,0,0,0.65)";
+      label.textContent=name;
+      stage.appendChild(label);
+
+      // Big BOOM climax (tier-tinted)
+      setTimeout(()=>boom(stage, tierKey), 4200);
     }
 
-    function sequenceUndyingFlame(stage){
-      // Ascending flames made of beams
-      for(let i=0;i<40;i++){ const b=document.createElement("div"); b.className="beam"; b.style.width="3px"; b.style.height="140px"; b.style.left=(35+Math.random()*30)+"%"; b.style.top="60%"; b.style.background="linear-gradient(180deg,rgba(255,140,90,0.95),rgba(255,140,90,0))"; b.style.animation="flameRise 1.6s ease-in-out infinite"; stage.appendChild(b); }
-      injectKeyframesOnce("flameRise","0%{transform:translateY(0);opacity:.4}50%{opacity:1}100%{transform:translateY(-140px);opacity:.0}");
+    function boom(stage, tierKey){
+      const tint={
+        divine:"rgba(255,215,120,0.75)",
+        celestial:"rgba(120,255,255,0.75)",
+        transcendent:"rgba(160,140,255,0.75)",
+        eternal:"rgba(140,255,200,0.75)",
+        omniversal:"rgba(255,160,220,0.75)"
+      }[tierKey] || "rgba(255,255,255,0.75)";
+      for(let i=0;i<12;i++){
+        const ring=document.createElement("div");
+        ring.className="ring";
+        ring.style.left="50%"; ring.style.top="50%";
+        ring.style.borderColor=tint;
+        ring.style.width=80+i*30+"px"; ring.style.height=80+i*30+"px";
+        ring.style.animation=`pulseRing ${1.6+i*0.12}s ease-out forwards`;
+        stage.appendChild(ring);
+      }
+      for(let i=0;i<36;i++){
+        const shard=document.createElement("div");
+        shard.className="shard";
+        shard.style.left="50%"; shard.style.top="50%";
+        shard.style.transform=`translate(-50%,-50%) rotate(${Math.random()*360}deg)`;
+        shard.style.animation="explodeShard 1.6s ease-out forwards";
+        stage.appendChild(shard);
+      }
+      injectKeyframesOnce("explodeShard","0%{transform:translate(-50%,-50%) scale(0.4) rotate(0);opacity:.95}100%{transform:translate(-50%,-50%) scale(2.2) rotate(240deg);opacity:.0}");
     }
 
-    function sequenceImmortalSigil(stage){
-      // Engraved sigil appears with pulsating rings
-      const sig=document.createElement("div"); sig.className="ring"; sig.style.left="50%"; sig.style.top="50%"; sig.style.width="240px"; sig.style.height="240px"; sig.style.border="4px double rgba(255,255,255,0.3)"; sig.style.animation="sigPulse 3s ease-in-out infinite"; stage.appendChild(sig);
-      injectKeyframesOnce("sigPulse","0%{transform:translate(-50%,-50%) scale(1);opacity:.7}50%{transform:translate(-50%,-50%) scale(1.1);opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:.7}");
+    // Style families (distinct look/feel)
+    function styleGalacticSpiral(stage,tier,name){
+      for(let i=0;i<16;i++){
+        const r=document.createElement("div"); r.className="ring";
+        r.style.left="50%"; r.style.top="50%";
+        r.style.width=40+i*26+"px"; r.style.height=40+i*26+"px";
+        r.style.animation=`spiral ${1.2+i*0.12}s ease-in-out infinite`;
+        stage.appendChild(r);
+      }
+      injectKeyframesOnce("spiral","0%{transform:translate(-50%,-50%) rotate(0) scale(0.8);opacity:.5}50%{opacity:1}100%{transform:translate(-50%,-50%) rotate(180deg) scale(1.3);opacity:.2}");
     }
-
-    function sequenceAxis(stage){
-      // Axis lines rotating, universal grid
-      for(let i=0;i<10;i++){ const ring=document.createElement("div"); ring.className="ring"; ring.style.left="50%"; ring.style.top="50%"; ring.style.width=90+i*30+"px"; ring.style.height=90+i*30+"px"; ring.style.animation="spinAxis 4s linear infinite"; stage.appendChild(ring); }
-      injectKeyframesOnce("spinAxis","0%{transform:translate(-50%,-50%) rotate(0)}100%{transform:translate(-50%,-50%) rotate(360deg)}");
-      for(let i=0;i<40;i++){ const s=document.createElement("div"); s.className="star"; s.style.left=Math.floor(Math.random()*100)+"%"; s.style.top=Math.floor(Math.random()*100)+"%"; s.style.animation=`twinkle ${1.6+Math.random()*1.2}s ease-in-out infinite`; stage.appendChild(s); }
+    function styleCrownRings(stage,tier,name){
+      for(let i=0;i<6;i++){
+        const ring=document.createElement("div"); ring.className="ring";
+        ring.style.left="50%"; ring.style.top="50%"; ring.style.borderColor="rgba(255,200,120,"+(0.35-0.04*i)+")";
+        ring.style.width=120+i*36+"px"; ring.style.height=120+i*36+"px";
+        ring.style.animation=`crown ${2+i*0.2}s ease-out infinite`; stage.appendChild(ring);
+      }
+      injectKeyframesOnce("crown","0%{transform:translate(-50%,-50%) scale(0.6);opacity:.3}50%{opacity:1}100%{transform:translate(-50%,-50%) scale(1.5);opacity:.0}");
     }
-
-    function sequenceTotality(stage){
-      // Full-screen wave of color sweeping
-      for(let i=0;i<6;i++){ const cover=document.createElement("div"); cover.style.position="absolute"; cover.style.left="0"; cover.style.top="0"; cover.style.right="0"; cover.style.bottom="0"; cover.style.background=`linear-gradient(120deg, rgba(255,160,220,${0.06+i*0.06}), rgba(120,255,220,${0.06+i*0.06}), rgba(180,120,255,${0.06+i*0.06}))`; cover.style.filter="blur(6px)"; cover.style.animation=`sweep ${2.6+i*0.2}s ease-in-out infinite`; stage.appendChild(cover); }
+    function styleAuroraWeave(stage,tier,name){
+      for(let i=0;i<4;i++){
+        const ribbon=document.createElement("div"); ribbon.className="ribbon";
+        ribbon.style.left="12%"; ribbon.style.top=(14+i*12)+"%";
+        ribbon.style.animationDuration = 10+i*2 + "s";
+        ribbon.style.background="linear-gradient(90deg, rgba(120,255,255,0.6), rgba(255,160,220,0.6))";
+        stage.appendChild(ribbon);
+      }
+      const core=document.createElement("div");
+      core.className="corona";
+      stage.appendChild(core);
+    }
+    function styleShardBurst(stage,tier,name){
+      for(let i=0;i<120;i++){
+        const s=document.createElement("div"); s.className="shard";
+        s.style.left=(45+Math.random()*10)+"%"; s.style.top=(45+Math.random()*10)+"%";
+        s.style.transform=`rotate(${Math.random()*360}deg)`;
+        s.style.animation="shardDance 2.2s ease-in-out infinite";
+        stage.appendChild(s);
+      }
+      injectKeyframesOnce("shardDance","0%{transform:rotate(0) translateY(0);opacity:.3}50%{transform:rotate(180deg) translateY(8px);opacity:1}100%{transform:rotate(360deg) translateY(0);opacity:.3}");
+    }
+    function styleBeamConvergence(stage,tier,name){
+      for(let i=0;i<8;i++){
+        const b=document.createElement("div"); b.className="beam";
+        b.style.width="4px"; b.style.height="280px";
+        b.style.left=(10+i*12)+"%"; b.style.top="0%";
+        b.style.animation=`beamDown ${1.6+i*0.1}s linear infinite`;
+        stage.appendChild(b);
+      }
+      injectKeyframesOnce("beamDown","0%{transform:translateY(-120px);opacity:.0}50%{opacity:1}100%{transform:translateY(240px);opacity:.0}");
+    }
+    function styleVortexCollapse(stage,tier,name){
+      for(let i=0;i<18;i++){
+        const r=document.createElement("div"); r.className="ring";
+        r.style.left="50%"; r.style.top="50%";
+        r.style.width=60+i*22+"px"; r.style.height=60+i*22+"px";
+        r.style.animation=`vortex ${1.1+i*0.12}s ease-in-out infinite`;
+        stage.appendChild(r);
+      }
+      injectKeyframesOnce("vortex","0%{transform:translate(-50%,-50%) scale(1) rotate(0);opacity:.5}50%{transform:translate(-50%,-50%) scale(0.6) rotate(90deg);opacity:.9}100%{transform:translate(-50%,-50%) scale(1.2) rotate(180deg);opacity:.2}");
+    }
+    function styleSigilEngrave(stage,tier,name){
+      const sig=document.createElement("div"); sig.className="ring";
+      sig.style.left="50%"; sig.style.top="50%"; sig.style.width="260px"; sig.style.height="260px";
+      sig.style.border="4px double rgba(255,255,255,0.35)";
+      sig.style.animation="sigPulse 3s ease-in-out infinite";
+      stage.appendChild(sig);
+      injectKeyframesOnce("sigPulse","0%{transform:translate(-50%,-50%) scale(1);opacity:.7}50%{transform:translate(-50%,-50%) scale(1.08);opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:.7}");
+    }
+    function styleGridAxis(stage,tier,name){
+      for(let i=0;i<12;i++){
+        const line=document.createElement("div");
+        line.style.position="absolute"; line.style.left=i*8+"%"; line.style.top="0";
+        line.style.width="1px"; line.style.height="100%"; line.style.background="rgba(255,255,255,0.2)";
+        line.style.animation="axisSpin 6s linear infinite";
+        stage.appendChild(line);
+      }
+      injectKeyframesOnce("axisSpin","0%{transform:rotate(0)}100%{transform:rotate(360deg)}");
+    }
+    function stylePrismWave(stage,tier,name){
+      for(let i=0;i<6;i++){
+        const cover=document.createElement("div");
+        cover.style.position="absolute"; cover.style.left="0"; cover.style.top="0"; cover.style.right="0"; cover.style.bottom="0";
+        cover.style.background=`linear-gradient(120deg, rgba(255,160,220,${0.06+i*0.06}), rgba(120,255,220,${0.06+i*0.06}), rgba(180,120,255,${0.06+i*0.06}))`;
+        cover.style.filter="blur(6px)";
+        cover.style.animation=`sweep ${2.6+i*0.2}s ease-in-out infinite`;
+        stage.appendChild(cover);
+      }
       injectKeyframesOnce("sweep","0%{transform:translateX(-6%)}50%{transform:translateX(6%)}100%{transform:translateX(-6%)}");
     }
-
-    function sequenceCosmicGem(stage){
-      // Gem sparkle at center with starburst
-      const gem=document.createElement("div"); gem.style.position="absolute"; gem.style.left="50%"; gem.style.top="50%"; gem.style.transform="translate(-50%,-50%)"; gem.style.width="120px"; gem.style.height="120px"; gem.style.clipPath="polygon(50% 0%, 85% 25%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 15% 25%)"; gem.style.background="linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.1))"; gem.style.boxShadow="0 0 40px rgba(255,255,255,0.6)"; gem.style.animation="gemPulse 2.4s ease-in-out infinite"; stage.appendChild(gem);
-      injectKeyframesOnce("gemPulse","0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.2)}100%{transform:translate(-50%,-50%) scale(1)}");
-      for(let i=0;i<24;i++){ const s=document.createElement("div"); s.className="star"; s.style.left="50%"; s.style.top="50%"; s.style.width=s.style.height=(Math.random()*3+1)+"px"; s.style.animation=`burst ${1.8+Math.random()*1.2}s ease-out infinite`; stage.appendChild(s); }
-      injectKeyframesOnce("burst","0%{transform:translate(-50%,-50%) scale(0.4);opacity:.6}100%{transform:translate(-50%,-50%) scale(2.4);opacity:.0}");
-    }
-
-    function sequenceOriginCrystal(stage){
-      // Origin: crystalline lattice grows and shatters into stardust
-      for(let i=0;i<10;i++){ const ring=document.createElement("div"); ring.className="ring"; ring.style.left="50%"; ring.style.top="50%"; ring.style.width=60+i*30+"px"; ring.style.height=60+i*30+"px"; ring.style.borderColor="rgba(255,160,220,"+(0.3-0.02*i)+")"; ring.style.animation=`pulseRing ${2+i*0.2}s ease-out infinite`; stage.appendChild(ring); }
-      for(let i=0;i<80;i++){ const shard=document.createElement("div"); shard.className="shard"; shard.style.left="50%"; shard.style.top="50%"; shard.style.transform=`translate(-50%,-50%) rotate(${Math.random()*360}deg)`; shard.style.animation="explode 2.2s ease-out infinite"; stage.appendChild(shard); }
-      injectKeyframesOnce("explode","0%{transform:translate(-50%,-50%) scale(0.2) rotate(0deg);opacity:.9}100%{transform:translate(-50%,-50%) scale(2.1) rotate(220deg);opacity:.0}");
+    function styleHeartPulse(stage,tier,name){
+      const core=document.createElement("div");
+      core.style.position="absolute"; core.style.left="50%"; core.style.top="50%";
+      core.style.transform="translate(-50%,-50%)";
+      core.style.width="140px"; core.style.height="120px";
+      core.style.background="radial-gradient(circle at 30% 30%, rgba(255,160,220,0.9), transparent 60%)";
+      core.style.clipPath="polygon(50% 5%, 61% 16%, 73% 28%, 80% 42%, 80% 60%, 66% 78%, 50% 90%, 34% 78%, 20% 60%, 20% 42%, 27% 28%, 39% 16%)";
+      core.style.boxShadow="0 0 60px rgba(255,160,220,0.5)";
+      core.style.animation="heartPulse 2.4s ease-in-out infinite";
+      stage.appendChild(core);
+      injectKeyframesOnce("heartPulse","0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.18)}100%{transform:translate(-50%,-50%) scale(1)}");
     }
 
     // Ensure keyframes only injected once
@@ -1190,4 +1167,3 @@
   </script>
 </body>
 </html>
-```
