@@ -725,7 +725,7 @@
       spawnBanner(`${w.name} started`, "weather", w.colorClass);
     }
     function scheduleNextWeather(){
-      const delayMs = (240 + Math.random()*480) * 1000; // 4–12 minutes
+      const delayMs = (4 + Math.random()*8) * 10; // 4–12 minutes
       setTimeout(()=>{ triggerRandomWeather(); scheduleNextWeather(); }, delayMs);
     }
     function classToTierKey(colorClass){
