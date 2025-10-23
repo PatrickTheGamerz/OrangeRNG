@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sol’s RNG — Exclusive, Weather, and Visual FX Upgrade</title>
+  <title>Sol’s RNG — Exclusive Blur + Secret Commands + Visual FX</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -11,7 +11,7 @@
       --fx1:#7bb7ff; --fx2:#caa6ff; --fx3:#ffbf66;
     }
     body{margin:0;font-family:sans-serif;background:var(--bg);color:var(--text);display:grid;place-items:center;min-height:100vh;}
-    .app{width:980px;max-width:96vw;background:var(--panel);border:1px solid #252b39;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;}
+    .app{width:980px;max-width:96vw;background:var(--panel);border:1px solid #252b39;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;position:relative;}
     .content{padding:20px;display:grid;gap:18px;}
     .panel{background:#121521;border:1px solid #242a38;border-radius:12px;padding:16px;}
 
@@ -26,7 +26,6 @@
       box-shadow:0 12px 28px rgba(0,0,0,0.55), inset 0 0 26px rgba(110,168,254,0.08);backdrop-filter:blur(6px);
       font-weight:800;text-align:center;color:var(--text);opacity:0;letter-spacing:0.3px;
     }
-    .banner .tag{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;opacity:0.9;}
     .banner .title{font-size:16px;}
     .banner .fxline{position:absolute;left:50%;transform:translateX(-50%);width:68%;height:2px;background:linear-gradient(90deg, transparent, var(--fx1), var(--fx2), var(--fx3), transparent);opacity:0.6;}
     .banner .fxline.top{top:6px;} .banner .fxline.bot{bottom:6px;}
@@ -34,12 +33,13 @@
     .banner.luck{top:16px;}
     .banner.new{top:120px;}
     .banner.weather{top:16px;}
+    .banner.activate{top:64px;}
     .banner.announce{top:64px;}
     @keyframes slideIn{from{transform:translate(-50%,-20px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
     @keyframes hold{from{opacity:1}to{opacity:1}}
     @keyframes fadeout{to{opacity:0;filter:blur(3px)}}
 
-    /* Weather-inside banner icon (eclipse ring etc.) */
+    /* Banner icon for weather visuals */
     .banner-icon{
       position:absolute;left:10px;top:50%;transform:translateY(-50%);
       width:26px;height:26px;border-radius:50%;
@@ -61,7 +61,7 @@
       font-weight:600;
     }
 
-    /* Weather backdrops + premium animations */
+    /* Weather backdrops + animations */
     .weather-bg{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;animation:weatherFadeIn .7s ease-out forwards;}
     @keyframes weatherFadeIn{from{opacity:0}to{opacity:1}}
     .wb-sunny{background:radial-gradient(120% 120% at 50% 10%, rgba(255,215,120,0.22), transparent 60%), linear-gradient(180deg, rgba(255,232,170,0.08), rgba(0,0,0,0));}
@@ -74,26 +74,19 @@
     .wb-tempest{background:radial-gradient(circle at 50% 50%,rgba(120,80,255,0.25),transparent 70%),radial-gradient(circle at 70% 30%,rgba(80,200,255,0.25),transparent 70%);}
     .wb-fog{background:radial-gradient(100% 100% at 50% 50%, rgba(185,195,210,0.16), rgba(0,0,0,0.57));}
 
-    /* Weather particle containers */
     .particles{position:absolute;inset:0;overflow:hidden;filter:blur(0.3px);}
-    /* Rain with lightning */
     .rain-drop{position:absolute;width:2px;height:18px;background:linear-gradient(to bottom,rgba(180,200,255,0.95),rgba(180,200,255,0.25));border-radius:1px;}
     @keyframes rainFall{0%{transform:translateY(-60px)}100%{transform:translateY(420px)}}
     .lightning{position:absolute;left:10%;top:-10%;width:2px;height:200px;background:linear-gradient(to bottom,rgba(255,255,255,0.95),transparent);filter:blur(1px);opacity:0;animation:flash 5s ease-in-out infinite;}
     @keyframes flash{0%,92%{opacity:0}93%{opacity:1}95%{opacity:0}100%{opacity:0}}
-    /* Snow swirl */
     .snow-flake{position:absolute;width:6px;height:6px;background:white;border-radius:50%;opacity:0.9;box-shadow:0 0 6px rgba(255,255,255,0.5);}
     @keyframes snowFall{0%{transform:translateY(-40px) translateX(0)}50%{transform:translateY(200px) translateX(16px)}100%{transform:translateY(420px) translateX(0)}}
-    /* Fog drift layers */
     .fog-mist{position:absolute;left:-40%;top:0;width:180%;height:120%;background:radial-gradient(circle,rgba(255,255,255,0.08),transparent 70%);filter:blur(8px);opacity:0.75;animation:fogDrift 24s linear infinite;}
     @keyframes fogDrift{0%{transform:translateX(0)}50%{transform:translateX(10%)}100%{transform:translateX(0)}}
-    /* Aurora ribbons */
     .ribbon{position:absolute;width:60%;height:16px;left:20%;top:18%;border-radius:999px;filter:blur(2px);opacity:0.6;animation:ribbonWave 12s ease-in-out infinite;}
     @keyframes ribbonWave{0%{transform:translateY(0) skewX(6deg)}50%{transform:translateY(40px) skewX(-6deg)}100%{transform:translateY(0) skewX(6deg)}}
-    /* Tempest cosmic particles */
     .cosmic{position:absolute;width:4px;height:4px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.9),rgba(255,255,255,0));opacity:0.8;}
     @keyframes drift{0%{transform:translate(0,0)}50%{transform:translate(12px,-16px)}100%{transform:translate(0,0)}}
-    /* Eclipse corona pulse */
     .corona{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:240px;height:240px;border-radius:50%;box-shadow:0 0 80px rgba(255,200,120,0.24);animation:pulse 5s ease-in-out infinite;}
     @keyframes pulse{0%{box-shadow:0 0 80px rgba(255,200,120,0.18)}50%{box-shadow:0 0 120px rgba(255,200,120,0.4)}100%{box-shadow:0 0 80px rgba(255,200,120,0.18)}}
 
@@ -145,7 +138,6 @@
     .b-divine{background:#2a2a12;color:#ffd700;} .b-celestial{background:#142a2a;color:#7affff;}
     .b-transcendent{background:#1a1a2f;color:#a0a7ff;} .b-eternal{background:#1a2f2a;color:#9cf2c7;}
     .b-omniversal{background:#2f1a2f;color:#ff9cff;}
-    /* Exclusive continuous rainbow (infinite and smooth) */
     .b-exclusive{
       background:conic-gradient(from 0deg, red, orange, yellow, green, blue, indigo, violet, red);
       animation:exclusiveSpin 8s linear infinite; color:white;
@@ -155,10 +147,40 @@
     /* Glow effect */
     .glow{position:absolute;inset:-40%;border-radius:50%;background:radial-gradient(closest-side,rgba(110,168,254,0.25),transparent 65%);filter:blur(12px);animation:glow 1.1s ease-out forwards;z-index:2;}
     @keyframes glow{0%{opacity:0;transform:scale(0.7)}50%{opacity:1}100%{opacity:0;transform:scale(1.2)}}
+
+    /* Secret systems */
+    #secretBtn{position:absolute;top:6px;right:6px;width:28px;height:28px;opacity:0;cursor:pointer;z-index:20;}
+    .modal{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#121521;padding:16px;border:1px solid #2a3449;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.5);z-index:40;width:320px;}
+    .modal h3{margin:0 0 10px;}
+    .modal .row{display:flex;gap:8px;align-items:center;margin:8px 0;}
+    .modal input[type=password]{flex:1;background:#1b2232;border:1px solid #2a3449;border-radius:8px;padding:8px;color:var(--text);}
+    .modal button{width:100%}
+
+    /* Commands panel */
+    #commandsPanel{display:none;}
+    .cmd-grid{display:grid;gap:12px;}
+    .cmd-row{display:grid;grid-template-columns:1.4fr 0.8fr;gap:10px;align-items:center;}
+    .cmd-row.wide{grid-template-columns:1fr;}
+    .cmd-group{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .cmd-group3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+    select,input[type=text]{background:#1b2232;border:1px solid #2a3449;border-radius:8px;padding:8px;color:var(--text);}
+    .cmd-confirm{margin-top:8px;}
   </style>
 </head>
 <body>
   <div class="app">
+    <!-- Invisible secret button -->
+    <div id="secretBtn" aria-hidden="true"></div>
+
+    <!-- Password modal -->
+    <div id="passwordModal" class="modal" aria-hidden="true">
+      <h3>Enter password</h3>
+      <div class="row">
+        <input type="password" id="secretInput" autocomplete="off" />
+      </div>
+      <button id="secretConfirm">Confirm</button>
+    </div>
+
     <div class="content">
       <!-- Rolling panel -->
       <div class="panel">
@@ -167,11 +189,12 @@
           <div class="rarity" id="rarityText"></div>
           <div class="active-effects" id="activeEffects"></div>
         </div>
-        <div class="controls">
+        <div class="controls" id="controls">
           <button id="btnRoll">Roll</button>
           <button id="btnAuto" disabled>Auto Roll (locked)</button>
           <button id="btnIndex">Index</button>
           <button id="btnInventory">Inventory</button>
+          <!-- Commands button injected on unlock -->
         </div>
       </div>
 
@@ -205,6 +228,88 @@
         </div>
         <ul id="inventoryList" class="inv-list"></ul>
       </div>
+
+      <!-- Commands panel -->
+      <div class="panel" id="commandsPanel" style="display:none;">
+        <h3>Commands</h3>
+        <div class="cmd-grid">
+          <div class="cmd-row">
+            <div class="cmd-group">
+              <label>Set Luck:
+                <input type="text" id="cmdLuck" placeholder="e.g. 0.5 for +50%" />
+              </label>
+              <label>Scope:
+                <select id="cmdLuckScope"><option>GLOBAL</option><option>LOCAL</option></select>
+              </label>
+            </div>
+          </div>
+
+          <div class="cmd-row">
+            <div class="cmd-group">
+              <label>Set Weather:
+                <select id="cmdWeather"></select>
+              </label>
+              <label>Scope:
+                <select id="cmdWeatherScope"><option>GLOBAL</option><option>LOCAL</option></select>
+              </label>
+            </div>
+          </div>
+
+          <div class="cmd-row">
+            <div class="cmd-group3">
+              <label>Set Next Roll (rarity):
+                <select id="cmdNextRarity"></select>
+              </label>
+              <label>Item/Name:
+                <select id="cmdNextName"></select>
+              </label>
+              <label>Scope:
+                <select id="cmdNextScope"><option>GLOBAL</option><option>LOCAL</option></select>
+              </label>
+            </div>
+          </div>
+
+          <div class="cmd-row">
+            <div class="cmd-group">
+              <label>Reset Entire Data
+                <button id="cmdReset">Reset</button>
+              </label>
+              <label>Scope:
+                <select id="cmdResetScope"><option>GLOBAL</option><option>LOCAL</option></select>
+              </label>
+            </div>
+          </div>
+
+          <div class="cmd-row">
+            <div class="cmd-group">
+              <label>Clear Effects
+                <button id="cmdClear">Clear</button>
+              </label>
+              <label>Scope:
+                <select id="cmdClearScope"><option>GLOBAL</option><option>LOCAL</option></select>
+              </label>
+            </div>
+          </div>
+
+          <div class="cmd-row">
+            <div class="cmd-group3">
+              <label>Give Effect (rarity):
+                <select id="cmdGiveRarity"></select>
+              </label>
+              <label>Effect/Item:
+                <select id="cmdGiveItem"></select>
+              </label>
+              <label>Scope:
+                <select id="cmdGiveScope"><option>GLOBAL</option><option>LOCAL</option></select>
+              </label>
+            </div>
+          </div>
+
+          <div class="cmd-row wide">
+            <button id="cmdConfirm" class="cmd-confirm">Confirm</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -224,7 +329,7 @@
       {key:"transcendent",name:"Transcendent",weight:4,colorClass:"b-transcendent"},
       {key:"eternal",name:"Eternal",weight:2,colorClass:"b-eternal"},
       {key:"omniversal",name:"Omniversal",weight:1,colorClass:"b-omniversal"},
-      {key:"exclusive",name:"Exclusive",weight:0,colorClass:"b-exclusive"} // event-only drops
+      {key:"exclusive",name:"Exclusive",weight:0,colorClass:"b-exclusive"} // event-only
     ];
 
     const INDEX_ITEMS={
@@ -240,9 +345,9 @@
       celestial:["Stellar Crown","Singularity Shard","Event Horizon","Nebula Heart","Galactic Sigil","Nova Crown","Comet Ring","Quasar Core","Ecliptic Rune","Parhelion Gem","Aurora Diadem","Aether Crown"],
       transcendent:["Transcendent Eye","Omni Sigil","Hyperion Core","Timeweaver Crest","Axis Heart","Prime Star","Beyond Rune","Unbound Halo","Perennial Flame","Limitless Gem","Meta Crown","Supernal Tear"],
       eternal:["Eternal Bloom","Forever Star","Unending Crown","Ceaseless Orb","Timeless Fang","Endless Prism","Sempiternal Rune","Undying Flame","Ageless Halo","Perpetual Core","Immortal Sigil","Infinite Diadem"],
-      /* Omniversal replacements per request */
+      /* Omniversal: replace two names per request */
       omniversal:["Omniversal Heart","All-Crown","Totality Core","Panreality Halo","Absolute Sigil","Everything Rune","Boundless Star","Cosmos Crown","Axis of All","Prime Totality","Eclipse Gem","Cosmic Gem"],
-      /* Exclusive shows only one item now */
+      /* Exclusive: single item */
       exclusive:["Gem Of Gem"]
     };
 
@@ -345,7 +450,9 @@
       autoSellRolled:"sol_rng_autosell_rolled",
       autoSellItems:"sol_rng_autosell_items",
       effects:"sol_rng_effects_instances",
-      mode:"sol_rng_mode"
+      mode:"sol_rng_mode",
+      secretUnlocked:"sol_rng_secret_unlocked",
+      cmdQueue:"sol_rng_commands_queue"
     };
 
     function buildInitialUnlocks(def){
@@ -376,7 +483,9 @@
       fullAnnouncedItems:false,
       activeEffects:{ luck:0, speed:0, bias:{}, weatherBiasItem:null },
       effectInstances:[], // {name,type,amount,target?,expiresAt,rarityKey,weather?,meta?}
-      mode:"Rolled"
+      mode:"Rolled",
+      secretUnlocked:false,
+      cmdQueue:null // queued command to apply
     };
 
     function loadState(){
@@ -388,6 +497,8 @@
       const autoSellItemsRaw=localStorage.getItem(STORAGE_KEYS.autoSellItems);
       const effInstRaw=localStorage.getItem(STORAGE_KEYS.effects);
       const modeRaw=localStorage.getItem(STORAGE_KEYS.mode);
+      const secretRaw=localStorage.getItem(STORAGE_KEYS.secretUnlocked);
+      const cmdRaw=localStorage.getItem(STORAGE_KEYS.cmdQueue);
 
       state.rolls=Number.isFinite(rolls)?rolls:0;
       state.unlocks=unlocksRaw?reviveUnlocks(JSON.parse(unlocksRaw)):buildInitialUnlocks(INDEX_ITEMS);
@@ -402,6 +513,8 @@
       state.effectInstances = state.effectInstances.filter(e=>e.expiresAt>now);
       deriveEffectsTotals();
       state.mode = modeRaw || "Rolled";
+      state.secretUnlocked = secretRaw==="true";
+      state.cmdQueue = cmdRaw ? JSON.parse(cmdRaw) : null;
     }
     function saveState(){
       localStorage.setItem(STORAGE_KEYS.rolls,String(state.rolls));
@@ -412,6 +525,9 @@
       localStorage.setItem(STORAGE_KEYS.autoSellItems,state.autoSellItems);
       localStorage.setItem(STORAGE_KEYS.effects,JSON.stringify(state.effectInstances));
       localStorage.setItem(STORAGE_KEYS.mode,state.mode);
+      localStorage.setItem(STORAGE_KEYS.secretUnlocked,state.secretUnlocked?"true":"false");
+      if(state.cmdQueue) localStorage.setItem(STORAGE_KEYS.cmdQueue,JSON.stringify(state.cmdQueue));
+      else localStorage.removeItem(STORAGE_KEYS.cmdQueue);
     }
 
     /* ---------------- Utils ---------------- */
@@ -428,22 +544,23 @@
     function spawnBanner(text,type,colorClass,withIcon){
       const rollArea=document.getElementById("rollArea");
       const div=document.createElement("div");
-      const useType = type==="activate" ? "announce" : type;
+      const useType = type==="activate" ? "activate" : type;
       div.className=`banner ${useType} show ${colorClass?colorClass:''}`;
 
-      // Decorative lines and optional icon
-      const t = document.createElement("div");
-      t.className="title";
-      t.textContent=text;
+      const title = document.createElement("div");
+      title.className="title";
+      title.textContent=text;
+
       const fxTop=document.createElement("div"); fxTop.className="fxline top";
       const fxBot=document.createElement("div"); fxBot.className="fxline bot";
-      div.appendChild(fxTop); div.appendChild(t); div.appendChild(fxBot);
-
+      div.appendChild(fxTop);
       if(withIcon){
         const icon=document.createElement("div");
         icon.className="banner-icon " + withIcon;
         div.appendChild(icon);
       }
+      div.appendChild(title);
+      div.appendChild(fxBot);
 
       div.addEventListener("animationend",()=>div.remove());
       rollArea.appendChild(div);
@@ -466,7 +583,6 @@
 
     function applyWeightModifiers(baseTiers, milestoneMult){
       const tiers=clone(baseTiers);
-      // milestone luck applies multiplicatively to target tiers
       if(milestoneMult>1){ for(const t of tiers){ if(LUCK_TARGET_KEYS.includes(t.key)) t.weight *= milestoneMult; } }
       if(state.activeEffects.luck>0){
         const mult = 1 + state.activeEffects.luck;
@@ -620,7 +736,6 @@
       state.activeEffects = totals;
     }
 
-    // Stack with max cap; weather stacks duration only
     function addEffect(effect){
       const now = Date.now();
       const durMs = (effect.duration||0) * 1000;
@@ -650,7 +765,7 @@
           type: effect.type,
           amount: effect.amount||0,
           target: effect.target,
-          expiresAt: durMs ? now + Math.min(capMs, durMs) : now,
+          expiresAt: durMs ? now + Math.min(capMs, durMs) : now + durMs,
           rarityKey: effect.rarity || "common",
           weather: effect.type==="weather",
           meta: effect.meta || null
@@ -728,7 +843,6 @@
       renderButtonsState();
       renderInventory();
     }
-
     function cycle(list, current, dir){
       const idx=list.indexOf(current);
       let next=idx;
@@ -806,6 +920,76 @@
       return false;
     }
 
+    function applyCmdQueueIfAny(){
+      if(!state.cmdQueue) return;
+      const q = state.cmdQueue;
+      // Luck
+      if(q.setLuck){
+        const amount = Number(q.setLuck.amount)||0;
+        const scope = q.setLuck.scope; // GLOBAL/LOCAL
+        const duration = 20; // short boost for demo, can be adjusted by you
+        addEffect({ name:`Command Luck +${Math.round(amount*100)}%`, type:"luck", amount, duration, rarity:"divine" });
+        spawnBanner(`Activated Command: Luck +${Math.round(amount*100)}%`, "activate", "b-divine");
+      }
+      // Weather
+      if(q.setWeather){
+        const wName=q.setWeather.name;
+        const scope=q.setWeather.scope;
+        const metaSrc = [...WEATHERS.normal, ...WEATHERS.rare, ...WEATHERS.super].find(w=>w.name===wName);
+        const dur=150;
+        const meta = { luck: (metaSrc?.effects?.luck)||0, biasItem:(metaSrc?.effects?.biasItem)||null };
+        addEffect({ name:wName, type:"weather", duration:dur, rarity: classToTierKey(metaSrc?.colorClass||""), meta });
+        const icon = wName==="Eternal Eclipse" ? "icon-eclipse" : wName==="Storm" ? "icon-storm" : wName==="Aurora Veil" ? "icon-aurora" : wName==="Cosmic Tempest" ? "icon-tempest" : "";
+        spawnBanner(`${wName} started (Command)`, "weather", metaSrc?.colorClass||"", icon);
+      }
+      // Next roll
+      if(q.nextRoll){
+        state.cmdQueue.nextRoll.applied = false; // set marker to use on next roll
+      }
+      // Reset
+      if(q.reset){
+        if(q.reset.scope==="GLOBAL"){
+          localStorage.clear();
+          location.reload();
+        } else {
+          // LOCAL: clear runtime only
+          state.inventoryRolled=[]; state.inventoryItems=[];
+          state.effectInstances=[]; deriveEffectsTotals();
+          saveState(); renderActiveEffects(); renderInventory(); renderIndex();
+          spawnBanner("Local data cleared","announce","b-trash");
+        }
+      }
+      // Clear effects
+      if(q.clearEffects){
+        state.effectInstances=[]; deriveEffectsTotals(); saveState();
+        renderActiveEffects(); renderWeatherBackdrop();
+        spawnBanner("All effects cleared","announce","b-common");
+      }
+      // Give effect
+      if(q.giveEffect){
+        const eff = q.giveEffect.effect;
+        if(eff){
+          addEffect(eff);
+          const colorClass = TIERS.find(t=>t.key===eff.rarity)?.colorClass || "";
+          spawnBanner(`Activated ${eff.name}`,"activate",colorClass);
+        }
+      }
+
+      saveState();
+      // Keep nextRoll command until consumed, others clear
+      const keepNext = state.cmdQueue && state.cmdQueue.nextRoll;
+      state.cmdQueue = keepNext ? { nextRoll: state.cmdQueue.nextRoll } : null;
+      saveState();
+    }
+
+    function consumeNextRollCommandIfExists(){
+      if(!state.cmdQueue || !state.cmdQueue.nextRoll || state.cmdQueue.nextRoll.applied) return null;
+      const cmd = state.cmdQueue.nextRoll;
+      cmd.applied = true;
+      saveState();
+      return cmd; // { rarity, name, scope }
+    }
+
     function rollOnce(){
       const upcoming = state.rolls + 1;
       const surge = milestoneLuckMultiplier(upcoming);
@@ -815,7 +999,6 @@
         spawnBanner(surgeText,"luck",surgeClass);
       }
 
-      // Build tiers excluding Exclusive (event-only)
       let tiers=TIERS.filter(t=>t.key!=="exclusive");
       tiers = applyWeightModifiers(tiers, surge);
 
@@ -823,20 +1006,30 @@
       const wEff = state.effectInstances.find(e=>e.type==="weather" && e.expiresAt>now);
       const exclusiveActive = wEff && (wEff.name==="Eternal Eclipse" || wEff.name==="Cosmic Tempest");
 
-      // Weighted pick
+      // If command queues a forced next roll, apply it
+      const forced = consumeNextRollCommandIfExists();
+
       const chances=toChances(tiers);
       let pickedTier = pickTier(chances);
       let tierKey = pickedTier.key;
       let tierName = pickedTier.name;
 
-      // Exclusive override gate during specific weathers; rarer than Omniversal
+      // Exclusive override gate during specific weathers
       if(exclusiveActive){
-        const secretGateBase = 0.00002; // 0.002% base, rarer than omniversal
+        const secretGateBase = 0.00002; // rarer than omniversal
         const luckBoostSecret = Math.min(0.00002, (state.activeEffects.luck||0) * 0.000004);
         const passExclusive = Math.random() < (secretGateBase + luckBoostSecret);
         if(passExclusive){
           tierKey = "exclusive";
           tierName = "Exclusive";
+        }
+      }
+
+      // If forced rarity/name by command
+      if(forced){
+        if(forced.rarity){
+          tierKey = forced.rarity;
+          tierName = TIERS.find(t=>t.key===forced.rarity)?.name || forced.rarity;
         }
       }
 
@@ -863,7 +1056,7 @@
         return pass ? bias.name : null;
       }
 
-      if(rollItem){
+      if(rollItem && !forced?.name){
         const itemTier = pickTier(itemChances);
         const drop = pickConsumableFromTier(itemTier.key);
         if(drop){
@@ -889,7 +1082,6 @@
                 if(!state.fullAnnouncedItems){ spawnBanner(`Items inventory is full ${ITEMS_MAX}/${ITEMS_MAX}`,"announce",""); state.fullAnnouncedItems=true; }
               }
             }
-            // Activation visuals when item is used are handled in useItemEntry()
           } else {
             const biasPick = tryWeatherItemBias(tierKey);
             const itemName = biasPick || pickIndexItem(tierKey);
@@ -909,21 +1101,17 @@
       } else {
         // Index roll (including Exclusive event-only)
         if(tierKey==="exclusive"){
-          // Only one exclusive item now: Gem Of Gem
-          // Still only available during Eternal Eclipse or Cosmic Tempest
           const itemName = exclusiveActive ? "Gem Of Gem" : null;
-          displayName = itemName || "Exclusive";
+          displayName = forced?.name || itemName || "Exclusive";
           displayRarityClass = "b-exclusive";
-          processIndexItem("exclusive", "Exclusive", itemName, surge);
-          if(itemName) isNew = markNew("exclusive", itemName);
+          processIndexItem("exclusive", "Exclusive", displayName==="Exclusive"?null:displayName, surge);
+          if(displayName && displayName!=="Exclusive") isNew = markNew("exclusive", displayName);
         } else {
-          // Weather bias: also allow Omniversal replacements to be targeted
-          const biasPick = tryWeatherItemBias(tierKey);
-          const itemName = biasPick || pickIndexItem(tierKey);
-          displayName = itemName || tierName;
+          const chosenName = forced?.name || tryWeatherItemBias(tierKey) || pickIndexItem(tierKey);
+          displayName = chosenName || tierName;
           displayRarityClass = TIERS.find(t=>t.key===tierKey)?.colorClass || "";
-          processIndexItem(tierKey, tierName, itemName, surge);
-          if(itemName) isNew = markNew(tierKey, itemName);
+          processIndexItem(tierKey, tierName, chosenName, surge);
+          if(chosenName) isNew = markNew(tierKey, chosenName);
         }
       }
 
@@ -937,7 +1125,7 @@
       renderInventory();
     }
 
-    /* ---------------- UI ---------------- */
+    /* ---------------- UI refs ---------------- */
     const elResult=document.getElementById("resultText");
     const elRarity=document.getElementById("rarityText");
     const elIndexPanel=document.getElementById("indexPanel");
@@ -986,9 +1174,9 @@
         const comp=tierCompletion(tier.key);
         const isExclusive = tier.key==="exclusive";
 
-        // Blur the Exclusive badge text and its completion (per request)
+        // Blur the Exclusive badge and completion text per request
         const badgeClasses = `badge ${tier.colorClass} ${isExclusive?'locked':''}`;
-        const badgeText = isExclusive ? 'Exclusive' : tier.name;
+        const badgeText = tier.name;
         const percentHtml = `<div class="completion ${isExclusive?'locked':''}">${isExclusive? '—' : comp.percent + '%'}</div>`;
 
         section.innerHTML=`
@@ -1000,7 +1188,6 @@
         const items=INDEX_ITEMS[tier.key]||[];
 
         if(isExclusive){
-          // Only "Gem Of Gem"
           const name="Gem Of Gem";
           const li=document.createElement("li"); li.className="index-item";
           const unlocked=!!state.unlocks[tier.key][name];
@@ -1101,8 +1288,6 @@
         state.fullAnnouncedItems=false;
       }
     }
-
-    /* Activation visuals when using items */
     function useItemEntry(entry){
       if(entry.effect){
         const eff = entry.effect;
@@ -1137,6 +1322,148 @@
       renderActiveEffects();
     }
 
+    /* ---------------- Secret unlock & Commands ---------------- */
+    const secretBtn=document.getElementById("secretBtn");
+    const passwordModal=document.getElementById("passwordModal");
+    const secretInput=document.getElementById("secretInput");
+    const secretConfirm=document.getElementById("secretConfirm");
+
+    function injectCommandsButton(){
+      const controls=document.getElementById("controls");
+      let existing=document.getElementById("btnCommands");
+      if(existing) return;
+      const btn=document.createElement("button");
+      btn.id="btnCommands";
+      btn.textContent="Commands";
+      btn.style.marginLeft="auto"; // push to far right
+      btn.addEventListener("click",()=>{
+        const panel=document.getElementById("commandsPanel");
+        const vis=panel.style.display!=="none";
+        panel.style.display = vis ? "none" : "block";
+      });
+      controls.appendChild(btn);
+    }
+
+    // Hide hints, just process password
+    secretBtn.addEventListener("click",()=>{
+      if(state.secretUnlocked) return;
+      passwordModal.style.display="block";
+    });
+    secretConfirm.addEventListener("click",()=>{
+      const val = secretInput.value || "";
+      if(val==="Orange_Toaster"){
+        state.secretUnlocked=true;
+        saveState();
+        // forever disappear button and modal
+        passwordModal.style.display="none";
+        secretBtn.remove();
+        injectCommandsButton();
+      } else {
+        // no hints; simply close
+        passwordModal.style.display="none";
+        secretInput.value="";
+      }
+    });
+
+    /* Commands form population */
+    const cmdWeatherSel=document.getElementById("cmdWeather");
+    const cmdNextRaritySel=document.getElementById("cmdNextRarity");
+    const cmdNextNameSel=document.getElementById("cmdNextName");
+    const cmdGiveRaritySel=document.getElementById("cmdGiveRarity");
+    const cmdGiveItemSel=document.getElementById("cmdGiveItem");
+
+    function populateCommandsSelectors(){
+      // Weather list
+      const weatherNames=[...WEATHERS.normal, ...WEATHERS.rare, ...WEATHERS.super].map(w=>w.name);
+      cmdWeatherSel.innerHTML = weatherNames.map(n=>`<option>${n}</option>`).join("");
+
+      // Rarity for next roll and give effect
+      cmdNextRaritySel.innerHTML = TIERS.map(t=>`<option value="${t.key}">${t.name}</option>`).join("");
+      cmdGiveRaritySel.innerHTML = TIERS.map(t=>`<option value="${t.key}">${t.name}</option>`).join("");
+
+      // Names for selected rarity
+      function refreshNamesForRarity(selKey, targetSel){
+        const items = INDEX_ITEMS[selKey] || [];
+        targetSel.innerHTML = items.length
+          ? items.map(n=>`<option>${n}</option>`).join("")
+          : `<option>(none)</option>`;
+      }
+      const initKeyNext = cmdNextRaritySel.value || "common";
+      refreshNamesForRarity(initKeyNext, cmdNextNameSel);
+      cmdNextRaritySel.addEventListener("change",()=>{
+        refreshNamesForRarity(cmdNextRaritySel.value, cmdNextNameSel);
+      });
+
+      const initKeyGive = cmdGiveRaritySel.value || "common";
+      function refreshGiveItemsForRarity(key){
+        const items = (ITEM_DROPS[key]||[]).filter(d=>d.type!=="totem_random"); // exclude random totem for clarity
+        cmdGiveItemSel.innerHTML = items.length
+          ? items.map(d=>`<option value="${encodeURIComponent(JSON.stringify(d))}">${d.name}</option>`).join("")
+          : `<option>(none)</option>`;
+      }
+      refreshGiveItemsForRarity(initKeyGive);
+      cmdGiveRaritySel.addEventListener("change",()=>refreshGiveItemsForRarity(cmdGiveRaritySel.value));
+    }
+
+    /* Commands actions */
+    const cmdLuck=document.getElementById("cmdLuck");
+    const cmdLuckScope=document.getElementById("cmdLuckScope");
+    const cmdWeatherScope=document.getElementById("cmdWeatherScope");
+    const cmdNextScope=document.getElementById("cmdNextScope");
+    const cmdReset=document.getElementById("cmdReset");
+    const cmdResetScope=document.getElementById("cmdResetScope");
+    const cmdClear=document.getElementById("cmdClear");
+    const cmdClearScope=document.getElementById("cmdClearScope");
+    const cmdConfirm=document.getElementById("cmdConfirm");
+    const cmdGiveScope=document.getElementById("cmdGiveScope");
+
+    cmdReset.addEventListener("click",()=>{
+      const scope=cmdResetScope.value;
+      state.cmdQueue = { reset:{ scope } };
+      saveState();
+      applyCmdQueueIfAny();
+    });
+    cmdClear.addEventListener("click",()=>{
+      const scope=cmdClearScope.value;
+      state.cmdQueue = { clearEffects:{ scope } };
+      saveState();
+      applyCmdQueueIfAny();
+    });
+
+    cmdConfirm.addEventListener("click",()=>{
+      const q={};
+      // set luck
+      const luckVal = cmdLuck.value.trim();
+      if(luckVal!==""){
+        const num = Number(luckVal);
+        if(!Number.isNaN(num)){
+          q.setLuck = { amount:num, scope:cmdLuckScope.value };
+        }
+      }
+      // set weather
+      const wName = cmdWeatherSel.value;
+      if(wName){ q.setWeather = { name:wName, scope:cmdWeatherScope.value }; }
+
+      // set next roll
+      const rKey = cmdNextRaritySel.value;
+      const rName = cmdNextNameSel.value;
+      if(rKey){
+        q.nextRoll = { rarity:rKey, name: rName && rName!=="(none)" ? rName : null, scope:cmdNextScope.value };
+      }
+
+      // give effect
+      const effStr = cmdGiveItemSel.value;
+      if(effStr && effStr!=="(none)"){
+        const eff = JSON.parse(decodeURIComponent(effStr));
+        q.giveEffect = { effect: eff, scope: cmdGiveScope.value };
+      }
+
+      state.cmdQueue = q;
+      saveState();
+      applyCmdQueueIfAny();
+      spawnBanner("Commands queued/applied","announce","b-epic");
+    });
+
     /* ---------------- Hooks ---------------- */
     document.getElementById("btnRoll").addEventListener("click",rollOnce);
     document.getElementById("btnAuto").addEventListener("click",toggleAuto);
@@ -1152,17 +1479,20 @@
       else { elInventoryPanel.style.display="block"; elIndexPanel.style.display="none"; renderInventory(); }
     });
 
-    document.getElementById("autoSellPrev").addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,(state.mode==="Items"?state.autoSellItems:state.autoSellRolled),-1)));
-    document.getElementById("autoSellNext").addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,(state.mode==="Items"?state.autoSellItems:state.autoSellRolled),1)));
+    document.getElementById("autoSellPrev")?.addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,(state.mode==="Items"?state.autoSellItems:state.autoSellRolled),-1)));
+    document.getElementById("autoSellNext")?.addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,(state.mode==="Items"?state.autoSellItems:state.autoSellRolled),1)));
 
-    document.getElementById("modePrev").addEventListener("click",()=>setMode(cycle(modes,state.mode,-1)));
-    document.getElementById("modeNext").addEventListener("click",()=>setMode(cycle(modes,state.mode,1)));
+    document.getElementById("modePrev")?.addEventListener("click",()=>setMode(cycle(modes,state.mode,-1)));
+    document.getElementById("modeNext")?.addEventListener("click",()=>setMode(cycle(modes,state.mode,1)));
 
     /* ---------------- Init ---------------- */
     loadState();
     renderButtonsState();
     renderActiveEffects();
     renderWeatherBackdrop();
+    populateCommandsSelectors();
+    if(state.secretUnlocked){ injectCommandsButton(); document.getElementById("secretBtn")?.remove(); document.getElementById("passwordModal").style.display="none"; }
+
     const elAutoBtn=document.getElementById("btnAuto");
     if(state.auto && state.rolls>=50){
       elAutoBtn.disabled=false; elAutoBtn.textContent="Auto Roll: On";
