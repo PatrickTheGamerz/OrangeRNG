@@ -51,11 +51,10 @@
     .wb-eclipse{background:radial-gradient(circle at 50% 50%,rgba(0,0,0,0.93),rgba(0,0,0,0.78)),radial-gradient(circle at 50% 50%,rgba(255,200,120,0.08),transparent 70%);}
     .wb-tempest{background:radial-gradient(circle at 50% 50%,rgba(120,80,255,0.25),transparent 70%),radial-gradient(circle at 70% 30%,rgba(80,200,255,0.25),transparent 70%);}
     .wb-fog{background:radial-gradient(100% 100% at 50% 50%, rgba(185,195,210,0.16), rgba(0,0,0,0.57));}
-    .particles{position:absolute;inset:0;overflow:hidden;filter:blur(0.3px);}
+    .particles{position:absolute;inset:0;overflow:hidden;filter:blur(0.3px);pointer-events:none;}
     .rain-drop{position:absolute;width:2px;height:18px;background:linear-gradient(to bottom,rgba(180,200,255,0.95),rgba(180,200,255,0.25));border-radius:1px;}
     @keyframes rainFall{0%{transform:translateY(-60px)}100%{transform:translateY(420px)}}
-    .lightning{position:absolute;left:10%;top:-10%;width:2px;height:200px;background:linear-gradient(to bottom,rgba(255,255,255,0.95),transparent);filter:blur(1px);opacity:0;animation:flash 5s ease-in-out infinite;}
-    @keyframes flash{0%,92%{opacity:0}93%{opacity:1}95%{opacity:0}100%{opacity:0}}
+    .lightning{position:absolute;left:10%;top:-10%;width:2px;height:200px;background:linear-gradient(to bottom,rgba(255,255,255,0.95),transparent);filter:blur(1px);opacity:0;}
     .snow-flake{position:absolute;width:6px;height:6px;background:white;border-radius:50%;opacity:0.9;box-shadow:0 0 6px rgba(255,255,255,0.5);}
     @keyframes snowFall{0%{transform:translateY(-40px) translateX(0)}50%{transform:translateY(200px) translateX(16px)}100%{transform:translateY(420px) translateX(0)}}
     .fog-mist{position:absolute;left:-40%;top:0;width:180%;height:120%;background:radial-gradient(circle,rgba(255,255,255,0.08),transparent 70%);filter:blur(8px);opacity:0.75;animation:fogDrift 24s linear infinite;}
@@ -66,6 +65,10 @@
     @keyframes drift{0%{transform:translate(0,0)}50%{transform:translate(12px,-16px)}100%{transform:translate(0,0)}}
     .corona{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:240px;height:240px;border-radius:50%;box-shadow:0 0 80px rgba(255,200,120,0.24);animation:pulse 5s ease-in-out infinite;}
     @keyframes pulse{0%{box-shadow:0 0 80px rgba(255,200,120,0.18)}50%{box-shadow:0 0 120px rgba(255,200,120,0.4)}100%{box-shadow:0 0 80px rgba(255,200,120,0.18)}}
+
+    /* Cinematic cutscene IN-PLACE (stage inside roll area) */
+    .cinema-stage-inline{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:5;}
+    .cut-label{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:36px;font-weight:900;color:#fff;text-shadow:0 8px 24px rgba(0,0,0,0.65);}
 
     /* Controls */
     .controls{display:flex;gap:12px;padding-top:12px;flex-wrap:wrap;align-items:center;}
@@ -138,15 +141,6 @@
     .cmd-actions{display:flex;justify-content:flex-end;gap:10px;}
     .cmd-actions button{min-width:120px;}
 
-    /* Cinematic cutscene overlay */
-    #cutsceneOverlay{display:none;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;flex-direction:column;}
-    .cutscene-bg{position:absolute;inset:0;background:rgba(0,0,0,0.96);}
-    .cinema-stage{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
-    .cinema-ui{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;gap:16px;z-index:101;}
-    .cut-btn{background:#1b2232;border:1px solid #2a3449;border-radius:10px;padding:10px 16px;color:#e7e9ee;cursor:pointer;}
-    .cut-title{position:absolute;top:30px;left:50%;transform:translateX(-50%);color:#fff;font-weight:900;letter-spacing:1px;z-index:101;text-shadow:0 3px 12px rgba(0,0,0,0.6);}
-    .cut-sub{position:absolute;top:80px;left:50%;transform:translateX(-50%);color:#cfd6ff;z-index:101;text-shadow:0 3px 12px rgba(0,0,0,0.6);}
-
     /* Cinematic primitives */
     .star{position:absolute;border-radius:50%;background:radial-gradient(circle, rgba(255,255,255,0.95), rgba(255,255,255,0));filter:blur(0.2px);}
     @keyframes twinkle{0%,100%{opacity:0.3}50%{opacity:1}}
@@ -154,6 +148,16 @@
     @keyframes pulseRing{0%{transform:scale(0.6);opacity:0.0}50%{opacity:1}100%{transform:scale(1.4);opacity:0}}
     .beam{position:absolute;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0));filter:blur(1.2px);mix-blend-mode:screen;}
     .shard{position:absolute;width:8px;height:24px;background:linear-gradient(180deg,rgba(150,200,255,0.9),rgba(150,200,255,0));transform-origin:center;filter:blur(0.4px);}
+
+    /* Delete confirmation modal (improved) */
+    .confirm-modal{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#0f1320;padding:16px;border:1px solid #2a3449;border-radius:12px;box-shadow:0 12px 36px rgba(0,0,0,0.6);z-index:60;width:420px;}
+    .confirm-title{margin:0 0 10px;font-size:16px;color:#cfd6ff;font-weight:800;}
+    .confirm-body{font-size:14px;color:#c7d1e5;margin-bottom:12px;}
+    .confirm-actions{display:flex;justify-content:flex-end;gap:10px;}
+    .confirm-actions .danger{background:#2a1f12;border-color:#4a371e;}
+    .confirm-item-row{display:flex;align-items:center;gap:8px;}
+    .confirm-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;}
+
   </style>
 </head>
 <body>
@@ -165,12 +169,28 @@
       <button id="secretConfirm">Confirm</button>
     </div>
 
+    <div id="deleteConfirm" class="confirm-modal" aria-hidden="true">
+      <div class="confirm-title">Confirm deletion</div>
+      <div class="confirm-body">
+        <div class="confirm-item-row">
+          <span id="confirmBadge" class="confirm-badge"></span>
+          <span id="confirmText"></span>
+        </div>
+      </div>
+      <div class="confirm-actions">
+        <button id="confirmCancel">Cancel</button>
+        <button id="confirmDeleteBtn" class="danger">Delete</button>
+      </div>
+    </div>
+
     <div class="content">
       <div class="panel">
         <div class="roll-area" id="rollArea">
           <div class="result" id="resultText">Ready to roll</div>
           <div class="rarity" id="rarityText"></div>
           <div class="active-effects" id="activeEffects"></div>
+          <!-- Inline cutscene stage inside roll area -->
+          <div class="cinema-stage-inline" id="cinemaStageInline"></div>
         </div>
         <div class="controls" id="controls">
           <button id="btnRoll">Roll</button>
@@ -256,18 +276,6 @@
           <div class="cmd-actions"><button id="cmdConfirm">Confirm</button></div>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- Cinematic cutscene -->
-  <div id="cutsceneOverlay">
-    <div class="cutscene-bg"></div>
-    <div class="cinema-stage" id="cinemaStage"></div>
-    <h1 class="cut-title" id="cutsceneTitle"></h1>
-    <p class="cut-sub" id="cutsceneText"></p>
-    <div class="cinema-ui">
-      <button class="cut-btn" id="cutsceneSkip">Skip</button>
-      <button class="cut-btn" id="cutsceneContinue">Continue</button>
     </div>
   </div>
 
@@ -393,7 +401,8 @@
       fullAnnouncedRolled:false, fullAnnouncedItems:false,
       activeEffects:{ luck:0, speed:0, bias:{}, weatherBiasItem:null },
       effectInstances:[], persistentGuarantees:[],
-      mode:"Rolled", secretUnlocked:false, cmdQueue:null
+      mode:"Rolled", secretUnlocked:false, cmdQueue:null,
+      cutsceneActive:false, cutscenePausedAuto:false
     };
     function loadState(){
       const rolls=parseInt(localStorage.getItem(STORAGE_KEYS.rolls)||"0",10);
@@ -475,10 +484,15 @@
     }
     function pickConsumableFromTier(tierKey){ const list=ITEM_DROPS[tierKey]||[]; if(!list.length) return null; return list[Math.floor(Math.random()*list.length)]; }
 
-    /* ---------------- Weather visual ---------------- */
+    /* ---------------- Weather visual (enhanced events) ---------------- */
+    let weatherEventTimers = [];
+    function clearWeatherEvents(){ weatherEventTimers.forEach(t=>clearInterval(t)); weatherEventTimers=[]; }
+
     function renderWeatherBackdrop(){
       const area=document.getElementById("rollArea");
       const old=area.querySelector(".weather-bg"); if(old) old.remove();
+      clearWeatherEvents();
+
       const now=Date.now();
       const weather=state.effectInstances.find(e=>e.type==="weather" && e.expiresAt>now);
       if(!weather) return;
@@ -486,11 +500,18 @@
       const cls=map[weather.name] || "wb-sunny";
       const bg=document.createElement("div"); bg.className="weather-bg "+cls;
       const particles=document.createElement("div"); particles.className="particles";
+
       if(cls==="wb-storm"){
-        for(let i=0;i<100;i++){ const p=document.createElement("span"); p.className="rain-drop"; p.style.left=Math.floor(Math.random()*100)+"%"; p.style.top=(-60-Math.random()*160)+"px"; p.style.animation=`rainFall ${0.7+Math.random()*0.6}s linear infinite`; p.style.opacity=0.5+Math.random()*0.5; particles.appendChild(p); }
-        particles.appendChild(document.createElement("div")).className="lightning";
+        for(let i=0;i<120;i++){ const p=document.createElement("span"); p.className="rain-drop"; p.style.left=Math.floor(Math.random()*100)+"%"; p.style.top=(-60-Math.random()*160)+"px"; p.style.animation=`rainFall ${0.7+Math.random()*0.6}s linear infinite`; p.style.opacity=0.5+Math.random()*0.5; particles.appendChild(p); }
+        const lightning=document.createElement("div"); lightning.className="lightning"; particles.appendChild(lightning);
+        // periodic lightning flashes
+        weatherEventTimers.push(setInterval(()=>{
+          lightning.style.opacity="1";
+          lightning.style.transition="opacity 0.08s";
+          setTimeout(()=>{ lightning.style.opacity="0"; }, 120);
+        }, 3500 + Math.random()*2500));
       } else if(cls==="wb-blizzard"){
-        for(let i=0;i<60;i++){ const s=document.createElement("span"); s.className="snow-flake"; s.style.left=Math.floor(Math.random()*100)+"%"; s.style.top=(-60-Math.random()*180)+"px"; s.style.animation=`snowFall ${3.2+Math.random()*2.6}s linear infinite`; s.style.opacity=0.6+Math.random()*0.4; particles.appendChild(s); }
+        for(let i=0;i<80;i++){ const s=document.createElement("span"); s.className="snow-flake"; s.style.left=Math.floor(Math.random()*100)+"%"; s.style.top=(-60-Math.random()*180)+"px"; s.style.animation=`snowFall ${3.2+Math.random()*2.6}s linear infinite`; s.style.opacity=0.6+Math.random()*0.4; particles.appendChild(s); }
       } else if(cls==="wb-fog"){
         const fog1=document.createElement("div"); fog1.className="fog-mist"; fog1.style.opacity="0.7";
         const fog2=document.createElement("div"); fog2.className="fog-mist"; fog2.style.opacity="0.45"; fog2.style.animationDuration="32s";
@@ -500,9 +521,41 @@
         const r2=document.createElement("div"); r2.className="ribbon"; r2.style.top="30%"; r2.style.animationDuration="16s"; r2.style.background="linear-gradient(90deg, rgba(120,200,255,0.6), rgba(120,255,200,0.6))";
         particles.appendChild(r1); particles.appendChild(r2);
       } else if(cls==="wb-eclipse"){ const corona=document.createElement("div"); corona.className="corona"; particles.appendChild(corona);
-      } else if(cls==="wb-tempest"||cls==="wb-meteor"){
-        const count=cls==="wb-tempest"?30:12;
-        for(let i=0;i<count;i++){ const c=document.createElement("span"); c.className="cosmic"; c.style.left=Math.floor(Math.random()*100)+"%"; c.style.top=Math.floor(Math.random()*(cls==="wb-tempest"?100:40))+"%"; c.style.width=c.style.height=(Math.random()*3+2)+"px"; c.style.animation=`drift ${8+Math.random()*6}s ease-in-out infinite`; particles.appendChild(c); }
+      } else if(cls==="wb-tempest"){
+        for(let i=0;i<40;i++){ const c=document.createElement("span"); c.className="cosmic"; c.style.left=Math.floor(Math.random()*100)+"%"; c.style.top=Math.floor(Math.random()*100)+"%"; c.style.width=c.style.height=(Math.random()*3+2)+"px"; c.style.animation=`drift ${8+Math.random()*6}s ease-in-out infinite`; particles.appendChild(c); }
+        // periodic shockwaves
+        weatherEventTimers.push(setInterval(()=>{
+          const ring=document.createElement("div"); ring.className="ring";
+          ring.style.left="50%"; ring.style.top="50%"; ring.style.borderColor="rgba(160,120,255,0.65)";
+          ring.style.width="40px"; ring.style.height="40px"; ring.style.animation="pulseRing 1.8s ease-out forwards";
+          particles.appendChild(ring);
+          setTimeout(()=>ring.remove(), 2000);
+        }, 5000 + Math.random()*4000));
+      } else if(cls==="wb-meteor"){
+        // ambient glow and periodic meteor rain bursts
+        for(let i=0;i<20;i++){ const c=document.createElement("span"); c.className="cosmic"; c.style.left=Math.floor(Math.random()*100)+"%"; c.style.top=Math.floor(Math.random()*40)+"%"; c.style.width=c.style.height=(Math.random()*3+2)+"px"; c.style.animation=`drift ${10+Math.random()*6}s ease-in-out infinite`; particles.appendChild(c); }
+        weatherEventTimers.push(setInterval(()=>{
+          const burstCount = 6 + Math.floor(Math.random()*6);
+          for(let i=0;i<burstCount;i++){
+            const m=document.createElement("div");
+            m.style.position="absolute";
+            m.style.width="3px"; m.style.height="24px";
+            m.style.left=(Math.random()*100)+"%";
+            m.style.top=(-20 - Math.random()*80)+"px";
+            m.style.background="linear-gradient(to bottom, rgba(255,160,120,0.95), rgba(255,160,120,0))";
+            m.style.borderRadius="2px";
+            m.style.filter="blur(0.4px)";
+            m.style.opacity="0.9";
+            const dur = 0.9 + Math.random()*0.6;
+            m.style.transition=`transform ${dur}s linear, opacity ${dur}s linear`;
+            particles.appendChild(m);
+            setTimeout(()=>{
+              m.style.transform="translateY(460px) translateX("+(Math.random()*40-20)+"px)";
+              m.style.opacity="0.0";
+            }, 10);
+            setTimeout(()=>m.remove(), (dur*1000)+400);
+          }
+        }, 3800 + Math.random()*2500));
       }
       bg.appendChild(particles); area.appendChild(bg);
     }
@@ -522,7 +575,8 @@
     }
     function addEffect(effect){
       if(effect.type==="guarantee" && effect.name==="Origin Crystal"){
-        state.persistentGuarantees.push({ name:effect.name, type:"guarantee", rarity:effect.rarity || "omniversal" });
+        // store guarantee token; later consumed to grant a REAL INDEX item from Eternal+ (eternal/omniversal)
+        state.persistentGuarantees.push({ name:effect.name, type:"guarantee", rarity:effect.rarity || "omniversal", grantPool:["eternal","omniversal"] });
         saveState(); spawnBanner(`Stored: ${effect.name}`,"activate","b-omniversal"); renderActiveEffects(); return;
       }
       const now=Date.now(), durMs=(effect.duration||0)*1000, capMs=MAX_EFFECT_SECONDS*1000;
@@ -564,7 +618,7 @@
     /* ---------------- Auto clicker ---------------- */
     function updateAutoInterval(){
       if(state.autoInterval){ clearInterval(state.autoInterval); state.autoInterval=null; }
-      if(state.auto){
+      if(state.auto && !state.cutsceneActive){
         const mult=1+(state.activeEffects.speed||0);
         const interval=Math.max(60,Math.round(BASE_AUTO_INTERVAL/mult));
         state.autoInterval=setInterval(()=>{ const btn=document.getElementById("btnAuto"); if(btn.disabled){ toggleAuto(); return; } rollOnce(); },interval);
@@ -591,48 +645,31 @@
     function scheduleNextWeather(){ const delayMs=(240+Math.random()*480)*1000; setTimeout(()=>{ triggerRandomWeather(); scheduleNextWeather(); },delayMs); }
     function classToTierKey(colorClass){ const t=TIERS.find(x=>x.colorClass===colorClass); return t?t.key:"common"; }
 
-    /* ---------------- Cinematic cutscenes per REAL Index item ---------------- */
+    /* ---------------- Cinematic cutscenes per REAL Index item (inline) ---------------- */
 
-    // Build a deterministic variant index for a name
-    function variantForName(name, max=8){
+    function variantForName(name, max=10){
       let h=0; for(let i=0;i<name.length;i++){ h=(h*31 + name.charCodeAt(i))>>>0; }
       return h % max;
     }
 
-    function playCutscene(tierKey,itemName){
-      const overlay=document.getElementById("cutsceneOverlay");
-      const stage=document.getElementById("cinemaStage");
-      const title=document.getElementById("cutsceneTitle");
-      const text=document.getElementById("cutsceneText");
-      overlay.style.display="flex";
-      stage.innerHTML="";
-      title.textContent=itemName || (tierKey? tierKey.toUpperCase(): "RARITY");
-      text.textContent=tierKey ? `${tierKey.toUpperCase()}` : "";
-
-      // Background tint by tier
-      const tierBG={
-        divine:"radial-gradient(circle at 50% 50%, rgba(255,215,120,0.18), rgba(0,0,0,0.96))",
-        celestial:"linear-gradient(120deg, rgba(120,255,255,0.18), rgba(0,0,0,0.96))",
-        transcendent:"linear-gradient(120deg, rgba(160,140,255,0.22), rgba(0,0,0,0.96))",
-        eternal:"radial-gradient(circle at 50% 50%, rgba(140,255,200,0.18), rgba(0,0,0,0.96))",
-        omniversal:"conic-gradient(from 0deg, rgba(255,160,220,0.22), rgba(120,255,220,0.22), rgba(180,120,255,0.22), rgba(255,160,220,0.22))"
+    function playCutsceneInline(tierKey,itemName){
+      const stage=document.getElementById("cinemaStageInline");
+      const bgTint={
+        divine:"radial-gradient(circle at 50% 50%, rgba(255,215,120,0.18), rgba(0,0,0,0))",
+        celestial:"linear-gradient(120deg, rgba(120,255,255,0.18), rgba(0,0,0,0))",
+        transcendent:"linear-gradient(120deg, rgba(160,140,255,0.22), rgba(0,0,0,0))",
+        eternal:"radial-gradient(circle at 50% 50%, rgba(140,255,200,0.18), rgba(0,0,0,0))",
+        omniversal:"conic-gradient(from 0deg, rgba(255,160,220,0.18), rgba(120,255,220,0.18), rgba(180,120,255,0.18), rgba(255,160,220,0.18))"
       };
-      document.querySelector(".cutscene-bg").style.background = tierBG[tierKey] || "rgba(0,0,0,0.96)";
+      stage.innerHTML="";
+      // tint overlay layer
+      const overlay=document.createElement("div");
+      overlay.style.position="absolute"; overlay.style.inset="0";
+      overlay.style.background=bgTint[tierKey] || "transparent";
+      overlay.style.opacity="0.0"; overlay.style.transition="opacity .35s ease-out";
+      stage.appendChild(overlay);
 
-      // Run a unique, high-quality procedural sequence based on item name
-      runProceduralCutscene(itemName, tierKey, stage);
-
-      const end = ()=>{ overlay.style.display="none"; stage.innerHTML=""; };
-      document.getElementById("cutsceneSkip").onclick = end;
-      document.getElementById("cutsceneContinue").onclick = end;
-      setTimeout(end, 6500);
-    }
-
-    // Procedural library of distinct sequences: intro → build → BOOM
-    function runProceduralCutscene(name, tierKey, stage){
-      const v = variantForName(name, 10);
-
-      // Shared starfield intro for presence
+      // shared starfield
       for(let i=0;i<90;i++){
         const s=document.createElement("div");
         s.className="star";
@@ -643,29 +680,38 @@
         stage.appendChild(s);
       }
 
-      // Choose style family
-      if(v===0) styleGalacticSpiral(stage, tierKey, name);
-      else if(v===1) styleCrownRings(stage, tierKey, name);
-      else if(v===2) styleAuroraWeave(stage, tierKey, name);
-      else if(v===3) styleShardBurst(stage, tierKey, name);
-      else if(v===4) styleBeamConvergence(stage, tierKey, name);
-      else if(v===5) styleVortexCollapse(stage, tierKey, name);
-      else if(v===6) styleSigilEngrave(stage, tierKey, name);
-      else if(v===7) styleGridAxis(stage, tierKey, name);
-      else if(v===8) stylePrismWave(stage, tierKey, name);
-      else styleHeartPulse(stage, tierKey, name);
+      // style family
+      const v=variantForName(itemName,10);
+      if(v===0) styleGalacticSpiral(stage,tierKey,itemName);
+      else if(v===1) styleCrownRings(stage,tierKey,itemName);
+      else if(v===2) styleAuroraWeave(stage,tierKey,itemName);
+      else if(v===3) styleShardBurst(stage,tierKey,itemName);
+      else if(v===4) styleBeamConvergence(stage,tierKey,itemName);
+      else if(v===5) styleVortexCollapse(stage,tierKey,itemName);
+      else if(v===6) styleSigilEngrave(stage,tierKey,itemName);
+      else if(v===7) styleGridAxis(stage,tierKey,itemName);
+      else if(v===8) stylePrismWave(stage,tierKey,itemName);
+      else styleHeartPulse(stage,tierKey,itemName);
 
-      // Label at center
+      // center label
       const label=document.createElement("div");
-      label.style.position="absolute"; label.style.left="50%"; label.style.top="50%";
-      label.style.transform="translate(-50%,-50%)";
-      label.style.fontSize="36px"; label.style.fontWeight="900";
-      label.style.color="#fff"; label.style.textShadow="0 8px 24px rgba(0,0,0,0.65)";
-      label.textContent=name;
+      label.className="cut-label";
+      label.textContent=itemName;
       stage.appendChild(label);
 
-      // Big BOOM climax (tier-tinted)
-      setTimeout(()=>boom(stage, tierKey), 4200);
+      overlay.style.opacity="1";
+
+      // BOOM
+      setTimeout(()=>boom(stage,tierKey),4200);
+
+      // auto-roll pause/resume around cutscene
+      state.cutsceneActive=true;
+      if(state.auto){ state.cutscenePausedAuto=true; toggleAuto(); }
+      // end after duration
+      setTimeout(()=>{
+        overlay.style.opacity="0";
+        setTimeout(()=>{ stage.innerHTML=""; state.cutsceneActive=false; if(state.cutscenePausedAuto){ state.cutscenePausedAuto=false; const btn=document.getElementById("btnAuto"); if(state.rolls>=50){ btn.disabled=false; } toggleAuto(); } }, 350);
+      }, 6500);
     }
 
     function boom(stage, tierKey){
@@ -676,16 +722,16 @@
         eternal:"rgba(140,255,200,0.75)",
         omniversal:"rgba(255,160,220,0.75)"
       }[tierKey] || "rgba(255,255,255,0.75)";
-      for(let i=0;i<12;i++){
+      for(let i=0;i<14;i++){
         const ring=document.createElement("div");
         ring.className="ring";
         ring.style.left="50%"; ring.style.top="50%";
         ring.style.borderColor=tint;
-        ring.style.width=80+i*30+"px"; ring.style.height=80+i*30+"px";
+        ring.style.width=80+i*34+"px"; ring.style.height=80+i*34+"px";
         ring.style.animation=`pulseRing ${1.6+i*0.12}s ease-out forwards`;
         stage.appendChild(ring);
       }
-      for(let i=0;i<36;i++){
+      for(let i=0;i<48;i++){
         const shard=document.createElement("div");
         shard.className="shard";
         shard.style.left="50%"; shard.style.top="50%";
@@ -696,7 +742,7 @@
       injectKeyframesOnce("explodeShard","0%{transform:translate(-50%,-50%) scale(0.4) rotate(0);opacity:.95}100%{transform:translate(-50%,-50%) scale(2.2) rotate(240deg);opacity:.0}");
     }
 
-    // Style families (distinct look/feel)
+    /* Style families */
     function styleGalacticSpiral(stage,tier,name){
       for(let i=0;i<16;i++){
         const r=document.createElement("div"); r.className="ring";
@@ -800,7 +846,6 @@
       injectKeyframesOnce("heartPulse","0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.18)}100%{transform:translate(-50%,-50%) scale(1)}");
     }
 
-    // Ensure keyframes only injected once
     const injectedKeyframes = new Set();
     function injectKeyframesOnce(name, body){
       if(injectedKeyframes.has(name)) return;
@@ -846,11 +891,15 @@
       const forced=(state.cmdQueue && state.cmdQueue.nextRoll && !state.cmdQueue.nextRoll.applied) ? state.cmdQueue.nextRoll : null;
       const guarantee=consumeGuaranteeIfAny();
 
-      let tierKey,tierName;
+      let tierKey,tierName, guaranteedItemName=null;
       if(guarantee){
-        const pool=["celestial","transcendent","eternal","omniversal"];
-        tierKey=pool[Math.floor(Math.random()*pool.length)];
-        tierName=TIERS.find(t=>t.key===tierKey)?.name || "Unknown";
+        // pick a REAL INDEX item from Eternal+ pool (eternal or omniversal)
+        const poolTiers = guarantee.grantPool || ["eternal","omniversal"];
+        const chosenTier = poolTiers[Math.floor(Math.random()*poolTiers.length)];
+        const items = INDEX_ITEMS[chosenTier] || [];
+        const pick = items.length ? items[Math.floor(Math.random()*items.length)] : null;
+        tierKey = chosenTier; tierName = TIERS.find(t=>t.key===tierKey)?.name || "Unknown";
+        guaranteedItemName = pick;
       } else if(forced && forced.rarity){
         tierKey=forced.rarity; tierName=TIERS.find(t=>t.key===tierKey)?.name || forced.rarity; state.cmdQueue.nextRoll.applied=true; saveState();
       } else {
@@ -866,7 +915,7 @@
       const itemWeighted=applyWeightModifiers(itemTiers,surge);
       const itemChances=toChances(itemWeighted);
       const baseItemChance=0.02; const luckBoost=Math.min(0.03,(state.activeEffects.luck||0)*0.015);
-      const rollItem=(!forced?.name) && Math.random()<(baseItemChance+luckBoost);
+      const rollItem=(!forced?.name && !guaranteedItemName) && Math.random()<(baseItemChance+luckBoost);
 
       state.rolls++;
 
@@ -878,7 +927,12 @@
         const pass=Math.random()<(bias.boost||0); return pass?bias.name:null;
       }
 
-      if(rollItem){
+      if(guaranteedItemName){
+        displayName=guaranteedItemName;
+        displayRarityClass=TIERS.find(t=>t.key===tierKey)?.colorClass || "";
+        processIndexItem(tierKey,tierName,guaranteedItemName,surge);
+        isNew=markNew(tierKey,guaranteedItemName);
+      } else if(rollItem){
         const itemTier=pickTier(itemChances);
         const drop=pickConsumableFromTier(itemTier.key);
         if(drop){
@@ -925,7 +979,10 @@
       if(isNew) spawnBanner(`NEW collected: [${tierName}] ${displayName}`,"new",displayRarityClass);
 
       const highOrder=["divine","celestial","transcendent","eternal","omniversal"];
-      if(highOrder.includes(tierKey)){ playCutscene(tierKey, displayName); }
+      if(highOrder.includes(tierKey) && displayName && INDEX_ITEMS[tierKey]?.includes(displayName)){
+        // upgraded inline cutscene
+        playCutsceneInline(tierKey, displayName);
+      }
 
       renderButtonsState(); renderIndex(); renderInventory();
     }
@@ -947,8 +1004,12 @@
     }
     function renderButtonsState(){
       const elAutoBtn=document.getElementById("btnAuto");
-      if(state.rolls>=50){ elAutoBtn.disabled=false; elAutoBtn.textContent=state.auto?"Auto Roll: On":"Auto Roll: Off"; }
-      else { elAutoBtn.disabled=true; elAutoBtn.textContent="Auto Roll (locked)"; }
+      if(state.rolls>=50){
+        elAutoBtn.disabled=false;
+        elAutoBtn.textContent = state.auto ? "Auto Roll: On" : "Auto Roll: Off";
+      } else {
+        elAutoBtn.disabled=true; elAutoBtn.textContent="Auto Roll (locked)";
+      }
       const elAutoSellValue=document.getElementById("autoSellValue");
       const elModeValue=document.getElementById("modeValue");
       const currentThreshold=state.mode==="Items"?state.autoSellItems:state.autoSellRolled;
@@ -986,6 +1047,34 @@
       });
     }
 
+    /* -------- Improved deletion confirmation -------- */
+    let pendingDelete = null;
+    function openDeleteConfirm(entry, tier){
+      const modal=document.getElementById("deleteConfirm");
+      const badge=document.getElementById("confirmBadge");
+      const text=document.getElementById("confirmText");
+      const badgeClass=tier?.colorClass || "";
+      badge.className = `confirm-badge ${badgeClass}`;
+      badge.textContent = tier?.name || "Item";
+      text.textContent = `Are you sure you want to delete "${entry.name || '(Unknown)'}"?`;
+      pendingDelete = entry;
+      modal.style.display="block";
+    }
+    function closeDeleteConfirm(){ const modal=document.getElementById("deleteConfirm"); modal.style.display="none"; pendingDelete=null; }
+
+    document.getElementById("confirmCancel").addEventListener("click", closeDeleteConfirm);
+    document.getElementById("confirmDeleteBtn").addEventListener("click", ()=>{
+      if(!pendingDelete) return;
+      if(pendingDelete._type==="rolled"){
+        const idx=state.inventoryRolled.findIndex(i=>i.roll===pendingDelete.roll && i.name===pendingDelete.name);
+        if(idx>=0){ state.inventoryRolled.splice(idx,1); saveState(); renderInventory(); state.fullAnnouncedRolled=false; }
+      } else if(pendingDelete._type==="item"){
+        const idx=state.inventoryItems.findIndex(i=>i.roll===pendingDelete.roll && i.name===pendingDelete.name);
+        if(idx>=0){ state.inventoryItems.splice(idx,1); saveState(); renderInventory(); state.fullAnnouncedItems=false; }
+      }
+      closeDeleteConfirm();
+    });
+
     function renderInventory(){
       elInventoryList.innerHTML="";
       if(state.mode==="Rolled"){
@@ -996,7 +1085,17 @@
           const left=document.createElement("div");
           left.innerHTML=`<span class="badge ${badgeClass}">${entry.tierName}</span> — ${entry.name || "(Unknown)"} • #${entry.roll}${entry.milestone>1?` • ${entry.milestone}x`:``}`;
           const right=document.createElement("div"); right.className="inv-actions";
-          const del=document.createElement("button"); del.textContent="Delete"; del.addEventListener("click",()=>deleteRolledEntry(entry));
+          const del=document.createElement("button"); del.textContent="Delete";
+          del.addEventListener("click",()=>{
+            const order=TIERS.map(t=>t.key);
+            const isVeryRare = order.indexOf(entry.tier) >= order.indexOf("legendary");
+            if(isVeryRare){
+              const enriched = {...entry, _type:"rolled"}; openDeleteConfirm(enriched, tier);
+            } else {
+              const idx=state.inventoryRolled.findIndex(i=>i.roll===entry.roll && i.name===entry.name);
+              if(idx>=0){ state.inventoryRolled.splice(idx,1); saveState(); renderInventory(); state.fullAnnouncedRolled=false; }
+            }
+          });
           right.appendChild(del); li.appendChild(left); li.appendChild(right); elInventoryList.appendChild(li);
         });
         const cap=document.createElement("div"); cap.className="inv-stats"; cap.style.marginTop="8px"; cap.textContent=`Rolled capacity ${state.inventoryRolled.length}/${ROLLED_MAX}`; elInventoryList.appendChild(cap);
@@ -1009,21 +1108,31 @@
           const effDesc = e?.type==="luck" ? `Luck +${Math.round(e.amount*100)}%`
                         : e?.type==="speed" ? `Speed +${Math.round(e.amount*100)}%`
                         : e?.type==="bias" ? `Bias → ${e.target?.toUpperCase()||''} +${Math.round(e.amount*100)}%`
-                        : e?.type==="guarantee" ? `Guarantee high-tier next roll`
+                        : e?.type==="guarantee" ? `Guarantee Eternal+ next roll`
                         : e?.type==="totem" ? `Summons ${e.weather}`
                         : e?.type==="totem_random" ? `Summons random weather` : "";
           left.innerHTML=`<span class="badge ${badgeClass}">${entry.tierName}</span> — ${entry.name}${effDesc?` (${effDesc})`:''} • #${entry.roll}`;
           const right=document.createElement("div"); right.className="inv-actions";
           const use=document.createElement("button"); use.textContent="Use"; use.addEventListener("click",()=>useItemEntry(entry));
-          const del=document.createElement("button"); del.textContent="Delete"; del.addEventListener("click",()=>deleteItemEntry(entry));
+          const del=document.createElement("button"); del.textContent="Delete";
+          del.addEventListener("click",()=>{
+            const order=TIERS.map(t=>t.key);
+            const isVeryRare = order.indexOf(entry.tier) >= order.indexOf("legendary");
+            if(isVeryRare){
+              const enriched = {...entry, _type:"item"}; openDeleteConfirm(enriched, tier);
+            } else {
+              const idx=state.inventoryItems.findIndex(i=>i.roll===entry.roll && i.name===entry.name);
+              if(idx>=0){ state.inventoryItems.splice(idx,1); saveState(); renderInventory(); state.fullAnnouncedItems=false; }
+            }
+          });
           right.appendChild(use); right.appendChild(del); li.appendChild(left); li.appendChild(right); elInventoryList.appendChild(li);
         });
         const cap=document.createElement("div"); cap.className="inv-stats"; cap.style.marginTop="8px"; cap.textContent=`Items capacity ${state.inventoryItems.length}/${ITEMS_MAX}`; elInventoryList.appendChild(cap);
       }
     }
+
     function deleteRolledEntry(entry){
-      const order=TIERS.map(t=>t.key); const high=order.indexOf(entry.tier)>=order.indexOf("divine");
-      if(high){ const ok=confirm(`Delete "${entry.name}" [${entry.tierName}]?`); if(!ok) return; }
+      // superseded by improved modal path; keeping for safety no-op route
       const idx=state.inventoryRolled.findIndex(i=>i.roll===entry.roll && i.name===entry.name);
       if(idx>=0){ state.inventoryRolled.splice(idx,1); saveState(); renderInventory(); state.fullAnnouncedRolled=false; }
     }
