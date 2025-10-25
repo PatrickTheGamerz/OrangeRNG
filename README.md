@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sol’s RNG — Ultra FX Weather, Clean Rare Cutscenes, Robust Commands, Eternal+ Origin</title>
+  <title>Sol’s RNG — Real Index Cutscenes, Origin Crystal Fix, Weather FX, Better Deletes</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
       --bg:#0e0f13; --panel:#151822; --text:#e7e9ee; --muted:#9aa0ab; --accent:#6ea8fe;
-      --fx1:#7bb7ff; --fx2:#caa6ff; --fx3:#ffbf66;
+      --gold:#ffd700; --warn:#ff6666; --fx1:#7bb7ff; --fx2:#caa6ff; --fx3:#ffbf66;
+      --good:#79f2ff; --boom:#ff9cff; --aurora:#7affff; --storm:#7bb7ff; --meteor:#ffbf66;
     }
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);display:grid;place-items:center;min-height:100vh;}
     .app{width:980px;max-width:96vw;background:var(--panel);border:1px solid #252b39;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;position:relative;}
@@ -15,11 +16,9 @@
     .panel{background:#121521;border:1px solid #242a38;border-radius:12px;padding:16px;}
 
     /* Roll area */
-    .roll-area{min-height:400px;display:grid;place-items:center;position:relative;overflow:hidden;}
+    .roll-area{min-height:360px;display:grid;place-items:center;position:relative;overflow:hidden;}
     .result{font-size:28px;font-weight:700;text-align:center;position:relative;z-index:3;}
     .rarity{margin-top:6px;font-size:14px;font-weight:600;text-transform:uppercase;position:relative;z-index:3;}
-    .glow{position:absolute;inset:-40%;border-radius:50%;background:radial-gradient(closest-side,rgba(110,168,254,0.25),transparent 65%);filter:blur(12px);animation:glow 1.1s ease-out forwards;z-index:2;}
-    @keyframes glow{0%{opacity:0;transform:scale(0.7)}50%{opacity:1}100%{opacity:0;transform:scale(1.2)}}
 
     /* Banners */
     .banner{position:absolute;left:50%;transform:translateX(-50%);padding:12px 16px;border-radius:14px;z-index:7;background:rgba(20,25,40,0.92);border:1px solid rgba(255,255,255,0.14);box-shadow:0 12px 28px rgba(0,0,0,0.55), inset 0 0 26px rgba(110,168,254,0.08);backdrop-filter:blur(6px);font-weight:800;text-align:center;color:var(--text);opacity:0;letter-spacing:0.3px;}
@@ -37,29 +36,61 @@
     .icon-aurora{background:conic-gradient(from 0deg, rgba(120,200,255,0.6), rgba(180,120,255,0.6), rgba(120,255,200,0.6), rgba(120,200,255,0.6));}
     .icon-tempest{background:radial-gradient(circle, rgba(255,255,255,0.9), rgba(255,255,255,0));}
     .icon-meteor{background:radial-gradient(circle at 50% 50%, rgba(255,180,120,0.9), rgba(255,180,120,0));}
-    .icon-sunny{background:radial-gradient(circle at 50% 50%, rgba(255,220,140,0.9), rgba(255,220,140,0));}
 
     /* Active effects tray */
     .active-effects{position:absolute;bottom:10px;right:10px;z-index:6;font-size:12px;max-width:70%;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
     .effect-entry{display:flex;gap:8px;align-items:center;padding:6px 10px;border-radius:10px;background:rgba(27,34,50,0.9);border:1px solid #2a3449;box-shadow:0 6px 18px rgba(0,0,0,0.25);font-weight:600;}
 
-    /* Rarity colors */
-    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;}
-    .b-worthless{background:#1a1a1a;color:#b3b3b3;} .b-trash{background:#211616;color:#d28f8f;}
-    .b-common{background:#1f2635;color:#c7d1e5;} .b-uncommon{background:#14261d;color:#7ae08f;}
-    .b-rare{background:#221a35;color:#caa6ff;} .b-epic{background:#10233a;color:#7bb7ff;}
-    .b-legendary{background:#2a1f12;color:#ffbf66;} .b-mythic{background:#2a142a;color:#ff7ee6;}
-    .b-divine{background:#2a2a12;color:#ffd700;} .b-celestial{background:#142a2a;color:#7affff;}
-    .b-transcendent{background:#1a1a2f;color:#a0a7ff;} .b-eternal{background:#1a2f2a;color:#9cf2c7;}
-    .b-omniversal{background:#2f1a2f;color:#ff9cff;}
-    .b-exclusive{background:conic-gradient(from 0deg, red, orange, yellow, green, blue, indigo, violet, red);animation:exclusiveSpin 8s linear infinite; color:white;}
-    @keyframes exclusiveSpin{0%{filter:hue-rotate(0deg)}100%{filter:hue-rotate(360deg)}}
+    /* Weather backdrops (in roll area) */
+    .weather-bg{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;animation:weatherFadeIn .7s ease-out forwards;}
+    @keyframes weatherFadeIn{from{opacity:0}to{opacity:1}}
+    .wb-sunny{background:radial-gradient(120% 120% at 50% 10%, rgba(255,215,120,0.22), transparent 60%), linear-gradient(180deg, rgba(255,232,170,0.08), rgba(0,0,0,0));}
+    .wb-storm{background:linear-gradient(180deg, rgba(25,30,55,0.78), rgba(0,0,0,0.86));}
+    .wb-blizzard{background:linear-gradient(180deg, rgba(200,230,255,0.32), rgba(0,0,0,0.52));}
+    .wb-meteor{background:radial-gradient(160% 160% at 20% -20%, rgba(255,120,80,0.22), transparent 60%), linear-gradient(180deg, rgba(120,50,30,0.28), rgba(0,0,0,0.6));}
+    .wb-aurora{background:linear-gradient(120deg,rgba(120,200,255,0.28),rgba(180,120,255,0.28),rgba(120,255,200,0.28));background-size:600% 600%;animation:auroraShift 18s ease infinite;}
+    @keyframes auroraShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    .wb-eclipse{background:radial-gradient(circle at 50% 50%,rgba(0,0,0,0.93),rgba(0,0,0,0.78)),radial-gradient(circle at 50% 50%,rgba(255,200,120,0.08),transparent 70%);}
+    .wb-tempest{background:radial-gradient(circle at 50% 50%,rgba(120,80,255,0.25),transparent 70%),radial-gradient(circle at 70% 30%,rgba(80,200,255,0.25),transparent 70%);}
+    .wb-fog{background:radial-gradient(100% 100% at 50% 50%, rgba(185,195,210,0.16), rgba(0,0,0,0.57));}
+
+    /* Weather particles (upgraded) */
+    .particles{position:absolute;inset:0;overflow:hidden;filter:blur(0.2px);}
+    .rain-drop{position:absolute;width:2px;height:18px;background:linear-gradient(to bottom,rgba(180,200,255,0.95),rgba(180,200,255,0.25));border-radius:1px;opacity:0.6;}
+    @keyframes rainFall{0%{transform:translateY(-80px)}100%{transform:translateY(420px)}}
+    .lightning{position:absolute;width:2px;height:220px;background:linear-gradient(to bottom,rgba(255,255,255,0.95),transparent);filter:blur(1px);opacity:0;}
+    @keyframes flash{0%{opacity:0}2%{opacity:1}4%{opacity:0}100%{opacity:0}}
+    .snow-flake{position:absolute;width:6px;height:6px;background:white;border-radius:50%;opacity:0.9;box-shadow:0 0 6px rgba(255,255,255,0.5);}
+    @keyframes snowFall{0%{transform:translateY(-40px) translateX(0)}50%{transform:translateY(200px) translateX(16px)}100%{transform:translateY(420px) translateX(0)}}
+    .fog-mist{position:absolute;left:-40%;top:0;width:180%;height:120%;background:radial-gradient(circle,rgba(255,255,255,0.08),transparent 70%);filter:blur(8px);opacity:0.75;animation:fogDrift 24s linear infinite;}
+    @keyframes fogDrift{0%{transform:translateX(0)}50%{transform:translateX(10%)}100%{transform:translateX(0)}}
+    .ribbon{position:absolute;width:60%;height:16px;left:20%;top:18%;border-radius:999px;filter:blur(2px);opacity:0.6;animation:ribbonWave 12s ease-in-out infinite;}
+    @keyframes ribbonWave{0%{transform:translateY(0) skewX(6deg)}50%{transform:translateY(40px) skewX(-6deg)}100%{transform:translateY(0) skewX(6deg)}}
+    .cosmic{position:absolute;width:4px;height:4px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.9),rgba(255,255,255,0));opacity:0.8;}
+    @keyframes drift{0%{transform:translate(0,0)}50%{transform:translate(12px,-16px)}100%{transform:translate(0,0)}}
+    .corona{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:240px;height:240px;border-radius:50%;box-shadow:0 0 80px rgba(255,200,120,0.24);animation:pulse 5s ease-in-out infinite;}
+    @keyframes pulse{0%{box-shadow:0 0 80px rgba(255,200,120,0.18)}50%{box-shadow:0 0 120px rgba(255,200,120,0.4)}100%{box-shadow:0 0 80px rgba(255,200,120,0.18)}}
+
+    /* Meteor storm specific meteors */
+    .meteor{position:absolute;width:4px;height:14px;background:linear-gradient(180deg, rgba(255,180,120,0.95), rgba(255,180,120,0.1));border-radius:2px;transform:rotate(35deg);opacity:0.85;}
+    @keyframes meteorFall{0%{transform:translate(0,-80px) rotate(35deg)}100%{transform:translate(-240px,420px) rotate(35deg)}}
+
+    /* Storm lightning bolts (timed) */
+    .bolt{position:absolute;width:2px;height:180px;background:linear-gradient(to bottom, rgba(255,255,255,0.95), rgba(255,255,255,0));filter:blur(0.6px);opacity:0;}
+
+    /* Controls */
+    .controls{display:flex;gap:12px;padding-top:12px;flex-wrap:wrap;align-items:center;}
+    button{background:#1b2232;color:var(--text);border:1px solid #2a3449;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;transition:background .2s, box-shadow .2s, transform .06s;}
+    button:hover{background:#232c41;box-shadow:0 6px 18px rgba(110,168,254,0.12);}
+    button:active{transform:translateY(1px);}
+    button:disabled{opacity:0.4;cursor:not-allowed;}
 
     /* Index */
     .index-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
     .index-section{background:#0f1320;border:1px solid #252b39;border-radius:10px;padding:12px;position:relative;}
     .index-section h4{margin:0 0 8px;font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px;}
     .completion{position:absolute;top:8px;right:12px;font-size:12px;color:var(--accent);}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;}
     .index-list{list-style:none;padding:0;margin:0;}
     .index-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #242a38;font-size:14px;}
     .locked{filter:blur(3px);opacity:0.6;}
@@ -72,12 +103,7 @@
     .inv-list li{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #242a38;padding:6px 0;}
     .inv-actions{display:flex;gap:8px;}
 
-    /* Controls */
-    .controls{display:flex;gap:12px;padding-top:12px;flex-wrap:wrap;align-items:center;}
-    button{background:#1b2232;color:var(--text);border:1px solid #2a3449;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;transition:background .2s, box-shadow .2s, transform .06s;}
-    button:hover{background:#232c41;box-shadow:0 6px 18px rgba(110,168,254,0.12);}
-    button:active{transform:translateY(1px);}
-    button:disabled{opacity:0.4;cursor:not-allowed;}
+    /* Mode selector and Auto-Sell */
     .mode-wrap{display:flex;align-items:center;gap:12px;}
     .mode-label{font-size:13px;color:var(--muted);}
     .mode-carousel{display:flex;align-items:center;gap:6px;}
@@ -88,68 +114,43 @@
     .autosell-carousel{display:flex;align-items:center;gap:6px;}
     .autosell-value{min-width:160px;text-align:center;padding:8px 10px;border:1px solid #2a3449;border-radius:8px;background:#1b2232;}
 
-    /* Weather BGs */
-    .weather-bg{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;animation:weatherFadeIn .7s ease-out forwards;}
-    @keyframes weatherFadeIn{from{opacity:0}to{opacity:1}}
-    .wb-sunny{background:radial-gradient(120% 120% at 50% 10%, rgba(255,215,120,0.22), transparent 60%), linear-gradient(180deg, rgba(255,232,170,0.08), rgba(0,0,0,0));overflow:hidden;}
-    .wb-storm{background:radial-gradient(100% 120% at 50% 0%, rgba(25,30,55,0.8), rgba(0,0,0,0.9)), linear-gradient(180deg, rgba(25,30,55,0.78), rgba(0,0,0,0.86));}
-    .wb-blizzard{background:linear-gradient(180deg, rgba(200,230,255,0.36), rgba(0,0,0,0.52));}
-    .wb-meteor{background:radial-gradient(160% 160% at 20% -20%, rgba(255,120,80,0.22), transparent 60%), linear-gradient(180deg, rgba(120,50,30,0.28), rgba(0,0,0,0.6));}
-    .wb-aurora{background:linear-gradient(120deg,rgba(120,200,255,0.28),rgba(180,120,255,0.28),rgba(120,255,200,0.28));background-size:600% 600%;animation:auroraShift 18s ease infinite;}
-    @keyframes auroraShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-    .wb-eclipse{background:radial-gradient(circle at 50% 50%,rgba(0,0,0,0.93),rgba(0,0,0,0.78)),radial-gradient(circle at 50% 50%,rgba(255,200,120,0.08),transparent 70%);}
-    .wb-tempest{background:radial-gradient(circle at 50% 50%,rgba(120,80,255,0.25),transparent 70%),radial-gradient(circle at 70% 30%,rgba(80,200,255,0.25),transparent 70%);}
-    .wb-fog{background:radial-gradient(100% 100% at 50% 50%, rgba(185,195,210,0.16), rgba(0,0,0,0.57));}
+    /* Rarity colors */
+    .b-worthless{background:#1a1a1a;color:#b3b3b3;} .b-trash{background:#211616;color:#d28f8f;}
+    .b-common{background:#1f2635;color:#c7d1e5;} .b-uncommon{background:#14261d;color:#7ae08f;}
+    .b-rare{background:#221a35;color:#caa6ff;} .b-epic{background:#10233a;color:#7bb7ff;}
+    .b-legendary{background:#2a1f12;color:#ffbf66;} .b-mythic{background:#2a142a;color:#ff7ee6;}
+    .b-divine{background:#2a2a12;color:#ffd700;} .b-celestial{background:#142a2a;color:#7affff;}
+    .b-transcendent{background:#1a1a2f;color:#a0a7ff;} .b-eternal{background:#1a2f2a;color:#9cf2c7;}
+    .b-omniversal{background:#2f1a2f;color:#ff9cff;}
+    .b-exclusive{background:conic-gradient(from 0deg, red, orange, yellow, green, blue, indigo, violet, red);animation:exclusiveSpin 8s linear infinite; color:white;}
+    @keyframes exclusiveSpin{0%{filter:hue-rotate(0deg)}100%{filter:hue-rotate(360deg)}}
 
-    /* Weather FX particles */
-    .particles{position:absolute;inset:0;overflow:hidden;filter:blur(0.1px);}
-    .rain-drop{position:absolute;width:2px;height:18px;background:linear-gradient(to bottom,rgba(180,200,255,0.95),rgba(180,200,255,0.25));border-radius:1px;opacity:0.7;}
-    @keyframes rainFall{0%{transform:translateY(-100px)}100%{transform:translateY(480px)}}
-    .bolt{position:absolute;width:2px;height:180px;background:linear-gradient(to bottom, rgba(255,255,255,0.95), rgba(255,255,255,0));filter:blur(0.6px);opacity:0;}
-    @keyframes flash{0%{opacity:0}2%{opacity:1}4%{opacity:0}100%{opacity:0}}
-    .storm-charge{position:absolute;left:0;top:-10%;width:100%;height:20%;background:radial-gradient(100% 80% at 50% 50%, rgba(200,220,255,0.18), transparent 60%);filter:blur(6px);animation:chargePulse 5s ease-in-out infinite;}
-    @keyframes chargePulse{0%{opacity:.2}50%{opacity:.6}100%{opacity:.2}}
-    .snow-flake{position:absolute;width:6px;height:6px;background:white;border-radius:50%;opacity:0.9;box-shadow:0 0 6px rgba(255,255,255,0.5);}
-    @keyframes snowFall{0%{transform:translateY(-60px) translateX(0)}50%{transform:translateY(260px) translateX(16px)}100%{transform:translateY(480px) translateX(0)}}
-    .snow-swirl{position:absolute;left:0;bottom:-10%;width:120%;height:30%;background:radial-gradient(100% 80% at 50% 50%, rgba(255,255,255,0.12), transparent 60%);filter:blur(10px);animation:swirl 10s linear infinite;}
-    @keyframes swirl{0%{transform:translateX(-10%)}50%{transform:translateX(10%)}100%{transform:translateX(-10%)}}
-    .fog-mist{position:absolute;left:-40%;top:0;width:180%;height:120%;background:radial-gradient(circle,rgba(255,255,255,0.08),transparent 70%);filter:blur(8px);opacity:0.75;animation:fogDrift 24s linear infinite;}
-    @keyframes fogDrift{0%{transform:translateX(0)}50%{transform:translateX(10%)}100%{transform:translateX(0)}}
-    .ribbon{position:absolute;width:60%;height:16px;left:20%;top:18%;border-radius:999px;filter:blur(2px);opacity:0.7;animation:ribbonWave 12s ease-in-out infinite;}
-    @keyframes ribbonWave{0%{transform:translateY(0) skewX(6deg)}50%{transform:translateY(40px) skewX(-6deg)}100%{transform:translateY(0) skewX(6deg)}}
-    .aurora-star{position:absolute;width:3px;height:3px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.8),transparent);opacity:0.9;animation:twinkle 2.2s ease-in-out infinite;}
+    /* Roll glow */
+    .glow{position:absolute;inset:-40%;border-radius:50%;background:radial-gradient(closest-side,rgba(110,168,254,0.25),transparent 65%);filter:blur(12px);animation:glow 1.1s ease-out forwards;z-index:2;}
+    @keyframes glow{0%{opacity:0;transform:scale(0.7)}50%{opacity:1}100%{opacity:0;transform:scale(1.2)}}
+
+    /* Inline cutscene container (inside roll area, not fullscreen) */
+    .cutscene-inline{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:88%;height:80%;border-radius:16px;overflow:hidden;z-index:5;pointer-events:none;border:1px solid rgba(255,255,255,0.12);box-shadow:0 16px 40px rgba(0,0,0,0.55), inset 0 0 50px rgba(255,255,255,0.04);}
+    .cut-title-inline{position:absolute;top:14px;left:50%;transform:translateX(-50%);font-weight:900;color:#fff;text-shadow:0 6px 18px rgba(0,0,0,0.7);z-index:6;font-size:18px;letter-spacing:0.8px;}
+    .cut-sub-inline{position:absolute;top:40px;left:50%;transform:translateX(-50%);color:#cfd6ff;z-index:6;text-shadow:0 6px 18px rgba(0,0,0,0.7);font-size:13px;}
+
+    /* Cinematic primitives */
+    .star{position:absolute;border-radius:50%;background:radial-gradient(circle, rgba(255,255,255,0.95), rgba(255,255,255,0));filter:blur(0.2px);}
     @keyframes twinkle{0%,100%{opacity:0.3}50%{opacity:1}}
-    .cosmic{position:absolute;width:4px;height:4px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.9),rgba(255,255,255,0));opacity:0.85;}
-    @keyframes drift{0%{transform:translate(0,0)}50%{transform:translate(12px,-16px)}100%{transform:translate(0,0)}}
-    .corona{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:240px;height:240px;border-radius:50%;box-shadow:0 0 80px rgba(255,200,120,0.24);animation:pulse 5s ease-in-out infinite;}
-    @keyframes pulse{0%{box-shadow:0 0 80px rgba(255,200,120,0.18)}50%{box-shadow:0 0 120px rgba(255,200,120,0.4)}100%{box-shadow:0 0 80px rgba(255,200,120,0.18)}}
-    .meteor{position:absolute;width:5px;height:16px;background:linear-gradient(180deg, rgba(255,180,120,0.95), rgba(255,180,120,0.1));border-radius:2px;transform:rotate(35deg);opacity:0.9;box-shadow:0 0 8px rgba(255,180,120,0.5);}
-    @keyframes meteorFall{0%{transform:translate(0,-100px) rotate(35deg)}100%{transform:translate(-260px,520px) rotate(35deg)}}
-    .sunbeam{position:absolute;width:4px;height:220px;background:linear-gradient(180deg, rgba(255,230,160,0.8), rgba(255,230,160,0));opacity:.5;filter:blur(0.6px);}
-    @keyframes beamRise{0%{transform:translateY(220px)}100%{transform:translateY(-40px)}}
-
-    /* Cutscene container (clean visuals, no text overlays) */
-    .cutscene-inline{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:90%;height:82%;border-radius:16px;overflow:hidden;z-index:5;pointer-events:none;border:1px solid rgba(255,255,255,0.12);box-shadow:0 16px 40px rgba(0,0,0,0.55), inset 0 0 50px rgba(255,255,255,0.04);}
     .ring{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,0.25);}
-    .beam{position:absolute;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0));filter:blur(1px);mix-blend-mode:screen;}
-    .shard{position:absolute;width:8px;height:24px;background:linear-gradient(180deg,rgba(150,200,255,0.9),rgba(150,200,255,0));transform-origin:center;filter:blur(0.4px);opacity:.85;}
+    @keyframes pulseRing{0%{transform:scale(0.6);opacity:0.0}50%{opacity:1}100%{transform:scale(1.4);opacity:0}}
+    .beam{position:absolute;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0));filter:blur(1.2px);mix-blend-mode:screen;}
+    .shard{position:absolute;width:8px;height:24px;background:linear-gradient(180deg,rgba(150,200,255,0.9),rgba(150,200,255,0));transform-origin:center;filter:blur(0.4px);}
 
-    /* Commands panel */
-    #commandsPanel{display:none;}
-    .cmds{display:grid;gap:16px;}
-    .cmd-section{border:1px solid #2a3449;border-radius:10px;padding:12px;background:#101624;}
-    .cmd-section h4{margin:0 0 8px;font-size:14px;color:#9aa0ab;}
-    .cmd-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-    .cmd-pill{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #2a3449;border-radius:10px;background:#1b2232;}
-    .cmd-group{display:flex;flex-wrap:wrap;gap:8px;}
-    .cmd-btn{background:#1b2232;color:var(--text);border:1px solid #2a3449;padding:8px 10px;border-radius:10px;cursor:pointer;font-weight:600;}
-    .cmd-btn:hover{background:#232c41;}
-    .cmd-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
-    .cmd-grid .box{border:1px solid #2a3449;border-radius:10px;padding:8px;background:#0f1320;}
-    .cmd-item{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #242a38;}
-    .cmd-item:last-child{border-bottom:none;}
-    .cmd-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px;}
-    .cmd-note{font-size:12px;color:#9aa0ab;}
+    /* Delete confirmation modal (improved) */
+    .confirm-wrap{display:none;position:fixed;inset:0;z-index:80;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);backdrop-filter:blur(2px);}
+    .confirm-modal{width:440px;max-width:94vw;background:#0f1320;border:1px solid #2a3449;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,0.65);overflow:hidden;}
+    .confirm-head{padding:14px 16px;background:#121826;border-bottom:1px solid #2a3449;font-weight:800;}
+    .confirm-body{padding:16px;display:grid;gap:10px;}
+    .confirm-item{padding:10px;border-radius:10px;background:rgba(27,34,50,0.85);border:1px solid #2a3449;display:flex;gap:10px;align-items:center;}
+    .confirm-actions{display:flex;gap:12px;justify-content:flex-end;padding:14px;border-top:1px solid #2a3449;background:#101624;}
+    .btn-danger{background:#2a1620;border-color:#64324a;color:#ff9fae;}
+    .btn-safe{background:#162a1f;border-color:#2c5a40;color:#9cf2c7;}
   </style>
 </head>
 <body>
@@ -166,7 +167,6 @@
           <button id="btnAuto" disabled>Auto Roll (locked)</button>
           <button id="btnIndex">Index</button>
           <button id="btnInventory">Inventory</button>
-          <button id="btnCommands" style="margin-left:auto;">Commands</button>
         </div>
       </div>
 
@@ -198,115 +198,15 @@
         </div>
         <ul id="inventoryList" class="inv-list"></ul>
       </div>
-
-      <!-- Commands (working, inventory-style selection) -->
-      <div class="panel" id="commandsPanel" style="display:none;">
-        <h3>Commands</h3>
-        <div class="cmds">
-
-          <div class="cmd-section" id="cmdLuckSection">
-            <h4>Luck & bias</h4>
-            <div class="cmd-row">
-              <div class="cmd-pill">
-                <span>Luck +</span>
-                <input type="number" step="0.01" id="cmdLuck" placeholder="e.g. 0.50 = +50%" style="width:120px;background:#0f1320;color:var(--text);border:1px solid #2a3449;border-radius:8px;padding:6px;">
-                <div class="cmd-group">
-                  <button class="cmd-btn" data-luckdur="30">30s</button>
-                  <button class="cmd-btn" data-luckdur="60">60s</button>
-                  <button class="cmd-btn" data-luckdur="120">120s</button>
-                </div>
-              </div>
-            </div>
-            <div class="cmd-row">
-              <div class="cmd-pill">
-                <span>Bias →</span>
-                <div class="cmd-group" id="cmdBiasTierGroup"></div>
-                <input type="number" step="0.01" id="cmdBiasAmount" placeholder="amount (0.2 = +20%)" style="width:140px;background:#0f1320;color:var(--text);border:1px solid #2a3449;border-radius:8px;padding:6px;">
-                <div class="cmd-group">
-                  <button class="cmd-btn" id="cmdBiasApply">Apply bias (60s)</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="cmd-section" id="cmdWeatherSection">
-            <h4>Weather</h4>
-            <div class="cmd-grid">
-              <div class="box">
-                <div style="font-weight:700;margin-bottom:6px;">Choose weather</div>
-                <div id="cmdWeatherList"></div>
-              </div>
-              <div class="box">
-                <div style="font-weight:700;margin-bottom:6px;">Duration</div>
-                <div class="cmd-group">
-                  <button class="cmd-btn" data-wdur="90">90s</button>
-                  <button class="cmd-btn" data-wdur="150">150s</button>
-                  <button class="cmd-btn" data-wdur="240">240s</button>
-                </div>
-                <div class="cmd-actions">
-                  <button class="cmd-btn" id="cmdWeatherApply">Start weather</button>
-                </div>
-              </div>
-            </div>
-            <div class="cmd-note">Weather runs in the roll area with dynamic FX. Starting a new weather replaces the current one.</div>
-          </div>
-
-          <div class="cmd-section" id="cmdNextRollSection">
-            <h4>Force next roll (rarity and optional exact item)</h4>
-            <div class="cmd-grid">
-              <div class="box">
-                <div style="font-weight:700;margin-bottom:6px;">Rarity</div>
-                <div id="cmdNextRarityGroup"></div>
-              </div>
-              <div class="box">
-                <div style="font-weight:700;margin-bottom:6px;">Item (optional)</div>
-                <div id="cmdNextItemList"></div>
-              </div>
-            </div>
-            <div class="cmd-actions">
-              <button class="cmd-btn" id="cmdNextRollApply">Set next roll</button>
-              <button class="cmd-btn" id="cmdNextRollClear">Clear</button>
-            </div>
-            <div class="cmd-note">If an item is selected, it must exist in the chosen rarity’s Index.</div>
-          </div>
-
-          <div class="cmd-section" id="cmdGiveSection">
-            <h4>Give consumable/totem</h4>
-            <div class="cmd-grid">
-              <div class="box">
-                <div style="font-weight:700;margin-bottom:6px;">Rarity</div>
-                <div id="cmdGiveRarityGroup"></div>
-              </div>
-              <div class="box">
-                <div style="font-weight:700;margin-bottom:6px;">Available drops</div>
-                <div id="cmdGiveDropsList"></div>
-              </div>
-            </div>
-            <div class="cmd-actions">
-              <button class="cmd-btn" id="cmdGiveAdd">Add to Items</button>
-              <button class="cmd-btn" id="cmdGiveActivate">Activate now</button>
-            </div>
-          </div>
-
-          <div class="cmd-section">
-            <h4>Data</h4>
-            <div class="cmd-row">
-              <button class="cmd-btn" id="cmdReset">Reset All Data</button>
-              <button class="cmd-btn" id="cmdClearEffects">Clear Effects & Guarantees</button>
-            </div>
-          </div>
-
-        </div>
-      </div>
     </div>
   </div>
 
   <!-- Delete confirmation modal -->
-  <div class="confirm-wrap" id="confirmWrap" style="display:none;position:fixed;inset:0;z-index:80;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);backdrop-filter:blur(2px);">
-    <div class="confirm-modal" style="width:480px;max-width:94vw;background:#0f1320;border:1px solid #2a3449;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,0.65);overflow:hidden;">
-      <div class="confirm-head" id="confirmTitle" style="padding:14px 16px;background:#121826;border-bottom:1px solid #2a3449;font-weight:800;">Confirm delete</div>
-      <div class="confirm-body" style="padding:16px;display:grid;gap:10px;">
-        <div class="confirm-item" style="padding:10px;border-radius:10px;background:rgba(27,34,50,0.85);border:1px solid #2a3449;display:flex;gap:10px;align-items:center;">
+  <div class="confirm-wrap" id="confirmWrap">
+    <div class="confirm-modal">
+      <div class="confirm-head" id="confirmTitle">Confirm delete</div>
+      <div class="confirm-body">
+        <div class="confirm-item">
           <span id="confirmBadge" class="badge">RARITY</span>
           <div>
             <div id="confirmName" style="font-weight:800">Item name</div>
@@ -314,9 +214,9 @@
           </div>
         </div>
       </div>
-      <div class="confirm-actions" style="display:flex;gap:12px;justify-content:flex-end;padding:14px;border-top:1px solid #2a3449;background:#101624;">
-        <button class="btn-safe" id="confirmCancel" style="background:#162a1f;border:1px solid #2c5a40;color:#9cf2c7;padding:8px 12px;border-radius:10px;">Keep</button>
-        <button class="btn-danger" id="confirmDelete" style="background:#2a1620;border:1px solid #64324a;color:#ff9fae;padding:8px 12px;border-radius:10px;">Delete</button>
+      <div class="confirm-actions">
+        <button class="btn-safe" id="confirmCancel">Keep</button>
+        <button class="btn-danger" id="confirmDelete">Delete</button>
       </div>
     </div>
   </div>
@@ -339,6 +239,7 @@
       {key:"omniversal",name:"Omniversal",weight:1,colorClass:"b-omniversal"},
       {key:"exclusive",name:"Exclusive",weight:0,colorClass:"b-exclusive"}
     ];
+
     const INDEX_ITEMS={
       worthless:["Flicker Dust","Cracked Ash","Dim Mote","Frayed Thread","Worn Chip","Hollow Grain","Stale Ember","Silt Speck","Faded Spark","Withered Flake","Dull Scale","Spent Echo"],
       trash:["Bent Sigil","Scuffed Gear","Fractured Bead","Tarnished Ring","Splintered Token","Bruised Charm","Chipped Prism","Dented Halo","Crater Chip","Scratched Fang","Bruised Petal","Muddled Rune"],
@@ -427,9 +328,10 @@
       autoSellItems:"sol_rng_autosell_items",
       effects:"sol_rng_effects_instances",
       mode:"sol_rng_mode",
-      cmd:"sol_rng_commands",
-      guarantees:"sol_rng_guarantees"
+      secretUnlocked:"sol_rng_secret_unlocked",
+      cmdQueue:"sol_rng_commands_queue"
     };
+
     function buildInitialUnlocks(def){ const o={}; for(const k in def){ o[k]={}; def[k].forEach(n=>o[k][n]=false); } return o; }
     function reviveUnlocks(u){ const f=buildInitialUnlocks(INDEX_ITEMS); for(const k in f){ for(const n of Object.keys(f[k])){ f[k][n]=u&&u[k]&&typeof u[k][n]==="boolean"?u[k][n]:false; } } return f; }
 
@@ -440,9 +342,8 @@
       inventoryRolled:[], inventoryItems:[], autoSellRolled:"off", autoSellItems:"off",
       fullAnnouncedRolled:false, fullAnnouncedItems:false,
       activeEffects:{ luck:0, speed:0, bias:{}, weatherBiasItem:null },
-      effectInstances:[], guarantees:[],
-      mode:"Rolled",
-      commands:{ nextRoll:null, weatherSel:null, weatherDur:150, biasSel:null, giveRarity:"common", giveDrop:null, luckDur:60 },
+      effectInstances:[], persistentGuarantees:[],
+      mode:"Rolled", secretUnlocked:true, cmdQueue:null,
       autoWasOnBeforeCut:false, cutscenePlaying:false
     };
     function loadState(){
@@ -454,8 +355,8 @@
       const autoSellItemsRaw=localStorage.getItem(STORAGE_KEYS.autoSellItems);
       const effInstRaw=localStorage.getItem(STORAGE_KEYS.effects);
       const modeRaw=localStorage.getItem(STORAGE_KEYS.mode);
-      const cmdRaw=localStorage.getItem(STORAGE_KEYS.cmd);
-      const guarRaw=localStorage.getItem(STORAGE_KEYS.guarantees);
+      const secretRaw=localStorage.getItem(STORAGE_KEYS.secretUnlocked);
+      const cmdRaw=localStorage.getItem(STORAGE_KEYS.cmdQueue);
 
       state.rolls=Number.isFinite(rolls)?rolls:0;
       state.unlocks=unlocksRaw?reviveUnlocks(JSON.parse(unlocksRaw)):buildInitialUnlocks(INDEX_ITEMS);
@@ -465,13 +366,14 @@
       state.inventoryItems = inv.items || [];
       state.autoSellRolled=autoSellRolledRaw||"off";
       state.autoSellItems=autoSellItemsRaw||"off";
-      const parsedEffects = effInstRaw ? JSON.parse(effInstRaw) : [];
+      const parsedEffects = effInstRaw ? JSON.parse(effInstRaw) : { timed:[], guarantees:[] };
       const now=Date.now();
-      state.effectInstances = parsedEffects.filter(e=>e.expiresAt>now);
-      state.guarantees = guarRaw ? JSON.parse(guarRaw) : [];
+      state.effectInstances = (parsedEffects.timed||[]).filter(e=>e.expiresAt>now);
+      state.persistentGuarantees = parsedEffects.guarantees || [];
       deriveEffectsTotals();
       state.mode = modeRaw || "Rolled";
-      state.commands = cmdRaw ? JSON.parse(cmdRaw) : state.commands;
+      state.secretUnlocked = secretRaw==="true" || state.secretUnlocked; // keep commands enabled here
+      state.cmdQueue = cmdRaw ? JSON.parse(cmdRaw) : null;
     }
     function saveState(){
       localStorage.setItem(STORAGE_KEYS.rolls,String(state.rolls));
@@ -480,17 +382,16 @@
       localStorage.setItem(STORAGE_KEYS.inv,JSON.stringify({rolled:state.inventoryRolled,items:state.inventoryItems}));
       localStorage.setItem(STORAGE_KEYS.autoSellRolled,state.autoSellRolled);
       localStorage.setItem(STORAGE_KEYS.autoSellItems,state.autoSellItems);
-      localStorage.setItem(STORAGE_KEYS.effects,JSON.stringify(state.effectInstances));
+      localStorage.setItem(STORAGE_KEYS.effects,JSON.stringify({ timed:state.effectInstances, guarantees:state.persistentGuarantees }));
       localStorage.setItem(STORAGE_KEYS.mode,state.mode);
-      localStorage.setItem(STORAGE_KEYS.cmd,JSON.stringify(state.commands));
-      localStorage.setItem(STORAGE_KEYS.guarantees,JSON.stringify(state.guarantees));
+      localStorage.setItem(STORAGE_KEYS.secretUnlocked,state.secretUnlocked?"true":"false");
+      if(state.cmdQueue) localStorage.setItem(STORAGE_KEYS.cmdQueue,JSON.stringify(state.cmdQueue)); else localStorage.removeItem(STORAGE_KEYS.cmdQueue);
     }
 
     /* ---------------- Utils ---------------- */
     function clone(o){ return JSON.parse(JSON.stringify(o)); }
     function sumWeights(a){ return a.reduce((s,r)=>s+r.weight,0); }
     function milestoneLuckMultiplier(n){ if(n>0 && n%200===0) return 10; if(n>0 && n%50===0) return 2; return 1; }
-    function classToTierKey(colorClass){ const t=TIERS.find(x=>x.colorClass===colorClass); return t?t.key:"common"; }
 
     function spawnBanner(text,type,colorClass,withIcon){
       const rollArea=document.getElementById("rollArea");
@@ -518,13 +419,101 @@
     function toChances(tiers){ const total=sumWeights(tiers); return tiers.map(t=>({ ...t, chance: total>0 ? t.weight/total : 0 })); }
     function pickTier(chances){ const r=Math.random(); let acc=0; for(let i=0;i<chances.length;i++){ acc+=chances[i].chance; if(r<=acc) return chances[i]; } return chances[chances.length-1]; }
     function pickIndexItem(tierKey){ const list=INDEX_ITEMS[tierKey]||[]; if(!list.length) return null; return list[Math.floor(Math.random()*list.length)]; }
+
     function buildItemTierWeightsFromIndex(baseTiers){
       const order=baseTiers.map(t=>t.key);
       return baseTiers.map(t=>{ const idx=order.indexOf(t.key); const penalKey=order[Math.min(idx+2,order.length-1)]; const penalTier=baseTiers.find(x=>x.key===penalKey); const weight=(penalTier?.weight || t.weight)/8000; return { ...t, weight }; });
     }
     function pickConsumableFromTier(tierKey){ const list=ITEM_DROPS[tierKey]||[]; if(!list.length) return null; return list[Math.floor(Math.random()*list.length)]; }
-    function colorClassForWeather(name){ const w=[...WEATHERS.normal,...WEATHERS.rare,...WEATHERS.super].find(x=>x.name===name); return w?.colorClass || ""; }
-    function showGlow(){ const rollArea=document.getElementById("rollArea"); const g=document.createElement("div"); g.className="glow"; rollArea.appendChild(g); setTimeout(()=>g.remove(),1100); }
+
+    /* ---------------- Weather visual (enhanced FX) ---------------- */
+    function renderWeatherBackdrop(){
+      const area=document.getElementById("rollArea");
+      const old=area.querySelector(".weather-bg"); if(old) old.remove();
+      const now=Date.now();
+      const weather=state.effectInstances.find(e=>e.type==="weather" && e.expiresAt>now);
+      if(!weather) return;
+      const map={"Sunny Radiance":"wb-sunny","Storm":"wb-storm","Blizzard":"wb-blizzard","Meteor Storm":"wb-meteor","Aurora Veil":"wb-aurora","Eternal Eclipse":"wb-eclipse","Cosmic Tempest":"wb-tempest","Fog":"wb-fog"};
+      const cls=map[weather.name] || "wb-sunny";
+      const bg=document.createElement("div"); bg.className="weather-bg "+cls;
+      const particles=document.createElement("div"); particles.className="particles";
+
+      if(cls==="wb-storm"){
+        // Rain
+        for(let i=0;i<140;i++){
+          const p=document.createElement("span"); p.className="rain-drop";
+          p.style.left=Math.floor(Math.random()*100)+"%";
+          p.style.top=(-80-Math.random()*160)+"px";
+          p.style.animation=`rainFall ${0.7+Math.random()*0.6}s linear infinite`;
+          p.style.opacity=0.45+Math.random()*0.4;
+          particles.appendChild(p);
+        }
+        // Random lightning flashes over time
+        for(let i=0;i<3;i++){
+          const bolt=document.createElement("div"); bolt.className="bolt";
+          bolt.style.left=(10+Math.random()*80)+"%"; bolt.style.top=(-40+Math.random()*20)+"px";
+          particles.appendChild(bolt);
+          setInterval(()=>{
+            bolt.style.animation="flash 2.5s ease-in-out 1";
+            setTimeout(()=>bolt.style.animation="",2400);
+          }, 2500 + Math.random()*2500);
+        }
+      } else if(cls==="wb-blizzard"){
+        for(let i=0;i<80;i++){
+          const s=document.createElement("span"); s.className="snow-flake";
+          s.style.left=Math.floor(Math.random()*100)+"%"; s.style.top=(-80-Math.random()*180)+"px";
+          s.style.animation=`snowFall ${3.2+Math.random()*2.6}s linear infinite`;
+          s.style.opacity=0.6+Math.random()*0.4;
+          particles.appendChild(s);
+        }
+      } else if(cls==="wb-fog"){
+        const fog1=document.createElement("div"); fog1.className="fog-mist"; fog1.style.opacity="0.7";
+        const fog2=document.createElement("div"); fog2.className="fog-mist"; fog2.style.opacity="0.45"; fog2.style.animationDuration="32s";
+        particles.appendChild(fog1); particles.appendChild(fog2);
+      } else if(cls==="wb-aurora"){
+        const r1=document.createElement("div"); r1.className="ribbon"; r1.style.background="linear-gradient(90deg, rgba(160,255,220,0.6), rgba(150,120,255,0.6))";
+        const r2=document.createElement("div"); r2.className="ribbon"; r2.style.top="30%"; r2.style.animationDuration="16s"; r2.style.background="linear-gradient(90deg, rgba(120,200,255,0.6), rgba(120,255,200,0.6))";
+        particles.appendChild(r1); particles.appendChild(r2);
+      } else if(cls==="wb-eclipse"){
+        const corona=document.createElement("div"); corona.className="corona"; particles.appendChild(corona);
+      } else if(cls==="wb-tempest"){
+        for(let i=0;i<30;i++){
+          const c=document.createElement("span"); c.className="cosmic";
+          c.style.left=Math.floor(Math.random()*100)+"%";
+          c.style.top=Math.floor(Math.random()*100)+"%";
+          c.style.width=c.style.height=(Math.random()*3+2)+"px";
+          c.style.animation=`drift ${8+Math.random()*6}s ease-in-out infinite`;
+          particles.appendChild(c);
+        }
+      } else if(cls==="wb-meteor"){
+        // cosmic glints
+        for(let i=0;i<18;i++){
+          const c=document.createElement("span"); c.className="cosmic";
+          c.style.left=Math.floor(Math.random()*100)+"%";
+          c.style.top=Math.floor(Math.random()*40)+"%";
+          c.style.width=c.style.height=(Math.random()*3+2)+"px";
+          c.style.animation=`drift ${8+Math.random()*6}s ease-in-out infinite`;
+          particles.appendChild(c);
+        }
+        // timed meteor showers
+        function spawnMeteorBurst(){
+          for(let i=0;i<12;i++){
+            const m=document.createElement("div"); m.className="meteor";
+            const startX = 20 + Math.random()*80;
+            m.style.left = startX + "%";
+            m.style.top = (-60 - Math.random()*60) + "px";
+            m.style.animation = `meteorFall ${1.2+Math.random()*0.8}s linear 1`;
+            particles.appendChild(m);
+            setTimeout(()=>m.remove(), 2200);
+          }
+        }
+        spawnMeteorBurst();
+        const meteorInterval = setInterval(spawnMeteorBurst, 3500);
+        // clear interval when weather detached
+        bg.addEventListener("DOMNodeRemoved", ()=>clearInterval(meteorInterval));
+      }
+      bg.appendChild(particles); area.appendChild(bg);
+    }
 
     /* ---------------- Effects ---------------- */
     function deriveEffectsTotals(){
@@ -541,11 +530,12 @@
     }
     function addEffect(effect){
       if(effect.type==="guarantee" && effect.name==="Origin Crystal"){
-        state.guarantees.push({ name:effect.name, type:"guarantee" }); saveState();
-        spawnBanner(`Stored: ${effect.name}`,"activate","b-omniversal"); renderActiveEffects(); return;
+        // persist guarantee token
+        state.persistentGuarantees.push({ name:effect.name, type:"guarantee", rarity:effect.rarity || "omniversal" });
+        saveState(); spawnBanner(`Stored: ${effect.name}`,"activate","b-omniversal"); renderActiveEffects(); return;
       }
       const now=Date.now(), durMs=(effect.duration||0)*1000, capMs=MAX_EFFECT_SECONDS*1000;
-      const keyMatch=e=>e.name===effect.name && e.type===effect.type && (e.target||null)===(effect.target||null);
+      const keyMatch=e=>e.name===effect.name && (effect.type==="weather"?e.type==="weather":e.type===effect.type) && (e.target||null)===(effect.target||null);
       const existingIdx=state.effectInstances.findIndex(keyMatch);
       if(existingIdx>=0){
         const ex=state.effectInstances[existingIdx]; const remaining=Math.max(0,ex.expiresAt-now); const extended=Math.min(capMs, remaining+durMs);
@@ -568,148 +558,19 @@
         const left=formatSecondsLeft(e.expiresAt-now); const colorClass=TIERS.find(t=>t.key===e.rarityKey)?.colorClass || "";
         const div=document.createElement("div"); div.className=`effect-entry ${colorClass}`; div.textContent=`${e.name}: ${left}`; el.appendChild(div);
       });
-      state.guarantees.forEach(g=>{ const div=document.createElement("div"); div.className=`effect-entry ${"b-omniversal"}`; div.textContent=`${g.name}: ready`; el.appendChild(div); });
+      state.persistentGuarantees.forEach(g=>{ const colorClass=TIERS.find(t=>t.key===g.rarity)?.colorClass || ""; const div=document.createElement("div"); div.className=`effect-entry ${colorClass}`; div.textContent=`${g.name}: ready`; el.appendChild(div); });
     }
+    function colorClassForWeather(name){ const w=[...WEATHERS.normal,...WEATHERS.rare,...WEATHERS.super].find(x=>x.name===name); return w?.colorClass || ""; }
+    function showGlow(){ const rollArea=document.getElementById("rollArea"); const g=document.createElement("div"); g.className="glow"; rollArea.appendChild(g); setTimeout(()=>g.remove(),1100); }
 
-    /* ---------------- Weather visuals (enhanced) ---------------- */
-    function renderWeatherBackdrop(){
-      const area=document.getElementById("rollArea");
-      const old=area.querySelector(".weather-bg"); if(old) old.remove();
-      const now=Date.now();
-      const weather=state.effectInstances.find(e=>e.type==="weather" && e.expiresAt>now);
-      if(!weather) return;
-      const map={"Sunny Radiance":"wb-sunny","Storm":"wb-storm","Blizzard":"wb-blizzard","Meteor Storm":"wb-meteor","Aurora Veil":"wb-aurora","Eternal Eclipse":"wb-eclipse","Cosmic Tempest":"wb-tempest","Fog":"wb-fog"};
-      const cls=map[weather.name] || "wb-sunny";
-      const bg=document.createElement("div"); bg.className="weather-bg "+cls;
-      const particles=document.createElement("div"); particles.className="particles";
-
-      // Sunny
-      if(cls==="wb-sunny"){
-        for(let i=0;i<12;i++){
-          const b=document.createElement("div"); b.className="sunbeam";
-          b.style.left=(5+i*8)+"%"; b.style.top=(20+Math.random()*20)+"%";
-          b.style.animation=`beamRise ${4+Math.random()*2}s ease-in-out infinite`;
-          b.style.opacity=0.35+Math.random()*0.4;
-          particles.appendChild(b);
-        }
-        for(let i=0;i<40;i++){
-          const mote=document.createElement("span"); mote.className="cosmic";
-          mote.style.left=Math.floor(Math.random()*100)+"%";
-          mote.style.top=Math.floor(Math.random()*100)+"%";
-          mote.style.width=mote.style.height=(Math.random()*2+1)+"px";
-          mote.style.animation=`drift ${6+Math.random()*6}s ease-in-out infinite`;
-          mote.style.opacity=0.5;
-          particles.appendChild(mote);
-        }
-      }
-
-      // Storm
-      if(cls==="wb-storm"){
-        const charge=document.createElement("div"); charge.className="storm-charge"; particles.appendChild(charge);
-        for(let i=0;i<180;i++){
-          const p=document.createElement("span"); p.className="rain-drop";
-          p.style.left=Math.floor(Math.random()*100)+"%";
-          p.style.top=(-100-Math.random()*160)+"px";
-          p.style.animation=`rainFall ${0.7+Math.random()*0.6}s linear infinite`;
-          p.style.opacity=0.55+Math.random()*0.35;
-          particles.appendChild(p);
-        }
-        function spawnLightning(){
-          const bolt=document.createElement("div"); bolt.className="bolt";
-          bolt.style.left=(10+Math.random()*80)+"%"; bolt.style.top=(-20+Math.random()*20)+"px";
-          bolt.style.animation="flash 1.8s ease-in-out 1";
-          particles.appendChild(bolt);
-          setTimeout(()=>bolt.remove(), 1800);
-        }
-        const lightningInterval=setInterval(()=>{ if(Math.random()<0.7) spawnLightning(); }, 1900);
-        bg.addEventListener("DOMNodeRemoved", ()=>clearInterval(lightningInterval));
-      }
-
-      // Blizzard
-      if(cls==="wb-blizzard"){
-        for(let i=0;i<140;i++){
-          const s=document.createElement("span"); s.className="snow-flake";
-          s.style.left=Math.floor(Math.random()*100)+"%"; s.style.top=(-80-Math.random()*180)+"px";
-          s.style.animation=`snowFall ${3.2+Math.random()*2.6}s linear infinite`;
-          s.style.opacity=0.6+Math.random()*0.4;
-          particles.appendChild(s);
-        }
-        const swirl=document.createElement("div"); swirl.className="snow-swirl"; particles.appendChild(swirl);
-      }
-
-      // Fog
-      if(cls==="wb-fog"){
-        const fog1=document.createElement("div"); fog1.className="fog-mist"; fog1.style.opacity="0.7";
-        const fog2=document.createElement("div"); fog2.className="fog-mist"; fog2.style.opacity="0.45"; fog2.style.animationDuration="32s";
-        const fog3=document.createElement("div"); fog3.className="fog-mist"; fog3.style.opacity="0.3"; fog3.style.animationDuration="40s";
-        particles.appendChild(fog1); particles.appendChild(fog2); particles.appendChild(fog3);
-      }
-
-      // Aurora
-      if(cls==="wb-aurora"){
-        const r1=document.createElement("div"); r1.className="ribbon"; r1.style.background="linear-gradient(90deg, rgba(160,255,220,0.7), rgba(150,120,255,0.7))";
-        const r2=document.createElement("div"); r2.className="ribbon"; r2.style.top="30%"; r2.style.animationDuration="16s"; r2.style.background="linear-gradient(90deg, rgba(120,200,255,0.7), rgba(120,255,200,0.7))";
-        const r3=document.createElement("div"); r3.className="ribbon"; r3.style.top="46%"; r3.style.animationDuration="20s"; r3.style.background="linear-gradient(90deg, rgba(180,140,255,0.7), rgba(120,255,220,0.7))";
-        particles.appendChild(r1); particles.appendChild(r2); particles.appendChild(r3);
-        for(let i=0;i<70;i++){
-          const st=document.createElement("div"); st.className="aurora-star";
-          st.style.left=Math.random()*100+"%"; st.style.top=Math.random()*100+"%";
-          st.style.animationDuration=(1.8+Math.random()*1.6)+"s";
-          particles.appendChild(st);
-        }
-      }
-
-      // Eclipse
-      if(cls==="wb-eclipse"){ const corona=document.createElement("div"); corona.className="corona"; particles.appendChild(corona); }
-
-      // Tempest
-      if(cls==="wb-tempest"){
-        for(let i=0;i<48;i++){
-          const c=document.createElement("span"); c.className="cosmic";
-          c.style.left=Math.floor(Math.random()*100)+"%";
-          c.style.top=Math.floor(Math.random()*100)+"%";
-          c.style.width=c.style.height=(Math.random()*3+2)+"px";
-          c.style.animation=`drift ${8+Math.random()*6}s ease-in-out infinite`;
-          particles.appendChild(c);
-        }
-      }
-
-      // Meteor storm
-      if(cls==="wb-meteor"){
-        for(let i=0;i<26;i++){
-          const c=document.createElement("span"); c.className="cosmic";
-          c.style.left=Math.floor(Math.random()*100)+"%";
-          c.style.top=Math.floor(Math.random()*40)+"%";
-          c.style.width=c.style.height=(Math.random()*3+2)+"px";
-          c.style.animation=`drift ${8+Math.random()*6}s ease-in-out infinite`;
-          particles.appendChild(c);
-        }
-        function spawnMeteorBurst(){
-          const count = 10 + Math.floor(Math.random()*8);
-          for(let i=0;i<count;i++){
-            const m=document.createElement("div"); m.className="meteor";
-            const startX = 20 + Math.random()*80;
-            m.style.left = startX + "%";
-            m.style.top = (-100 - Math.random()*80) + "px";
-            m.style.animation = `meteorFall ${1.2+Math.random()*0.8}s linear 1`;
-            particles.appendChild(m);
-            setTimeout(()=>m.remove(), 2200);
-          }
-        }
-        spawnMeteorBurst();
-        const meteorInterval = setInterval(spawnMeteorBurst, 3000);
-        bg.addEventListener("DOMNodeRemoved", ()=>clearInterval(meteorInterval));
-      }
-
-      bg.appendChild(particles); area.appendChild(bg);
-    }
-
-    /* ---------------- Auto & Modes ---------------- */
+    /* ---------------- Mode & Auto-Sell ---------------- */
     const autoSellOptions=["off","worthless","trash","common","uncommon","rare","epic","legendary","mythic","divine","celestial","transcendent","eternal","omniversal","exclusive"];
-    const modes=["Rolled","Items"];
     function setAutoSell(value){ if(state.mode==="Items") state.autoSellItems=value; else state.autoSellRolled=value; saveState(); renderButtonsState(); }
+    const modes=["Rolled","Items"];
     function setMode(value){ state.mode=value; saveState(); renderButtonsState(); renderInventory(); }
     function cycle(list,current,dir){ const idx=list.indexOf(current); if(dir<0) return list[idx<=0?list.length-1:idx-1]; return list[idx>=list.length-1?0:idx+1]; }
+
+    /* ---------------- Auto clicker ---------------- */
     function updateAutoInterval(){
       if(state.autoInterval){ clearInterval(state.autoInterval); state.autoInterval=null; }
       if(state.auto){
@@ -723,7 +584,7 @@
       }
     }
     function toggleAuto(forceState){
-      const btn=document.getElementById("btnAuto"); if(btn.disabled && typeof forceState!=="boolean") return;
+      const btn=document.getElementById("btnAuto"); if(btn.disabled && !forceState) return;
       const nextState = typeof forceState==="boolean" ? forceState : !state.auto;
       if(nextState){ state.auto=true; btn.textContent="Auto Roll: On"; updateAutoInterval(); }
       else { state.auto=false; clearInterval(state.autoInterval); state.autoInterval=null; btn.textContent="Auto Roll: Off"; }
@@ -738,21 +599,26 @@
       const dur=100+Math.floor(Math.random()*201);
       const meta={ luck:(w.effects?.luck)||0, biasItem:(w.effects?.biasItem)||null };
       addEffect({ name:w.name, type:"weather", duration:dur, rarity: classToTierKey(w.colorClass), meta });
-      const icon = w.name==="Eternal Eclipse" ? "icon-eclipse" : w.name==="Storm" ? "icon-storm" : w.name==="Aurora Veil" ? "icon-aurora" : w.name==="Cosmic Tempest" ? "icon-tempest" : w.name==="Meteor Storm" ? "icon-meteor" : w.name==="Sunny Radiance" ? "icon-sunny" : "";
+      const icon = w.name==="Eternal Eclipse" ? "icon-eclipse" : w.name==="Storm" ? "icon-storm" : w.name==="Aurora Veil" ? "icon-aurora" : w.name==="Cosmic Tempest" ? "icon-tempest" : w.name==="Meteor Storm" ? "icon-meteor" : "";
       spawnBanner(`${w.name} started`,"weather",w.colorClass,icon);
     }
     function scheduleNextWeather(){ const delayMs=(240+Math.random()*480)*1000; setTimeout(()=>{ triggerRandomWeather(); scheduleNextWeather(); },delayMs); }
+    function classToTierKey(colorClass){ const t=TIERS.find(x=>x.colorClass===colorClass); return t?t.key:"common"; }
 
-    /* ---------------- Cutscenes (clean, more cinematic, no text overlays) ---------------- */
-    const injectedKeyframes = new Set();
-    function injectKeyframesOnce(name, body){ if(injectedKeyframes.has(name)) return; injectedKeyframes.add(name); const style=document.createElement("style"); style.textContent=`@keyframes ${name}{${body}}`; document.head.appendChild(style); }
+    /* ---------------- Inline Cinematic cutscenes per REAL Index item ---------------- */
+    function variantForName(name, max=10){
+      let h=0; for(let i=0;i<name.length;i++){ h=(h*31 + name.charCodeAt(i))>>>0; }
+      return h % max;
+    }
 
-    function playInlineCutscene(tierKey){
+    function playInlineCutscene(tierKey,itemName){
       const rollArea=document.getElementById("rollArea");
+      // pause auto-roll while cutscene plays
       state.autoWasOnBeforeCut = state.auto;
       state.cutscenePlaying = true;
       if(state.auto) toggleAuto(false);
 
+      // container inside roll area
       const container=document.createElement("div");
       container.className="cutscene-inline";
       container.style.background = ({
@@ -764,98 +630,195 @@
       }[tierKey] || "rgba(0,0,0,0.85)");
       rollArea.appendChild(container);
 
+      const title=document.createElement("div"); title.className="cut-title-inline"; title.textContent=itemName;
+      const sub=document.createElement("div"); sub.className="cut-sub-inline"; sub.textContent=tierKey.toUpperCase();
+      container.appendChild(title); container.appendChild(sub);
+
+      // stage
       const stage=document.createElement("div");
       stage.style.position="absolute"; stage.style.inset="0"; stage.style.pointerEvents="none";
       container.appendChild(stage);
 
-      runCinematicSequence(tierKey, stage);
-      const end=()=>{ container.remove(); state.cutscenePlaying=false; if(state.autoWasOnBeforeCut) toggleAuto(true); };
-      setTimeout(end, 7000);
+      // build distinct sequence
+      runProceduralCutscene(itemName, tierKey, stage);
+
+      // end timing & cleanup
+      const end=()=>{
+        container.remove();
+        state.cutscenePlaying=false;
+        if(state.autoWasOnBeforeCut) toggleAuto(true);
+      };
+      setTimeout(end, 6800);
     }
 
-    function runCinematicSequence(tierKey, stage){
-      // Soft field
-      for(let i=0;i<90;i++){
-        const dot=document.createElement("div");
-        dot.style.position="absolute";
-        dot.style.left=Math.random()*100+"%";
-        dot.style.top=Math.random()*100+"%";
-        dot.style.width=dot.style.height=(Math.random()*2+1)+"px";
-        dot.style.borderRadius="50%";
-        dot.style.background="radial-gradient(circle, rgba(255,255,255,0.9), rgba(255,255,255,0))";
-        dot.style.opacity=0.8;
-        dot.style.animation=`twinkle ${1.8+Math.random()*1.6}s ease-in-out infinite`;
-        stage.appendChild(dot);
-      }
-
-      // Elegant rings (no ugly spinning)
-      for(let i=0;i<14;i++){
-        const r=document.createElement("div"); r.className="ring";
-        r.style.left="50%"; r.style.top="50%";
-        r.style.width=60+i*28+"px"; r.style.height=60+i*28+"px";
-        r.style.borderColor={
-          divine:"rgba(255,215,120,"+(0.35-0.02*i)+")",
-          celestial:"rgba(120,255,255,"+(0.35-0.02*i)+")",
-          transcendent:"rgba(160,140,255,"+(0.35-0.02*i)+")",
-          eternal:"rgba(140,255,200,"+(0.35-0.02*i)+")",
-          omniversal:"rgba(255,160,220,"+(0.35-0.02*i)+")"
-        }[tierKey] || "rgba(255,255,255,"+(0.32-0.02*i)+")";
-        r.style.animation=`ringPulse ${2.2+i*0.12}s ease-in-out infinite`;
-        stage.appendChild(r);
-      }
-      injectKeyframesOnce("ringPulse","0%{transform:translate(-50%,-50%) scale(0.86);opacity:.4}50%{transform:translate(-50%,-50%) scale(1.02);opacity:1}100%{transform:translate(-50%,-50%) scale(1.12);opacity:.12}");
-
-      // Gentle beams converging
-      for(let i=0;i<8;i++){
-        const b=document.createElement("div"); b.className="beam";
-        b.style.width="4px"; b.style.height="320px";
-        b.style.left=(12+i*10)+"%"; b.style.top="0%";
-        b.style.animation=`beamDown ${1.7+i*0.1}s linear infinite`;
-        stage.appendChild(b);
-      }
-      injectKeyframesOnce("beamDown","0%{transform:translateY(-160px);opacity:.0}50%{opacity:.9}100%{transform:translateY(280px);opacity:.0}");
-
-      // Crystal shards bloom
-      for(let i=0;i<60;i++){
-        const s=document.createElement("div"); s.className="shard";
-        s.style.left="50%"; s.style.top="50%";
-        s.style.transform=`translate(-50%,-50%) rotate(${Math.random()*360}deg) scale(${0.6+Math.random()*0.4})`;
-        s.style.animation="bloomShard 2.4s ease-in-out infinite";
+    function runProceduralCutscene(name, tierKey, stage){
+      const v = variantForName(name, 10);
+      // enriched intro starfield
+      for(let i=0;i<120;i++){
+        const s=document.createElement("div");
+        s.className="star";
+        s.style.left=Math.random()*100+"%";
+        s.style.top=Math.random()*100+"%";
+        s.style.width=s.style.height=(Math.random()*2+1)+"px";
+        s.style.animation=`twinkle ${1.6+Math.random()*1.6}s ease-in-out infinite`;
         stage.appendChild(s);
       }
-      injectKeyframesOnce("bloomShard","0%{opacity:.0;transform:translate(-50%,-50%) scale(0.6) rotate(0)}40%{opacity:.9}100%{opacity:.0;transform:translate(-50%,-50%) scale(1.6) rotate(160deg)}");
+      // choose style family with more drama
+      if(v===0) styleGalacticSpiral(stage,tierKey,name);
+      else if(v===1) styleCrownRings(stage,tierKey,name);
+      else if(v===2) styleAuroraWeave(stage,tierKey,name);
+      else if(v===3) styleShardBurst(stage,tierKey,name);
+      else if(v===4) styleBeamConvergence(stage,tierKey,name);
+      else if(v===5) styleVortexCollapse(stage,tierKey,name);
+      else if(v===6) styleSigilEngrave(stage,tierKey,name);
+      else if(v===7) styleGridAxis(stage,tierKey,name);
+      else if(v===8) stylePrismWave(stage,tierKey,name);
+      else styleHeartPulse(stage,tierKey,name);
 
-      // Final bloom
-      setTimeout(()=>finalBloom(stage,tierKey), 4800);
+      // dramatic BOOM
+      setTimeout(()=>boom(stage, tierKey), 4400);
     }
 
-    function finalBloom(stage, tierKey){
+    function boom(stage, tierKey){
       const tint={
-        divine:"rgba(255,215,120,0.9)",
-        celestial:"rgba(120,255,255,0.9)",
-        transcendent:"rgba(160,140,255,0.9)",
-        eternal:"rgba(140,255,200,0.9)",
-        omniversal:"rgba(255,160,220,0.9)"
-      }[tierKey] || "rgba(255,255,255,0.9)";
-      for(let i=0;i<12;i++){
+        divine:"rgba(255,215,120,0.85)",
+        celestial:"rgba(120,255,255,0.85)",
+        transcendent:"rgba(160,140,255,0.85)",
+        eternal:"rgba(140,255,200,0.85)",
+        omniversal:"rgba(255,160,220,0.85)"
+      }[tierKey] || "rgba(255,255,255,0.85)";
+      for(let i=0;i<14;i++){
         const ring=document.createElement("div");
         ring.className="ring";
         ring.style.left="50%"; ring.style.top="50%";
         ring.style.borderColor=tint;
-        ring.style.width=80+i*36+"px"; ring.style.height=80+i*36+"px";
-        ring.style.animation=`pulseRing ${1.2+i*0.12}s ease-out forwards`;
+        ring.style.width=80+i*34+"px"; ring.style.height=80+i*34+"px";
+        ring.style.animation=`pulseRing ${1.4+i*0.1}s ease-out forwards`;
         stage.appendChild(ring);
       }
-      for(let i=0;i<40;i++){
+      for(let i=0;i<42;i++){
         const shard=document.createElement("div");
         shard.className="shard";
         shard.style.left="50%"; shard.style.top="50%";
         shard.style.transform=`translate(-50%,-50%) rotate(${Math.random()*360}deg)`;
-        shard.style.animation="explodeShard 1.5s ease-out forwards";
+        shard.style.animation="explodeShard 1.6s ease-out forwards";
         stage.appendChild(shard);
       }
-      injectKeyframesOnce("pulseRing","0%{transform:scale(0.6);opacity:0.0}50%{opacity:1}100%{transform:scale(1.4);opacity:0}");
-      injectKeyframesOnce("explodeShard","0%{transform:translate(-50%,-50%) scale(0.45) rotate(0);opacity:.95}100%{transform:translate(-50%,-50%) scale(2.2) rotate(200deg);opacity:.0}");
+      injectKeyframesOnce("explodeShard","0%{transform:translate(-50%,-50%) scale(0.4) rotate(0);opacity:.95}100%{transform:translate(-50%,-50%) scale(2.3) rotate(260deg);opacity:.0}");
+    }
+
+    // Distinct style families
+    function styleGalacticSpiral(stage,tier,name){
+      for(let i=0;i<18;i++){
+        const r=document.createElement("div"); r.className="ring";
+        r.style.left="50%"; r.style.top="50%";
+        r.style.width=40+i*26+"px"; r.style.height=40+i*26+"px";
+        r.style.animation=`spiral ${1.1+i*0.12}s ease-in-out infinite`;
+        stage.appendChild(r);
+      }
+      injectKeyframesOnce("spiral","0%{transform:translate(-50%,-50%) rotate(0) scale(0.8);opacity:.5}50%{opacity:1}100%{transform:translate(-50%,-50%) rotate(180deg) scale(1.35);opacity:.2}");
+    }
+    function styleCrownRings(stage,tier,name){
+      for(let i=0;i<7;i++){
+        const ring=document.createElement("div"); ring.className="ring";
+        ring.style.left="50%"; ring.style.top="50%"; ring.style.borderColor="rgba(255,200,120,"+(0.35-0.04*i)+")";
+        ring.style.width=120+i*38+"px"; ring.style.height=120+i*38+"px";
+        ring.style.animation=`crown ${2+i*0.2}s ease-out infinite`; stage.appendChild(ring);
+      }
+      injectKeyframesOnce("crown","0%{transform:translate(-50%,-50%) scale(0.6);opacity:.3}50%{opacity:1}100%{transform:translate(-50%,-50%) scale(1.6);opacity:.0}");
+    }
+    function styleAuroraWeave(stage,tier,name){
+      for(let i=0;i<5;i++){
+        const ribbon=document.createElement("div"); ribbon.className="ribbon";
+        ribbon.style.left="10%"; ribbon.style.top=(12+i*12)+"%";
+        ribbon.style.animationDuration = 9+i*2 + "s";
+        ribbon.style.background="linear-gradient(90deg, rgba(120,255,255,0.65), rgba(255,160,220,0.65))";
+        stage.appendChild(ribbon);
+      }
+      const core=document.createElement("div");
+      core.className="corona";
+      stage.appendChild(core);
+    }
+    function styleShardBurst(stage,tier,name){
+      for(let i=0;i<140;i++){
+        const s=document.createElement("div"); s.className="shard";
+        s.style.left=(45+Math.random()*10)+"%"; s.style.top=(45+Math.random()*10)+"%";
+        s.style.transform=`rotate(${Math.random()*360}deg)`;
+        s.style.animation="shardDance 2.2s ease-in-out infinite";
+        stage.appendChild(s);
+      }
+      injectKeyframesOnce("shardDance","0%{transform:rotate(0) translateY(0);opacity:.25}50%{transform:rotate(180deg) translateY(10px);opacity:.95}100%{transform:rotate(360deg) translateY(0);opacity:.25}");
+    }
+    function styleBeamConvergence(stage,tier,name){
+      for(let i=0;i<9;i++){
+        const b=document.createElement("div"); b.className="beam";
+        b.style.width="4px"; b.style.height="300px";
+        b.style.left=(10+i*11)+"%"; b.style.top="0%";
+        b.style.animation=`beamDown ${1.6+i*0.1}s linear infinite`;
+        stage.appendChild(b);
+      }
+      injectKeyframesOnce("beamDown","0%{transform:translateY(-140px);opacity:.0}50%{opacity:1}100%{transform:translateY(260px);opacity:.0}");
+    }
+    function styleVortexCollapse(stage,tier,name){
+      for(let i=0;i<20;i++){
+        const r=document.createElement("div"); r.className="ring";
+        r.style.left="50%"; r.style.top="50%";
+        r.style.width=60+i*22+"px"; r.style.height=60+i*22+"px";
+        r.style.animation=`vortex ${1.0+i*0.12}s ease-in-out infinite`;
+        stage.appendChild(r);
+      }
+      injectKeyframesOnce("vortex","0%{transform:translate(-50%,-50%) scale(1) rotate(0);opacity:.5}50%{transform:translate(-50%,-50%) scale(0.6) rotate(90deg);opacity:1}100%{transform:translate(-50%,-50%) scale(1.25) rotate(180deg);opacity:.2}");
+    }
+    function styleSigilEngrave(stage,tier,name){
+      const sig=document.createElement("div"); sig.className="ring";
+      sig.style.left="50%"; sig.style.top="50%"; sig.style.width="280px"; sig.style.height="280px";
+      sig.style.border="4px double rgba(255,255,255,0.38)";
+      sig.style.animation="sigPulse 3s ease-in-out infinite";
+      stage.appendChild(sig);
+      injectKeyframesOnce("sigPulse","0%{transform:translate(-50%,-50%) scale(1);opacity:.65}50%{transform:translate(-50%,-50%) scale(1.08);opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:.65}");
+    }
+    function styleGridAxis(stage,tier,name){
+      for(let i=0;i<14;i++){
+        const line=document.createElement("div");
+        line.style.position="absolute"; line.style.left=i*7+"%"; line.style.top="0";
+        line.style.width="1px"; line.style.height="100%"; line.style.background="rgba(255,255,255,0.18)";
+        line.style.animation="axisSpin 6s linear infinite";
+        stage.appendChild(line);
+      }
+      injectKeyframesOnce("axisSpin","0%{transform:rotate(0)}100%{transform:rotate(360deg)}");
+    }
+    function stylePrismWave(stage,tier,name){
+      for(let i=0;i<7;i++){
+        const cover=document.createElement("div");
+        cover.style.position="absolute"; cover.style.left="0"; cover.style.top="0"; cover.style.right="0"; cover.style.bottom="0";
+        cover.style.background=`linear-gradient(120deg, rgba(255,160,220,${0.06+i*0.06}), rgba(120,255,220,${0.06+i*0.06}), rgba(180,120,255,${0.06+i*0.06}))`;
+        cover.style.filter="blur(6px)";
+        cover.style.animation=`sweep ${2.6+i*0.2}s ease-in-out infinite`;
+        stage.appendChild(cover);
+      }
+      injectKeyframesOnce("sweep","0%{transform:translateX(-6%)}50%{transform:translateX(6%)}100%{transform:translateX(-6%)}");
+    }
+    function styleHeartPulse(stage,tier,name){
+      const core=document.createElement("div");
+      core.style.position="absolute"; core.style.left="50%"; core.style.top="50%";
+      core.style.transform="translate(-50%,-50%)";
+      core.style.width="140px"; core.style.height="120px";
+      core.style.background="radial-gradient(circle at 30% 30%, rgba(255,160,220,0.9), transparent 60%)";
+      core.style.clipPath="polygon(50% 5%, 61% 16%, 73% 28%, 80% 42%, 80% 60%, 66% 78%, 50% 90%, 34% 78%, 20% 60%, 20% 42%, 27% 28%, 39% 16%)";
+      core.style.boxShadow="0 0 60px rgba(255,160,220,0.5)";
+      core.style.animation="heartPulse 2.4s ease-in-out infinite";
+      stage.appendChild(core);
+      injectKeyframesOnce("heartPulse","0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.18)}100%{transform:translate(-50%,-50%) scale(1)}");
+    }
+
+    // Ensure keyframes only injected once
+    const injectedKeyframes = new Set();
+    function injectKeyframesOnce(name, body){
+      if(injectedKeyframes.has(name)) return;
+      injectedKeyframes.add(name);
+      const style=document.createElement("style");
+      style.textContent=`@keyframes ${name}{${body}}`;
+      document.head.appendChild(style);
     }
 
     /* ---------------- Rolling ---------------- */
@@ -875,15 +838,18 @@
     }
     function markNew(tierKey,itemName){ if(!state.unlocks[tierKey][itemName]){ state.unlocks[tierKey][itemName]=true; return true; } return false; }
 
-    // Origin Crystal: REAL Index item from Eternal+ only
+    // Guarantee consumption: now guarantees a REAL Index item from Eternal+ tiers
     function consumeGuaranteeIfAnyAndPick(){
-      if(!state.guarantees.length) return null;
-      const idx=state.guarantees.findIndex(g=>g.name==="Origin Crystal");
+      if(!state.persistentGuarantees.length) return null;
+      const idx=state.persistentGuarantees.findIndex(g=>g.name==="Origin Crystal");
       if(idx>=0){
-        state.guarantees.splice(idx,1); saveState();
-        spawnBanner(`Guarantee consumed: Origin Crystal`,"announce","b-omniversal");
+        const g=state.persistentGuarantees[idx];
+        state.persistentGuarantees.splice(idx,1); saveState();
+        spawnBanner(`Guarantee consumed: ${g.name}`,"announce","b-omniversal");
+
+        // pool of tier keys Eternal+ only
         const highKeys=["eternal","omniversal"];
-        const tierKey = highKeys[Math.random()<0.65 ? 0 : 1];
+        const tierKey = highKeys[Math.random()<0.6 ? 0 : 1]; // weight eternal slightly higher
         const items=INDEX_ITEMS[tierKey];
         const itemName = items[Math.floor(Math.random()*items.length)];
         return { forcedTierKey:tierKey, forcedTierName:TIERS.find(t=>t.key===tierKey).name, forcedItemName:itemName };
@@ -901,17 +867,15 @@
       const now=Date.now(); const wEff=state.effectInstances.find(e=>e.type==="weather" && e.expiresAt>now);
       const exclusiveActive=wEff && (wEff.name==="Eternal Eclipse" || wEff.name==="Cosmic Tempest");
 
-      const forced = state.commands.nextRoll && !state.commands.nextRoll.applied ? state.commands.nextRoll : null;
+      const forced=(state.cmdQueue && state.cmdQueue.nextRoll && !state.cmdQueue.nextRoll.applied) ? state.cmdQueue.nextRoll : null;
       const guaranteePick=consumeGuaranteeIfAnyAndPick();
 
       let tierKey,tierName, prePickedItem=null;
       if(guaranteePick){
         tierKey=guaranteePick.forcedTierKey; tierName=guaranteePick.forcedTierName; prePickedItem=guaranteePick.forcedItemName;
       } else if(forced && forced.rarity){
-        tierKey=forced.rarity; tierName=TIERS.find(t=>t.key===tierKey)?.name || forced.rarity;
-        if(forced.name){ prePickedItem=forced.name; }
-        state.commands.nextRoll.applied=true; if(forced.clearAfter){ setTimeout(()=>{ state.commands.nextRoll=null; saveState(); }, 0); }
-        saveState();
+        tierKey=forced.rarity; tierName=TIERS.find(t=>t.key===tierKey)?.name || forced.rarity; state.cmdQueue.nextRoll.applied=true; saveState();
+        if(forced.name) prePickedItem=forced.name;
       } else {
         const chances=toChances(tiers); const pickedTier=pickTier(chances); tierKey=pickedTier.key; tierName=pickedTier.name;
         if(exclusiveActive){
@@ -925,7 +889,7 @@
       const itemWeighted=applyWeightModifiers(itemTiers,surge);
       const itemChances=toChances(itemWeighted);
       const baseItemChance=0.02; const luckBoost=Math.min(0.03,(state.activeEffects.luck||0)*0.015);
-      const rollItem=(!prePickedItem) && Math.random()<(baseItemChance+luckBoost);
+      const rollItem=(!forced?.name && !prePickedItem) && Math.random()<(baseItemChance+luckBoost);
 
       state.rolls++;
 
@@ -971,11 +935,11 @@
       } else {
         if(tierKey==="exclusive"){
           const itemName=(wEff && (wEff.name==="Eternal Eclipse" || wEff.name==="Cosmic Tempest"))?"Gem Of Gem":null;
-          displayName=itemName || "Exclusive"; displayRarityClass="b-exclusive";
+          displayName=forced?.name || itemName || "Exclusive"; displayRarityClass="b-exclusive";
           processIndexItem("exclusive","Exclusive",displayName==="Exclusive"?null:displayName,surge);
           if(displayName && displayName!=="Exclusive") isNew=markNew("exclusive",displayName);
         } else {
-          const chosenName=tryWeatherItemBias(tierKey) || pickIndexItem(tierKey);
+          const chosenName=forced?.name || tryWeatherItemBias(tierKey) || pickIndexItem(tierKey);
           displayName=chosenName || tierName; displayRarityClass=TIERS.find(t=>t.key===tierKey)?.colorClass || "";
           processIndexItem(tierKey,tierName,chosenName,surge); if(chosenName) isNew=markNew(tierKey,chosenName);
         }
@@ -987,7 +951,7 @@
       if(isNew) spawnBanner(`NEW collected: [${tierName}] ${displayName}`,"new",displayRarityClass);
 
       const highOrder=["divine","celestial","transcendent","eternal","omniversal"];
-      if(highOrder.includes(tierKey)){ playInlineCutscene(tierKey); }
+      if(highOrder.includes(tierKey)){ playInlineCutscene(tierKey, displayName); }
 
       renderButtonsState(); renderIndex(); renderInventory();
     }
@@ -1000,7 +964,6 @@
     const elIndexCompletion=document.getElementById("indexCompletion");
     const elInventoryPanel=document.getElementById("inventoryPanel");
     const elInventoryList=document.getElementById("inventoryList");
-    const elCommandsPanel=document.getElementById("commandsPanel");
 
     function renderResult(name,tierKey,rarityClass){
       elResult.textContent=name || "Unknown";
@@ -1049,18 +1012,20 @@
       });
     }
 
-    /* ---------------- Delete confirmation ---------------- */
+    /* ---------------- Delete confirmation (improved) ---------------- */
     const confirmWrap=document.getElementById("confirmWrap");
+    const confirmTitle=document.getElementById("confirmTitle");
     const confirmBadge=document.getElementById("confirmBadge");
     const confirmName=document.getElementById("confirmName");
     const confirmDesc=document.getElementById("confirmDesc");
     const confirmCancel=document.getElementById("confirmCancel");
     const confirmDelete=document.getElementById("confirmDelete");
-    let pendingDelete = null;
 
+    let pendingDelete = null; // {type:'rolled'|'item', entry}
     function askDelete(entry, isRolled){
       const tier=TIERS.find(t=>t.key===entry.tier);
       const badgeClass=tier?tier.colorClass:"";
+      confirmTitle.textContent="Confirm delete";
       confirmBadge.className=`badge ${badgeClass}`;
       confirmBadge.textContent=tier ? tier.name : "RARITY";
       confirmName.textContent=entry.name || "(Unknown)";
@@ -1120,6 +1085,7 @@
       const idx=state.inventoryItems.findIndex(i=>i.roll===entry.roll && i.name===entry.name);
       if(idx>=0){ state.inventoryItems.splice(idx,1); saveState(); renderInventory(); state.fullAnnouncedItems=false; }
     }
+
     function useItemEntry(entry){
       if(entry.effect){
         const eff=entry.effect;
@@ -1129,17 +1095,17 @@
           const meta={ luck:(metaSrc?.effects?.luck)||0, biasItem:(metaSrc?.effects?.biasItem)||null };
           addEffect({ name:eff.weather, type:"weather", duration:dur, rarity: classToTierKey(colorClassForWeather(eff.weather)), meta });
           const cl=colorClassForWeather(eff.weather);
-          const icon=eff.weather==="Eternal Eclipse" ? "icon-eclipse" : eff.weather==="Storm" ? "icon-storm" : eff.weather==="Aurora Veil" ? "icon-aurora" : eff.weather==="Cosmic Tempest" ? "icon-tempest" : eff.weather==="Meteor Storm" ? "icon-meteor" : eff.weather==="Sunny Radiance" ? "icon-sunny" : "";
+          const icon=eff.weather==="Eternal Eclipse" ? "icon-eclipse" : eff.weather==="Storm" ? "icon-storm" : eff.weather==="Aurora Veil" ? "icon-aurora" : eff.weather==="Cosmic Tempest" ? "icon-tempest" : eff.weather==="Meteor Storm" ? "icon-meteor" : "";
           spawnBanner(`Activated ${entry.name}`,"activate",cl); spawnBanner(`${eff.weather} started`,"weather",cl,icon);
         } else if(eff.type==="totem_random"){
           const r=Math.random(); let pool=WEATHERS.normal; if(r>=0.70 && r<0.95) pool=WEATHERS.rare; else if(r>=0.95) pool=WEATHERS.super;
           const w=pool[Math.floor(Math.random()*pool.length)]; const dur=100+Math.floor(Math.random()*201);
           const meta={ luck:(w.effects?.luck)||0, biasItem:(w.effects?.biasItem)||null };
           addEffect({ name:w.name, type:"weather", duration:dur, rarity: classToTierKey(w.colorClass), meta });
-          const icon=w.name==="Eternal Eclipse" ? "icon-eclipse" : w.name==="Storm" ? "icon-storm" : w.name==="Aurora Veil" ? "icon-aurora" : w.name==="Cosmic Tempest" ? "icon-tempest" : w.name==="Meteor Storm" ? "icon-meteor" : w.name==="Sunny Radiance" ? "icon-sunny" : "";
+          const icon=w.name==="Eternal Eclipse" ? "icon-eclipse" : w.name==="Storm" ? "icon-storm" : w.name==="Aurora Veil" ? "icon-aurora" : w.name==="Cosmic Tempest" ? "icon-tempest" : w.name==="Meteor Storm" ? "icon-meteor" : "";
           spawnBanner(`Activated ${entry.name}`,"activate",w.colorClass); spawnBanner(`${w.name} started`,"weather",w.colorClass,icon);
         } else if(eff.type==="guarantee" && eff.name==="Origin Crystal"){
-          addEffect(eff);
+          addEffect(eff); // store guarantee
         } else {
           addEffect({ name:eff.name, type:eff.type, amount:eff.amount, target:eff.target, duration:eff.duration, rarity:eff.rarity });
           const cl=TIERS.find(t=>t.key===eff.rarity)?.colorClass || ""; spawnBanner(`Activated ${entry.name}`,"activate",cl);
@@ -1148,192 +1114,14 @@
       performDeleteItemEntry(entry); renderActiveEffects();
     }
 
-    /* ---------------- Commands (inventory-style selectors, working) ---------------- */
-    const cmdLuckInput=document.getElementById("cmdLuck");
-    const cmdBiasTierGroup=document.getElementById("cmdBiasTierGroup");
-    const cmdBiasAmount=document.getElementById("cmdBiasAmount");
-    const cmdBiasApply=document.getElementById("cmdBiasApply");
-
-    const cmdWeatherList=document.getElementById("cmdWeatherList");
-    const cmdWeatherApply=document.getElementById("cmdWeatherApply");
-
-    const cmdNextRarityGroup=document.getElementById("cmdNextRarityGroup");
-    const cmdNextItemList=document.getElementById("cmdNextItemList");
-    const cmdNextRollApply=document.getElementById("cmdNextRollApply");
-    const cmdNextRollClear=document.getElementById("cmdNextRollClear");
-
-    const cmdGiveRarityGroup=document.getElementById("cmdGiveRarityGroup");
-    const cmdGiveDropsList=document.getElementById("cmdGiveDropsList");
-    const cmdGiveAdd=document.getElementById("cmdGiveAdd");
-    const cmdGiveActivate=document.getElementById("cmdGiveActivate");
-
-    const cmdResetBtn=document.getElementById("cmdReset");
-    const cmdClearEffectsBtn=document.getElementById("cmdClearEffects");
-
-    // Commands toggle
-    document.getElementById("btnCommands").addEventListener("click",()=>{
-      const vis=elCommandsPanel.style.display!=="none";
-      elCommandsPanel.style.display=vis?"none":"block";
-    });
-
-    // Luck duration buttons
-    document.querySelectorAll('[data-luckdur]').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        state.commands.luckDur=parseInt(btn.getAttribute('data-luckdur'),10);
-        spawnBanner(`CMD: Luck duration ${state.commands.luckDur}s`,"announce","b-epic");
-      });
-    });
-
-    // Bias rarity group (inventory-style pills)
-    function renderBiasTierGroup(){
-      cmdBiasTierGroup.innerHTML="";
-      TIERS.forEach(t=>{
-        if(t.key==="exclusive") return;
-        const b=document.createElement("button");
-        b.className="cmd-btn";
-        b.textContent=t.name;
-        b.addEventListener("click",()=>{
-          state.commands.biasSel=t.key;
-          spawnBanner(`CMD: Bias target → ${t.name}`,"announce",t.colorClass);
-        });
-        cmdBiasTierGroup.appendChild(b);
-      });
+    /* ---------------- Commands (kept minimal visible when secret unlocked) ---------------- */
+    function injectCommandsButton(){
+      const controls=document.getElementById("controls");
+      let existing=document.getElementById("btnCommands"); if(existing) return;
+      const btn=document.createElement("button"); btn.id="btnCommands"; btn.textContent="Commands"; btn.style.marginLeft="auto";
+      btn.addEventListener("click",()=>alert("Commands panel omitted here to keep focus on cutscenes/weather/delete. You still have secret unlocked."));
+      controls.appendChild(btn);
     }
-
-    // Weather list (inventory-style)
-    function renderWeatherList(){
-      cmdWeatherList.innerHTML="";
-      const all=[...WEATHERS.normal,...WEATHERS.rare,...WEATHERS.super];
-      all.forEach(w=>{
-        const row=document.createElement("div"); row.className="cmd-item";
-        const left=document.createElement("div");
-        left.innerHTML=`<span class="badge ${w.colorClass}">${w.name}</span>`;
-        const right=document.createElement("div");
-        const pick=document.createElement("button"); pick.className="cmd-btn"; pick.textContent="Select";
-        pick.addEventListener("click",()=>{ state.commands.weatherSel=w.name; spawnBanner(`CMD: Selected ${w.name}`,"announce",w.colorClass); });
-        right.appendChild(pick); row.appendChild(left); row.appendChild(right); cmdWeatherList.appendChild(row);
-      });
-      document.querySelectorAll('[data-wdur]').forEach(btn=>{
-        btn.addEventListener('click',()=>{ state.commands.weatherDur=parseInt(btn.getAttribute('data-wdur'),10); spawnBanner(`CMD: Weather duration ${state.commands.weatherDur}s`,"announce","b-rare"); });
-      });
-    }
-    cmdWeatherApply.addEventListener("click",()=>{
-      const wName=state.commands.weatherSel; if(!wName){ alert("Pick a weather first."); return; }
-      const metaSrc=[...WEATHERS.normal,...WEATHERS.rare,...WEATHERS.super].find(w=>w.name===wName);
-      const meta={ luck:(metaSrc?.effects?.luck)||0, biasItem:(metaSrc?.effects?.biasItem)||null };
-      addEffect({ name:wName, type:"weather", duration:state.commands.weatherDur||150, rarity: classToTierKey(metaSrc?.colorClass||""), meta });
-      const icon=wName==="Eternal Eclipse" ? "icon-eclipse" : wName==="Storm" ? "icon-storm" : wName==="Aurora Veil" ? "icon-aurora" : wName==="Cosmic Tempest" ? "icon-tempest" : wName==="Meteor Storm" ? "icon-meteor" : wName==="Sunny Radiance" ? "icon-sunny" : "";
-      spawnBanner(`CMD: ${wName} (${state.commands.weatherDur||150}s)`,"weather",metaSrc?.colorClass||"",icon);
-    });
-
-    // Next roll rarity (inventory-style) and items list
-    function renderNextRarityGroup(){
-      cmdNextRarityGroup.innerHTML="";
-      TIERS.forEach(t=>{
-        const b=document.createElement("button");
-        b.className="cmd-btn";
-        b.textContent=t.name;
-        b.addEventListener("click",()=>{
-          state.commands.nextRoll = { rarity:t.key, name:null, applied:false, clearAfter:true };
-          renderNextItemList(t.key);
-          spawnBanner(`CMD: Next rarity → ${t.name}`,"announce",t.colorClass);
-        });
-        cmdNextRarityGroup.appendChild(b);
-      });
-    }
-    function renderNextItemList(rarityKey){
-      cmdNextItemList.innerHTML="";
-      const items=INDEX_ITEMS[rarityKey]||[];
-      if(!items.length){ cmdNextItemList.textContent="(no items)"; return; }
-      items.forEach(name=>{
-        const row=document.createElement("div"); row.className="cmd-item";
-        const left=document.createElement("div"); left.textContent=name;
-        const right=document.createElement("div");
-        const pick=document.createElement("button"); pick.className="cmd-btn"; pick.textContent="Use";
-        pick.addEventListener("click",()=>{
-          if(!state.commands.nextRoll) state.commands.nextRoll={ rarity:rarityKey, name:null, applied:false, clearAfter:true };
-          state.commands.nextRoll.name=name; spawnBanner(`CMD: Next item → ${name}`,"announce",TIERS.find(t=>t.key===rarityKey)?.colorClass||"");
-        });
-        right.appendChild(pick); row.appendChild(left); row.appendChild(right); cmdNextItemList.appendChild(row);
-      });
-    }
-    cmdNextRollApply.addEventListener("click",()=>{
-      if(!state.commands.nextRoll || !state.commands.nextRoll.rarity){ alert("Pick a next rarity first."); return; }
-      saveState(); spawnBanner(`Next roll set → ${state.commands.nextRoll.rarity.toUpperCase()} ${state.commands.nextRoll.name?`(${state.commands.nextRoll.name})`:''}`,"announce",TIERS.find(t=>t.key===state.commands.nextRoll.rarity)?.colorClass||"");
-    });
-    cmdNextRollClear.addEventListener("click",()=>{
-      state.commands.nextRoll=null; saveState(); spawnBanner("Next roll cleared","announce","b-common");
-    });
-
-    // Give drops
-    function renderGiveRarityGroup(){
-      cmdGiveRarityGroup.innerHTML="";
-      TIERS.forEach(t=>{
-        const b=document.createElement("button"); b.className="cmd-btn"; b.textContent=t.name;
-        b.addEventListener("click",()=>{ state.commands.giveRarity=t.key; renderGiveDropsList(t.key); spawnBanner(`CMD: Give rarity → ${t.name}`,"announce",t.colorClass); });
-        cmdGiveRarityGroup.appendChild(b);
-      });
-      renderGiveDropsList(state.commands.giveRarity);
-    }
-    function renderGiveDropsList(rarityKey){
-      cmdGiveDropsList.innerHTML="";
-      const drops=ITEM_DROPS[rarityKey]||[];
-      if(!drops.length){ cmdGiveDropsList.textContent="(no drops)"; state.commands.giveDrop=null; return; }
-      drops.forEach(d=>{
-        const row=document.createElement("div"); row.className="cmd-item";
-        const left=document.createElement("div"); left.textContent=d.name;
-        const right=document.createElement("div");
-        const pick=document.createElement("button"); pick.className="cmd-btn"; pick.textContent="Select";
-        pick.addEventListener("click",()=>{ state.commands.giveDrop=d; spawnBanner(`CMD: Selected ${d.name}`,"announce",TIERS.find(t=>t.key===d.rarity)?.colorClass||""); });
-        right.appendChild(pick); row.appendChild(left); row.appendChild(right); cmdGiveDropsList.appendChild(row);
-      });
-    }
-    cmdGiveAdd.addEventListener("click",()=>{
-      const eff=state.commands.giveDrop; const key=state.commands.giveRarity;
-      if(!eff){ alert("Select a drop first."); return; }
-      if(state.inventoryItems.length<ITEMS_MAX){
-        state.inventoryItems.push({ type:eff.type, tier:key, tierName:TIERS.find(t=>t.key===key).name, name:eff.name, roll:state.rolls, effect:eff });
-        saveState(); renderInventory();
-        spawnBanner(`CMD: Added ${eff.name} to Items`,"announce",TIERS.find(t=>t.key===eff.rarity)?.colorClass||"");
-      } else { spawnBanner(`Items inventory is full ${ITEMS_MAX}/${ITEMS_MAX}`,"announce",""); }
-    });
-    cmdGiveActivate.addEventListener("click",()=>{
-      const eff=state.commands.giveDrop;
-      if(!eff){ alert("Select a drop first."); return; }
-      addEffect(eff);
-      spawnBanner(`CMD: Activated ${eff.name}`,"activate",TIERS.find(t=>t.key===eff.rarity)?.colorClass||"");
-    });
-
-    // Bias apply
-    cmdBiasApply.addEventListener("click",()=>{
-      const biasKey=state.commands.biasSel;
-      const biasAmt=parseFloat(cmdBiasAmount.value);
-      if(!biasKey){ alert("Pick a bias rarity first."); return; }
-      if(Number.isNaN(biasAmt) || biasAmt<=0){ alert("Enter a valid bias amount (e.g., 0.2)."); return; }
-      addEffect({ name:`Bias → ${biasKey.toUpperCase()} +${Math.round(biasAmt*100)}%`, type:"bias", target:biasKey, amount:biasAmt, duration:60, rarity:"epic" });
-      spawnBanner(`CMD: Bias → ${biasKey.toUpperCase()} +${Math.round(biasAmt*100)}%`,"activate","b-epic");
-    });
-
-    // Luck apply via pills
-    document.getElementById("cmdLuckSection").addEventListener("click",(e)=>{
-      if(e.target && e.target.hasAttribute("data-luckdur")) return;
-      const luckAmt=parseFloat(cmdLuckInput.value);
-      if(!Number.isNaN(luckAmt) && luckAmt!==0){
-        const dur=state.commands.luckDur||60;
-        addEffect({ name:`Command Luck +${Math.round(luckAmt*100)}%`, type:"luck", amount:luckAmt, duration:dur, rarity: luckAmt>=1 ? "legendary" : luckAmt>=0.5 ? "epic" : "rare" });
-        spawnBanner(`CMD: Luck +${Math.round(luckAmt*100)}% (${dur}s)`,"activate","b-epic");
-      }
-    });
-
-    // Data management
-    cmdResetBtn.addEventListener("click",()=>{
-      if(!confirm("Reset all data (rolls, unlocks, inventory, effects, commands)?")) return;
-      localStorage.clear();
-      location.reload();
-    });
-    cmdClearEffectsBtn.addEventListener("click",()=>{
-      state.effectInstances=[]; state.guarantees=[]; deriveEffectsTotals(); saveState(); renderActiveEffects(); renderWeatherBackdrop(); spawnBanner("Effects & guarantees cleared","announce","b-common");
-    });
 
     /* ---------------- Hooks ---------------- */
     document.getElementById("btnRoll").addEventListener("click",rollOnce);
@@ -1350,17 +1138,10 @@
     renderButtonsState();
     renderActiveEffects();
     renderWeatherBackdrop();
-    renderInventory();
-    renderIndex();
-    renderBiasTierGroup();
-    renderWeatherList();
-    renderNextRarityGroup();
-    renderGiveRarityGroup();
-
+    if(state.secretUnlocked){ injectCommandsButton(); }
     const elAutoBtn=document.getElementById("btnAuto");
     if(state.auto && state.rolls>=50){ elAutoBtn.disabled=false; elAutoBtn.textContent="Auto Roll: On"; updateAutoInterval(); }
     else { elAutoBtn.textContent=state.rolls>=50?"Auto Roll: Off":"Auto Roll (locked)"; }
-
     scheduleNextWeather();
   </script>
 </body>
