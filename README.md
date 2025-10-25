@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sol’s RNG — Cinematic Per-Item Cutscenes (Real Index Rarities)</title>
+  <title>Sol’s RNG — Cinematics, Weather FX, Commands (Overhauled)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
       --bg:#0e0f13; --panel:#151822; --text:#e7e9ee; --muted:#9aa0ab; --accent:#6ea8fe;
-      --gold:#ffd700; --warn:#ff6666; --fx1:#7bb7ff; --fx2:#caa6ff; --fx3:#ffbf66;
+      --gold:#ffd700; --warn:#ff6666;
+      --fx1:#7bb7ff; --fx2:#caa6ff; --fx3:#ffbf66;
     }
-    body{margin:0;font-family:sans-serif;background:var(--bg);color:var(--text);display:grid;place-items:center;min-height:100vh;}
+    body{margin:0;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);display:grid;place-items:center;min-height:100vh;}
     .app{width:980px;max-width:96vw;background:var(--panel);border:1px solid #252b39;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden;position:relative;}
     .content{padding:20px;display:grid;gap:18px;}
     .panel{background:#121521;border:1px solid #242a38;border-radius:12px;padding:16px;}
@@ -48,49 +49,70 @@
       linear-gradient(180deg, rgba(255,232,170,0.10), rgba(0,0,0,0.0));
     }
     .wb-storm{background:linear-gradient(180deg, rgba(25,30,55,0.72), rgba(0,0,0,0.78));}
-    .wb-blizzard{background:linear-gradient(180deg, rgba(200,230,255,0.28), rgba(0,0,0,0.52));}
+    .wb-blizzard{background:linear-gradient(180deg, rgba(210,235,255,0.38), rgba(0,0,0,0.60));}
     .wb-meteor{background:radial-gradient(160% 160% at 20% -20%, rgba(255,120,80,0.22), transparent 60%), linear-gradient(180deg, rgba(120,50,30,0.28), rgba(0,0,0,0.6));}
     .wb-aurora{background:linear-gradient(120deg,rgba(120,200,255,0.20),rgba(180,120,255,0.20),rgba(120,255,200,0.20));background-size:600% 600%;animation:auroraShift 18s ease infinite;}
     @keyframes auroraShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
     .wb-eclipse{background:radial-gradient(circle at 50% 50%,rgba(0,0,0,0.93),rgba(0,0,0,0.78)),radial-gradient(circle at 50% 50%,rgba(255,200,120,0.08),transparent 70%);}
-    .wb-blackhole{background:
-      radial-gradient(closest-side, rgba(0,0,0,0.95) 40%, rgba(0,0,0,0.7) 60%, rgba(0,0,0,0.45) 80%),
-      radial-gradient(circle at 50% 50%, rgba(40,40,60,0.25), transparent 70%);
+    .wb-blackhole{
+      background:
+        radial-gradient(closest-side, rgba(0,0,0,0.98) 42%, rgba(0,0,0,0.85) 55%, rgba(0,0,0,0.65) 75%),
+        radial-gradient(circle at 50% 50%, rgba(60,40,90,0.25), transparent 70%);
     }
     .wb-tempest{background:radial-gradient(circle at 50% 50%,rgba(120,80,255,0.25),transparent 70%),radial-gradient(circle at 70% 30%,rgba(80,200,255,0.25),transparent 70%);}
     .wb-fog{background:radial-gradient(100% 100% at 50% 50%, rgba(185,195,210,0.16), rgba(0,0,0,0.57));}
-    .particles{position:absolute;inset:0;overflow:hidden;filter:blur(0.25px);pointer-events:none;}
+    .particles{position:absolute;inset:0;overflow:hidden;filter:blur(0.15px);pointer-events:none;}
 
-    /* Weather particles and effects */
-    .rain-drop{position:absolute;width:2px;height:18px;background:linear-gradient(to bottom,rgba(180,200,255,0.95),rgba(180,200,255,0.25));border-radius:1px;}
-    @keyframes rainFall{0%{transform:translateY(-60px)}100%{transform:translateY(440px)}}
-    .lightning{position:absolute;width:2px;height:220px;background:linear-gradient(to bottom,rgba(255,255,255,0.95),transparent);filter:blur(1px);opacity:0;}
-    .lightning.fork::after{content:"";position:absolute;left:-22px;top:80px;width:2px;height:120px;background:linear-gradient(to bottom,rgba(255,255,255,0.95),transparent);transform:rotate(-18deg);opacity:0.8;}
-    .snow-flake{position:absolute;width:6px;height:6px;background:white;border-radius:50%;opacity:0.9;box-shadow:0 0 6px rgba(255,255,255,0.5);}
-    @keyframes snowFall{0%{transform:translateY(-40px) translateX(0)}50%{transform:translateY(220px) translateX(18px)}100%{transform:translateY(460px) translateX(0)}}
+    /* Weather particles and effects (overhauled) */
+    /* Storm */
+    .rain-drop{position:absolute;width:2px;height:20px;background:linear-gradient(to bottom,rgba(180,200,255,0.95),rgba(180,200,255,0.25));border-radius:1px;}
+    @keyframes rainFall{0%{transform:translateY(-60px)}100%{transform:translateY(460px)}}
+    .bolt{position:absolute;width:3px;height:220px;background:linear-gradient(to bottom,rgba(255,255,255,0.96),transparent);filter:blur(0.6px);opacity:0;transform-origin:top left;}
+    .bolt.glow{box-shadow:0 0 24px rgba(255,255,255,0.5);}
+    .bolt:before{content:"";position:absolute;left:-22px;top:60px;width:2px;height:120px;background:linear-gradient(to bottom,rgba(255,255,255,0.95),transparent);transform:rotate(-18deg);opacity:0.9;}
+    .bolt:after{content:"";position:absolute;left:16px;top:120px;width:2px;height:90px;background:linear-gradient(to bottom,rgba(255,255,255,0.9),transparent);transform:rotate(24deg);opacity:0.8;}
+
+    /* Blizzard */
+    .snow-flake{position:absolute;width:6px;height:6px;background:white;border-radius:50%;opacity:0.9;box-shadow:0 0 6px rgba(255,255,255,0.55);}
+    @keyframes snowFall{0%{transform:translateY(-40px) translateX(0)}50%{transform:translateY(220px) translateX(18px)}100%{transform:translateY(480px) translateX(0)}}
+    .blizzard-gust{position:absolute;left:-50%;top:20%;width:220%;height:40%;background:linear-gradient(90deg,rgba(255,255,255,0.08),transparent);filter:blur(6px);opacity:0.0;}
+
+    /* Fog */
     .fog-mist{position:absolute;left:-40%;top:0;width:180%;height:120%;background:radial-gradient(circle,rgba(255,255,255,0.08),transparent 70%);filter:blur(8px);opacity:0.75;animation:fogDrift 24s linear infinite;}
     @keyframes fogDrift{0%{transform:translateX(0)}50%{transform:translateX(10%)}100%{transform:translateX(0)}}
-    .ribbon{position:absolute;width:60%;height:18px;left:20%;top:18%;border-radius:999px;filter:blur(2px);opacity:0.7;animation:ribbonWave 10s ease-in-out infinite;}
-    @keyframes ribbonWave{0%{transform:translateY(0) skewX(6deg)}50%{transform:translateY(40px) skewX(-6deg)}100%{transform:translateY(0) skewX(6deg)}}
-    .aurora-veil{position:absolute;left:0;right:0;top:0;bottom:0;mix-blend-mode:screen;opacity:0.65;animation:veilShift 20s ease-in-out infinite;}
-    @keyframes veilShift{0%{background:radial-gradient(120% 120% at 20% 30%, rgba(120,255,255,0.35), transparent 50%)}
-                         50%{background:radial-gradient(120% 120% at 70% 60%, rgba(255,160,220,0.35), transparent 50%)}
-                         100%{background:radial-gradient(120% 120% at 20% 30%, rgba(120,255,255,0.35), transparent 50%)}}
+
+    /* Aurora */
+    .ribbon{position:absolute;width:64%;height:20px;left:18%;border-radius:999px;filter:blur(2px);opacity:0.75;animation:ribbonWave 9s ease-in-out infinite;}
+    @keyframes ribbonWave{0%{transform:translateY(0) skewX(6deg)}50%{transform:translateY(44px) skewX(-6deg)}100%{transform:translateY(0) skewX(6deg)}}
+    .aurora-veil{position:absolute;left:0;right:0;top:0;bottom:0;mix-blend-mode:screen;opacity:0.65;animation:veilShift 18s ease-in-out infinite;}
+    @keyframes veilShift{0%{background:radial-gradient(120% 120% at 20% 30%, rgba(120,255,255,0.35), transparent 50%)}50%{background:radial-gradient(120% 120% at 70% 60%, rgba(255,160,220,0.35), transparent 50%)}100%{background:radial-gradient(120% 120% at 20% 30%, rgba(120,255,255,0.35), transparent 50%)}}
+
+    /* Sunny */
     .sun-core{position:absolute;left:50%;top:10%;transform:translateX(-50%);width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(255,230,150,0.95),rgba(255,200,100,0.35),transparent 65%);box-shadow:0 0 60px rgba(255,210,140,0.45);animation:pulseSun 3.6s ease-in-out infinite;}
     @keyframes pulseSun{0%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.08)}100%{transform:translateX(-50%) scale(1)}}
     .sun-ray{position:absolute;left:50%;top:10%;transform:translateX(-50%) rotate(0deg);width:2px;height:160px;background:linear-gradient(180deg,rgba(255,235,160,0.9),rgba(255,235,160,0));opacity:0.55;transform-origin:bottom center;animation:raySpin 8s linear infinite;}
     @keyframes raySpin{0%{transform:translateX(-50%) rotate(0deg)}100%{transform:translateX(-50%) rotate(360deg)}}
-    .shooting-star{position:absolute;width:2px;height:2px;border-radius:50%;background:white;box-shadow:0 0 10px rgba(255,255,255,0.65);opacity:0.0;}
-    .meteor{position:absolute;width:3px;height:26px;background:linear-gradient(to bottom,rgba(255,160,120,0.95),rgba(255,160,120,0));border-radius:2px;filter:blur(0.2px);opacity:0.95;}
 
-    .cosmic{position:absolute;width:4px;height:4px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.9),rgba(255,255,255,0));opacity:0.8;}
-    @keyframes drift{0%{transform:translate(0,0)}50%{transform:translate(12px,-16px)}100%{transform:translate(0,0)}}
-    .corona{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:240px;height:240px;border-radius:50%;box-shadow:0 0 80px rgba(255,200,120,0.24);animation:pulse 5s ease-in-out infinite;}
-    @keyframes pulse{0%{box-shadow:0 0 80px rgba(255,200,120,0.18)}50%{box-shadow:0 0 120px rgba(255,200,120,0.4)}100%{box-shadow:0 0 80px rgba(255,200,120,0.18)}}
+    /* Cosmic Tempest + Meteor */
+    .shooting-star{position:absolute;width:2px;height:2px;border-radius:50%;background:white;box-shadow:0 0 10px rgba(255,255,255,0.65);opacity:0.0;}
+    .meteor{position:absolute;width:3px;height:26px;background:linear-gradient(to bottom,rgba(255,160,120,0.95),rgba(255,160,120,0));border-radius:2px;filter:blur(0.25px);opacity:0.95;}
+
+    /* Black hole accretion disk */
+    .bh-core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:220px;height:220px;border-radius:50%;background:#000;box-shadow:0 0 40px rgba(0,0,0,0.8);z-index:2;}
+    .bh-disk{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(0deg);width:360px;height:360px;border-radius:50%;background:
+      conic-gradient(from 0deg, rgba(255,220,160,0.0) 0deg, rgba(255,220,160,0.75) 80deg, rgba(255,160,120,0.85) 160deg, rgba(200,120,255,0.7) 220deg, rgba(120,160,255,0.75) 300deg, rgba(255,220,160,0.0) 360deg);
+      filter:blur(0.6px);box-shadow:0 0 40px rgba(255,200,140,0.25);animation:diskSpin 18s linear infinite;z-index:1;}
+    @keyframes diskSpin{0%{transform:translate(-50%,-50%) rotate(0deg)}100%{transform:translate(-50%,-50%) rotate(360deg)}}
+    .bh-lens{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:520px;height:520px;border-radius:50%;box-shadow:inset 0 0 80px rgba(150,120,255,0.12), inset 0 0 140px rgba(255,220,160,0.12);opacity:0.9;}
 
     /* Cinematic: inline stage */
     .cinema-stage-inline{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:5;}
-    .cut-label{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:36px;font-weight:900;color:#fff;text-shadow:0 8px 24px rgba(0,0,0,0.65);}
+    .star{position:absolute;border-radius:50%;background:radial-gradient(circle, rgba(255,255,255,0.95), rgba(255,255,255,0));filter:blur(0.2px);}
+    @keyframes twinkle{0%,100%{opacity:0.3}50%{opacity:1}}
+    .ring{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,0.25);}
+    @keyframes pulseRing{0%{transform:scale(0.6);opacity:0.0}50%{opacity:1}100%{transform:scale(1.4);opacity:0}}
+    .beam{position:absolute;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0));filter:blur(1.2px);mix-blend-mode:screen;}
+    .shard{position:absolute;width:8px;height:24px;background:linear-gradient(180deg,rgba(150,200,255,0.9),rgba(150,200,255,0));transform-origin:center;filter:blur(0.4px);}
 
     /* Controls */
     .controls{display:flex;gap:12px;padding-top:12px;flex-wrap:wrap;align-items:center;}
@@ -141,7 +163,7 @@
     /* Dark Matter style for inventory only (exclusive item specific) */
     .b-exclusive-dark{background:radial-gradient(circle at 50% 50%, #0a0a10, #1a1a28); color:#d9ccff; box-shadow:inset 0 0 18px rgba(160,120,255,0.25), 0 0 20px rgba(60,0,140,0.25);}
 
-    /* Roll glow */
+    /* Glow */
     .glow{position:absolute;inset:-40%;border-radius:50%;background:radial-gradient(closest-side,rgba(110,168,254,0.25),transparent 65%);filter:blur(12px);animation:glow 1.1s ease-out forwards;z-index:2;}
     @keyframes glow{0%{opacity:0;transform:scale(0.7)}50%{opacity:1}100%{opacity:0;transform:scale(1.2)}}
 
@@ -153,7 +175,7 @@
     .modal input[type=password]{flex:1;background:#1b2232;border:1px solid #2a3449;border-radius:8px;padding:8px;color:var(--text);}
     .modal button{width:100%}
 
-    /* Commands panel (improved) */
+    /* Commands panel (overhauled) */
     #commandsPanel{display:none;}
     .cmds{display:grid;gap:16px;}
     .cmd-section{border:1px solid #2a3449;border-radius:10px;padding:12px;background:#101624;}
@@ -163,19 +185,13 @@
     .cmd-row.single{grid-template-columns:1fr;}
     .cmd-hint{font-size:12px;color:#9aa0ab;}
     select,input[type=text]{background:#1b2232;border:1px solid #2a3449;border-radius:8px;padding:8px;color:var(--text);}
-    .cmd-actions{display:flex;justify-content:flex-end;gap:10px;}
-    .cmd-actions button{min-width:120px;}
+    .cmd-actions{display:flex;justify-content:space-between;gap:10px;}
+    .cmd-actions-left{display:flex;gap:10px;}
+    .cmd-actions-right{display:flex;gap:10px;}
+    .cmd-actions button{min-width:140px;}
 
-    /* Cinematic primitives */
-    .star{position:absolute;border-radius:50%;background:radial-gradient(circle, rgba(255,255,255,0.95), rgba(255,255,255,0));filter:blur(0.2px);}
-    @keyframes twinkle{0%,100%{opacity:0.3}50%{opacity:1}}
-    .ring{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,0.25);}
-    @keyframes pulseRing{0%{transform:scale(0.6);opacity:0.0}50%{opacity:1}100%{transform:scale(1.4);opacity:0}}
-    .beam{position:absolute;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0));filter:blur(1.2px);mix-blend-mode:screen;}
-    .shard{position:absolute;width:8px;height:24px;background:linear-gradient(180deg,rgba(150,200,255,0.9),rgba(150,200,255,0));transform-origin:center;filter:blur(0.4px);}
-
-    /* Delete confirmation modal (improved) */
-    .confirm-modal{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#0f1320;padding:16px;border:1px solid #2a3449;border-radius:12px;box-shadow:0 12px 36px rgba(0,0,0,0.6);z-index:60;width:440px;}
+    /* Delete confirmation modal */
+    .confirm-modal{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#0f1320;padding:16px;border:1px solid #2a3449;border-radius:12px;box-shadow:0 12px 36px rgba(0,0,0,0.6);z-index:60;width:480px;}
     .confirm-title{margin:0 0 10px;font-size:16px;color:#cfd6ff;font-weight:800;}
     .confirm-body{font-size:14px;color:#c7d1e5;margin-bottom:12px;}
     .confirm-actions{display:flex;justify-content:flex-end;gap:10px;}
@@ -262,7 +278,6 @@
               <input type="text" id="cmdSpeed" placeholder="Speed (e.g. 0.5 = +50%)" />
               <select id="cmdLuckScope"><option>GLOBAL</option><option>LOCAL</option></select>
             </div>
-            <div class="cmd-hint">Apply temporary luck/speed boosts.</div>
           </div>
           <div class="cmd-section">
             <h4>Weather</h4>
@@ -298,7 +313,15 @@
               <select id="cmdGiveScope"><option>GLOBAL</option><option>LOCAL</option></select>
             </div>
           </div>
-          <div class="cmd-actions"><button id="cmdConfirm">Confirm</button></div>
+          <div class="cmd-actions">
+            <div class="cmd-actions-left">
+              <button id="cmdPresetBoost">Preset: Lucky Burst</button>
+              <button id="cmdPresetEclipse">Preset: Eclipse</button>
+            </div>
+            <div class="cmd-actions-right">
+              <button id="cmdConfirm">Apply</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -337,7 +360,7 @@
       transcendent:["Transcendent Eye","Omni Sigil","Hyperion Core","Timeweaver Crest","Axis Heart","Prime Star","Beyond Rune","Unbound Halo","Perennial Flame","Limitless Gem","Meta Crown","Supernal Tear"],
       eternal:["Eternal Bloom","Forever Star","Unending Crown","Ceaseless Orb","Timeless Fang","Endless Prism","Sempiternal Rune","Undying Flame","Ageless Halo","Perpetual Core","Immortal Sigil","Infinite Diadem"],
       omniversal:["Omniversal Heart","All-Crown","Totality Core","Panreality Halo","Absolute Sigil","Everything Rune","Boundless Star","Cosmos Crown","Axis of All","Prime Totality","Eclipse Gem","Cosmic Gem"],
-      exclusive:["Dark Matter Shard"] /* renamed from Gem Of Gem */
+      exclusive:["Dark Matter Shard"] /* inventory styled dark, index rainbow */
     };
 
     /* ---------------- Consumables & Totems ---------------- */
@@ -384,14 +407,14 @@
 
     const LUCK_TARGET_KEYS=["rare","epic","legendary","mythic","divine","celestial","transcendent","eternal","omniversal","exclusive"];
 
-    /* ---------------- Weather definitions (added Black Hole) ---------------- */
+    /* ---------------- Weather definitions ---------------- */
     const WEATHERS = {
       normal: [
         {name:"Storm", colorClass:"b-rare", effects:{luck:+0.12}},
         {name:"Blizzard", colorClass:"b-epic", effects:{luck:+0.15}},
         {name:"Sunny Radiance", colorClass:"b-common", effects:{luck:+0.06}},
         {name:"Fog", colorClass:"b-uncommon", effects:{luck:+0.08}},
-        {name:"Aurora Veil", colorClass:"b-mythic", effects:{luck:+0.20}} /* moved to normal for more presence but lower luck than rare set */
+        {name:"Aurora Veil", colorClass:"b-mythic", effects:{luck:+0.20}}
       ],
       rare: [
         {name:"Meteor Storm", colorClass:"b-legendary", effects:{luck:+0.26}}
@@ -511,7 +534,7 @@
     }
     function pickConsumableFromTier(tierKey){ const list=ITEM_DROPS[tierKey]||[]; if(!list.length) return null; return list[Math.floor(Math.random()*list.length)]; }
 
-    /* ---------------- Weather visual (enhanced events) ---------------- */
+    /* ---------------- Weather visual (overhauled) ---------------- */
     let weatherEventTimers = [];
     function clearWeatherEvents(){ weatherEventTimers.forEach(t=>clearInterval(t)); weatherEventTimers=[]; }
 
@@ -529,20 +552,46 @@
       const particles=document.createElement("div"); particles.className="particles";
 
       if(cls==="wb-storm"){
-        for(let i=0;i<140;i++){ const p=document.createElement("span"); p.className="rain-drop"; p.style.left=Math.floor(Math.random()*100)+"%"; p.style.top=(-60-Math.random()*160)+"px"; p.style.animation=`rainFall ${0.7+Math.random()*0.6}s linear infinite`; p.style.opacity=0.5+Math.random()*0.5; particles.appendChild(p); }
+        // Rain density tuned; randomized speed; cinematic bolts with glow/flicker
+        for(let i=0;i<100;i++){
+          const p=document.createElement("span"); p.className="rain-drop";
+          p.style.left=Math.floor(Math.random()*100)+"%";
+          p.style.top=(-60-Math.random()*160)+"px";
+          p.style.animation=`rainFall ${0.7+Math.random()*0.6}s linear infinite`;
+          p.style.opacity=(0.5+Math.random()*0.5).toFixed(2);
+          particles.appendChild(p);
+        }
         weatherEventTimers.push(setInterval(()=>{
-          const l=document.createElement("div");
-          l.className="lightning fork";
-          l.style.left=(10+Math.random()*80)+"%";
-          l.style.top=(-10)+"%";
-          particles.appendChild(l);
-          l.style.transition="opacity 0.06s";
-          l.style.opacity="1";
-          setTimeout(()=>{ l.style.opacity="0"; }, 120);
-          setTimeout(()=>{ l.remove(); }, 360);
-        }, 2600 + Math.random()*2400));
+          const bolt=document.createElement("div");
+          bolt.className="bolt glow";
+          const x = 10+Math.random()*80;
+          bolt.style.left = x+"%";
+          bolt.style.top = (-8)+"%";
+          bolt.style.transform = `rotate(${(Math.random()*12-6).toFixed(1)}deg)`;
+          bolt.style.transition="opacity 0.06s";
+          particles.appendChild(bolt);
+          requestAnimationFrame(()=>bolt.style.opacity="1");
+          setTimeout(()=>bolt.style.opacity="0", 140);
+          setTimeout(()=>bolt.remove(), 360);
+        }, 2000 + Math.random()*2200));
       } else if(cls==="wb-blizzard"){
-        for(let i=0;i<100;i++){ const s=document.createElement("span"); s.className="snow-flake"; s.style.left=Math.floor(Math.random()*100)+"%"; s.style.top=(-60-Math.random()*180)+"px"; s.style.animation=`snowFall ${3.2+Math.random()*2.6}s linear infinite`; s.style.opacity=0.6+Math.random()*0.4; particles.appendChild(s); }
+        // Layered flakes + occasional gust sweeps
+        for(let i=0;i<120;i++){
+          const s=document.createElement("span"); s.className="snow-flake";
+          s.style.left=Math.floor(Math.random()*100)+"%";
+          s.style.top=(-60-Math.random()*180)+"px";
+          s.style.animation=`snowFall ${3.2+Math.random()*2.6}s linear infinite`;
+          s.style.opacity=(0.6+Math.random()*0.4).toFixed(2);
+          particles.appendChild(s);
+        }
+        weatherEventTimers.push(setInterval(()=>{
+          const gust=document.createElement("div"); gust.className="blizzard-gust";
+          particles.appendChild(gust);
+          gust.style.transition="opacity 0.2s, transform 1.2s ease-out";
+          requestAnimationFrame(()=>{ gust.style.opacity="1"; gust.style.transform="translateX(6%)"; });
+          setTimeout(()=>{ gust.style.opacity="0"; }, 900);
+          setTimeout(()=>gust.remove(), 1400);
+        }, 4200 + Math.random()*2800));
       } else if(cls==="wb-fog"){
         const fog1=document.createElement("div"); fog1.className="fog-mist"; fog1.style.opacity="0.7";
         const fog2=document.createElement("div"); fog2.className="fog-mist"; fog2.style.opacity="0.45"; fog2.style.animationDuration="32s";
@@ -552,69 +601,55 @@
         for(let i=0;i<3;i++){
           const r=document.createElement("div"); r.className="ribbon";
           r.style.left=(10+i*20)+"%";
-          r.style.top=(10+i*16)+"%";
+          r.style.top=(12+i*16)+"%";
           r.style.animationDuration=(8+i*3)+"s";
-          r.style.background=`linear-gradient(90deg, rgba(${120+i*10},${200-i*20},255,0.6), rgba(255,160,220,0.6))`;
+          r.style.background=`linear-gradient(90deg, rgba(${120+i*10},${200-i*20},255,0.65), rgba(255,160,220,0.65))`;
           particles.appendChild(r);
         }
       } else if(cls==="wb-sunny"){
         const sun=document.createElement("div"); sun.className="sun-core"; particles.appendChild(sun);
-        // Create radial rays
-        for(let i=0;i<12;i++){
+        for(let i=0;i<10;i++){
           const ray=document.createElement("div"); ray.className="sun-ray";
-          ray.style.transform=`translateX(-50%) rotate(${i*30}deg)`;
+          ray.style.transform=`translateX(-50%) rotate(${i*36}deg)`;
           ray.style.height=(140+Math.random()*60)+"px";
           ray.style.opacity=(0.4+Math.random()*0.25).toFixed(2);
           particles.appendChild(ray);
         }
       } else if(cls==="wb-tempest"){
-        for(let i=0;i<50;i++){ const c=document.createElement("span"); c.className="cosmic"; c.style.left=Math.floor(Math.random()*100)+"%"; c.style.top=Math.floor(Math.random()*100)+"%"; c.style.width=c.style.height=(Math.random()*3+2)+"px"; c.style.animation=`drift ${8+Math.random()*6}s ease-in-out infinite`; particles.appendChild(c); }
+        // Ambient shooting stars
         weatherEventTimers.push(setInterval(()=>{
           const s=document.createElement("div"); s.className="shooting-star";
-          s.style.left=(Math.random()*100)+"%"; s.style.top=(Math.random()*40)+"%";
+          s.style.left=(Math.random()*40)+"%"; s.style.top=(10+Math.random()*30)+"%";
           particles.appendChild(s);
           s.style.transition="transform 1.8s linear, opacity 0.2s ease";
-          setTimeout(()=>{ s.style.opacity="1"; s.style.transform=`translate(${40+Math.random()*80}px, ${180+Math.random()*120}px)`; }, 20);
+          setTimeout(()=>{ s.style.opacity="1"; s.style.transform=`translate(${160+Math.random()*140}px, ${220+Math.random()*120}px)`; }, 20);
           setTimeout(()=>{ s.style.opacity="0"; }, 1600);
           setTimeout(()=>s.remove(), 2000);
-        }, 4800 + Math.random()*2800));
+        }, 3800 + Math.random()*2200));
       } else if(cls==="wb-meteor"){
-        for(let i=0;i<24;i++){ const c=document.createElement("span"); c.className="cosmic"; c.style.left=Math.floor(Math.random()*100)+"%"; c.style.top=Math.floor(Math.random()*40)+"%"; c.style.width=c.style.height=(Math.random()*3+2)+"px"; c.style.animation=`drift ${10+Math.random()*6}s ease-in-out infinite`; particles.appendChild(c); }
+        // Meteors from top-right corner path, fewer but punchier
         weatherEventTimers.push(setInterval(()=>{
-          const burstCount = 8 + Math.floor(Math.random()*8);
-          for(let i=0;i<burstCount;i++){
+          const count = 3 + Math.floor(Math.random()*3);
+          for(let i=0;i<count;i++){
             const m=document.createElement("div"); m.className="meteor";
-            m.style.left=(Math.random()*100)+"%";
-            m.style.top=(-20 - Math.random()*80)+"px";
-            const dur = 1.1 + Math.random()*0.7;
+            const startX = 85 + Math.random()*12; const startY = 6 + Math.random()*10;
+            const dx = -(180 + Math.random()*160); const dy = 300 + Math.random()*180;
+            const dur = 0.9 + Math.random()*0.6;
+            m.style.left=startX+"%"; m.style.top=startY+"%";
             m.style.transition=`transform ${dur}s linear, opacity ${dur}s linear`;
             particles.appendChild(m);
-            setTimeout(()=>{ m.style.transform=`translateY(480px) translateX(${Math.random()*60-30}px)`; m.style.opacity="0.0"; }, 20);
+            setTimeout(()=>{ m.style.transform=`translate(${dx}px, ${dy}px)`; m.style.opacity="0.0"; }, 20);
             setTimeout(()=>m.remove(), (dur*1000)+420);
           }
-        }, 3600 + Math.random()*2400));
+        }, 2600 + Math.random()*1800));
       } else if(cls==="wb-eclipse"){
         const corona=document.createElement("div"); corona.className="corona"; particles.appendChild(corona);
       } else if(cls==="wb-blackhole"){
-        // accretion rings pulsing and occasional lensing flashes
-        for(let i=0;i<4;i++){
-          const ring=document.createElement("div"); ring.className="ring";
-          ring.style.left="50%"; ring.style.top="50%";
-          ring.style.borderColor=`rgba(160,160,200,${0.35 - i*0.06})`;
-          ring.style.width=140+i*40+"px"; ring.style.height=140+i*40+"px";
-          ring.style.animation=`pulseRing ${2.2+i*0.25}s ease-in-out infinite`;
-          particles.appendChild(ring);
-        }
-        weatherEventTimers.push(setInterval(()=>{
-          const flash=document.createElement("div");
-          flash.style.position="absolute"; flash.style.left="0"; flash.style.top="0"; flash.style.right="0"; flash.style.bottom="0";
-          flash.style.background="radial-gradient(circle at 50% 50%, rgba(220,220,255,0.18), transparent 45%)";
-          flash.style.opacity="0"; flash.style.transition="opacity 0.15s";
-          particles.appendChild(flash);
-          setTimeout(()=>flash.style.opacity="1", 10);
-          setTimeout(()=>flash.style.opacity="0", 160);
-          setTimeout(()=>flash.remove(), 360);
-        }, 5200 + Math.random()*3400));
+        // Event horizon + accretion disk + gravitational lensing halo (like the image)
+        const core=document.createElement("div"); core.className="bh-core";
+        const disk=document.createElement("div"); disk.className="bh-disk";
+        const lens=document.createElement("div"); lens.className="bh-lens";
+        particles.appendChild(lens); particles.appendChild(disk); particles.appendChild(core);
       }
       bg.appendChild(particles); area.appendChild(bg);
     }
@@ -638,7 +673,6 @@
     }
     function addEffect(effect){
       if(effect.type==="guarantee" && effect.name==="Origin Crystal"){
-        // Store guarantee: next roll grants a REAL INDEX item from Eternal+ (eternal/omniversal)
         state.persistentGuarantees.push({ name:effect.name, type:"guarantee", rarity:effect.rarity || "omniversal", grantPool:["eternal","omniversal"] });
         saveState(); spawnBanner(`Stored: ${effect.name}`,"activate","b-omniversal"); renderActiveEffects(); return;
       }
@@ -664,7 +698,6 @@
       const weathers=state.effectInstances.filter(e=>e.expiresAt>now && e.weather).sort((a,b)=>a.expiresAt-b.expiresAt);
       [...others,...weathers].forEach(e=>{
         const left=formatSecondsLeft(e.expiresAt-now); const colorClass=TIERS.find(t=>t.key===e.rarityKey)?.colorClass || "";
-        // passive display rule: we still show name but you can toggle here if needed
         const div=document.createElement("div"); div.className=`effect-entry ${colorClass}`; div.textContent=`${e.name}: ${left}`; el.appendChild(div);
       });
       state.persistentGuarantees.forEach(g=>{ const colorClass=TIERS.find(t=>t.key===g.rarity)?.colorClass || ""; const div=document.createElement("div"); div.className=`effect-entry ${colorClass}`; div.textContent=`${g.name}: ready`; el.appendChild(div); });
@@ -709,7 +742,7 @@
     function scheduleNextWeather(){ const delayMs=(240+Math.random()*480)*1000; setTimeout(()=>{ triggerRandomWeather(); scheduleNextWeather(); },delayMs); }
     function classToTierKey(colorClass){ const t=TIERS.find(x=>x.colorClass===colorClass); return t?t.key:"common"; }
 
-    /* ---------------- Cinematic cutscenes per REAL Index item (inline) ---------------- */
+    /* ---------------- Cinematic cutscenes per REAL Index item (inline, no name overlay) ---------------- */
 
     function variantForName(name, max=10){
       let h=0; for(let i=0;i<name.length;i++){ h=(h*31 + name.charCodeAt(i))>>>0; }
@@ -743,33 +776,35 @@
       }
 
       const v=variantForName(itemName,10);
-      if(v===0) styleGalacticSpiral(stage,tierKey,itemName);
-      else if(v===1) styleCrownRings(stage,tierKey,itemName);
-      else if(v===2) styleAuroraWeave(stage,tierKey,itemName);
-      else if(v===3) styleShardBurst(stage,tierKey,itemName);
-      else if(v===4) styleBeamConvergence(stage,tierKey,itemName);
-      else if(v===5) styleVortexCollapse(stage,tierKey,itemName);
-      else if(v===6) styleSigilEngrave(stage,tierKey,itemName);
-      else if(v===7) styleGridAxis(stage,tierKey,itemName);
-      else if(v===8) stylePrismWave(stage,tierKey,itemName);
-      else styleHeartPulse(stage,tierKey,itemName);
-
-      const label=document.createElement("div");
-      label.className="cut-label";
-      label.textContent=itemName;
-      stage.appendChild(label);
+      if(v===0) styleGalacticSpiral(stage,tierKey);
+      else if(v===1) styleCrownRings(stage,tierKey);
+      else if(v===2) styleAuroraWeave(stage,tierKey);
+      else if(v===3) styleShardBurst(stage,tierKey);
+      else if(v===4) styleBeamConvergence(stage,tierKey);
+      else if(v===5) styleVortexCollapse(stage,tierKey);
+      else if(v===6) styleSigilEngrave(stage,tierKey);
+      else if(v===7) styleGridAxis(stage,tierKey);
+      else if(v===8) stylePrismWave(stage,tierKey);
+      else styleHeartPulse(stage,tierKey);
 
       overlay.style.opacity="1";
       setTimeout(()=>boom(stage,tierKey),4200);
 
-      // Pause auto-roll and normal roll
+      // Pause auto-roll and normal roll during cutscene
       state.cutsceneActive=true;
       const rollBtn=document.getElementById("btnRoll");
       rollBtn.disabled=true;
-      if(state.auto){ state.cutscenePausedAuto=true; toggleAuto(); }
+      const autoBtn=document.getElementById("btnAuto");
+      const wasAuto=state.auto;
+      if(wasAuto){ state.cutscenePausedAuto=true; toggleAuto(); }
       setTimeout(()=>{
         overlay.style.opacity="0";
-        setTimeout(()=>{ stage.innerHTML=""; state.cutsceneActive=false; rollBtn.disabled=false; if(state.cutscenePausedAuto){ state.cutscenePausedAuto=false; const btn=document.getElementById("btnAuto"); if(state.rolls>=50){ btn.disabled=false; } toggleAuto(); } }, 350);
+        setTimeout(()=>{
+          stage.innerHTML="";
+          state.cutsceneActive=false;
+          rollBtn.disabled=false;
+          if(state.cutscenePausedAuto){ state.cutscenePausedAuto=false; if(state.rolls>=50){ autoBtn.disabled=false; } toggleAuto(); }
+        }, 350);
       }, 6500);
     }
 
@@ -802,7 +837,7 @@
     }
 
     /* Style families */
-    function styleGalacticSpiral(stage,tier,name){
+    function styleGalacticSpiral(stage,tier){
       for(let i=0;i<16;i++){
         const r=document.createElement("div"); r.className="ring";
         r.style.left="50%"; r.style.top="50%";
@@ -812,7 +847,7 @@
       }
       injectKeyframesOnce("spiral","0%{transform:translate(-50%,-50%) rotate(0) scale(0.8);opacity:.5}50%{opacity:1}100%{transform:translate(-50%,-50%) rotate(180deg) scale(1.3);opacity:.2}");
     }
-    function styleCrownRings(stage,tier,name){
+    function styleCrownRings(stage,tier){
       for(let i=0;i<6;i++){
         const ring=document.createElement("div"); ring.className="ring";
         ring.style.left="50%"; ring.style.top="50%"; ring.style.borderColor="rgba(255,200,120,"+(0.35-0.04*i)+")";
@@ -821,19 +856,19 @@
       }
       injectKeyframesOnce("crown","0%{transform:translate(-50%,-50%) scale(0.6);opacity:.3}50%{opacity:1}100%{transform:translate(-50%,-50%) scale(1.5);opacity:.0}");
     }
-    function styleAuroraWeave(stage,tier,name){
+    function styleAuroraWeave(stage,tier){
       for(let i=0;i<4;i++){
         const ribbon=document.createElement("div"); ribbon.className="ribbon";
-        ribbon.style.left="12%"; ribbon.style.top=(14+i*12)+"%";
-        ribbon.style.animationDuration = 8+i*2 + "s";
-        ribbon.style.background="linear-gradient(90deg, rgba(120,255,255,0.65), rgba(255,160,220,0.65))";
+        ribbon.style.left="12%"; ribbon.style.top=(14+i*14)+"%";
+        ribbon.style.animationDuration = (7+i*2) + "s";
+        ribbon.style.background="linear-gradient(90deg, rgba(120,255,255,0.7), rgba(255,160,220,0.7))";
         stage.appendChild(ribbon);
       }
       const core=document.createElement("div");
       core.className="corona";
       stage.appendChild(core);
     }
-    function styleShardBurst(stage,tier,name){
+    function styleShardBurst(stage,tier){
       for(let i=0;i<120;i++){
         const s=document.createElement("div"); s.className="shard";
         s.style.left=(45+Math.random()*10)+"%"; s.style.top=(45+Math.random()*10)+"%";
@@ -843,7 +878,7 @@
       }
       injectKeyframesOnce("shardDance","0%{transform:rotate(0) translateY(0);opacity:.3}50%{transform:rotate(180deg) translateY(8px);opacity:1}100%{transform:rotate(360deg) translateY(0);opacity:.3}");
     }
-    function styleBeamConvergence(stage,tier,name){
+    function styleBeamConvergence(stage,tier){
       for(let i=0;i<8;i++){
         const b=document.createElement("div"); b.className="beam";
         b.style.width="4px"; b.style.height="280px";
@@ -853,7 +888,7 @@
       }
       injectKeyframesOnce("beamDown","0%{transform:translateY(-120px);opacity:.0}50%{opacity:1}100%{transform:translateY(240px);opacity:.0}");
     }
-    function styleVortexCollapse(stage,tier,name){
+    function styleVortexCollapse(stage,tier){
       for(let i=0;i<18;i++){
         const r=document.createElement("div"); r.className="ring";
         r.style.left="50%"; r.style.top="50%";
@@ -863,7 +898,7 @@
       }
       injectKeyframesOnce("vortex","0%{transform:translate(-50%,-50%) scale(1) rotate(0);opacity:.5}50%{transform:translate(-50%,-50%) scale(0.6) rotate(90deg);opacity:.9}100%{transform:translate(-50%,-50%) scale(1.2) rotate(180deg);opacity:.2}");
     }
-    function styleSigilEngrave(stage,tier,name){
+    function styleSigilEngrave(stage,tier){
       const sig=document.createElement("div"); sig.className="ring";
       sig.style.left="50%"; sig.style.top="50%"; sig.style.width="260px"; sig.style.height="260px";
       sig.style.border="4px double rgba(255,255,255,0.35)";
@@ -871,7 +906,7 @@
       stage.appendChild(sig);
       injectKeyframesOnce("sigPulse","0%{transform:translate(-50%,-50%) scale(1);opacity:.7}50%{transform:translate(-50%,-50%) scale(1.08);opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:.7}");
     }
-    function styleGridAxis(stage,tier,name){
+    function styleGridAxis(stage,tier){
       for(let i=0;i<12;i++){
         const line=document.createElement("div");
         line.style.position="absolute"; line.style.left=i*8+"%"; line.style.top="0";
@@ -881,7 +916,7 @@
       }
       injectKeyframesOnce("axisSpin","0%{transform:rotate(0)}100%{transform:rotate(360deg)}");
     }
-    function stylePrismWave(stage,tier,name){
+    function stylePrismWave(stage,tier){
       for(let i=0;i<6;i++){
         const cover=document.createElement("div");
         cover.style.position="absolute"; cover.style.left="0"; cover.style.top="0"; cover.style.right="0"; cover.style.bottom="0";
@@ -892,7 +927,7 @@
       }
       injectKeyframesOnce("sweep","0%{transform:translateX(-6%)}50%{transform:translateX(6%)}100%{transform:translateX(-6%)}");
     }
-    function styleHeartPulse(stage,tier,name){
+    function styleHeartPulse(stage,tier){
       const core=document.createElement("div");
       core.style.position="absolute"; core.style.left="50%"; core.style.top="50%";
       core.style.transform="translate(-50%,-50%)";
@@ -938,6 +973,7 @@
     }
 
     function rollOnce(){
+      if(state.cutsceneActive) return; // disable manual while cutscene
       const upcoming=state.rolls+1; const surge=milestoneLuckMultiplier(upcoming);
       if(surge>1){ spawnBanner(`Luck Surge x${surge} (1 roll)`,"luck", surge===10?"b-omniversal":"b-divine"); }
 
@@ -1020,7 +1056,6 @@
         }
       } else {
         if(tierKey==="exclusive"){
-          // Exclusive item renamed; only obtainable in M87 later (not implemented here), so default to non-drop unless forced
           const itemName=null;
           displayName=forced?.name || itemName || "Exclusive"; displayRarityClass="b-exclusive";
           processIndexItem("exclusive","Exclusive",displayName==="Exclusive"?null:displayName,surge);
@@ -1280,6 +1315,8 @@
     const cmdClearScope=document.getElementById("cmdClearScope");
     const cmdConfirm=document.getElementById("cmdConfirm");
     const cmdGiveScope=document.getElementById("cmdGiveScope");
+    const cmdPresetBoost=document.getElementById("cmdPresetBoost");
+    const cmdPresetEclipse=document.getElementById("cmdPresetEclipse");
 
     cmdReset.addEventListener("click",()=>{
       const scope=cmdResetScope.value;
@@ -1293,6 +1330,19 @@
       state.cmdQueue={ clearEffects:{ scope } };
       saveState(); applyCmdQueueIfAny();
     });
+    cmdPresetBoost.addEventListener("click",()=>{
+      cmdLuck.value="1.0"; // +100%
+      cmdSpeed.value="0.5"; // +50%
+      cmdWeather.value="Sunny Radiance";
+      spawnBanner("Preset loaded: Lucky Burst","announce","b-epic");
+    });
+    cmdPresetEclipse.addEventListener("click",()=>{
+      cmdLuck.value="0.8";
+      cmdSpeed.value="0.3";
+      cmdWeather.value="Eternal Eclipse";
+      spawnBanner("Preset loaded: Eclipse","announce","b-divine");
+    });
+
     cmdConfirm.addEventListener("click",()=>{
       const q={};
       const luckVal=cmdLuck.value.trim(); if(luckVal!==""){ const num=Number(luckVal); if(!Number.isNaN(num)) q.setLuck={ amount:num, scope:cmdLuckScope.value }; }
