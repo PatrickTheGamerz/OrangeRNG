@@ -816,37 +816,36 @@
         particles.appendChild(fog1); particles.appendChild(fog2); particles.appendChild(fog3);
       }
 
-// Aurora
-if (cls === "wb-aurora") {
-  const particles = document.getElementById("particles"); // ensure container exists
+    // Aurora
+    if (cls === "wb-aurora") {
+        const r1 = document.createElement("div");
+        r1.className = "ribbon";
+        r1.style.top = "18%";
 
-  const r1 = document.createElement("div");
-  r1.className = "ribbon";
-  r1.style.top = "18%";
+        const r2 = document.createElement("div");
+        r2.className = "ribbon";
+        r2.style.top = "36%";
+        r2.style.animationDuration = "14s";
 
-  const r2 = document.createElement("div");
-  r2.className = "ribbon";
-  r2.style.top = "36%";
-  r2.style.animationDuration = "14s";
+        const r3 = document.createElement("div");
+        r3.className = "ribbon";
+        r3.style.top = "52%";
+        r3.style.animationDuration = "18s";
 
-  const r3 = document.createElement("div");
-  r3.className = "ribbon";
-  r3.style.top = "52%";
-  r3.style.animationDuration = "18s";
+        particles.appendChild(r1);
+        particles.appendChild(r2);
+        particles.appendChild(r3);
 
-  particles.appendChild(r1);
-  particles.appendChild(r2);
-  particles.appendChild(r3);
+        for (let i = 0; i < 100; i++) {
+            const st = document.createElement("div");
+            st.className = "aurora-star";
+            st.style.left = Math.random() * 100 + "%";
+            st.style.top = Math.random() * 100 + "%";
+            st.style.animationDuration = (1.4 + Math.random() * 1.6) + "s";
+            particles.appendChild(st);
+      }
+    }
 
-  for (let i = 0; i < 100; i++) {
-    const st = document.createElement("div");
-    st.className = "aurora-star";
-    st.style.left = Math.random() * 100 + "%";
-    st.style.top = Math.random() * 100 + "%";
-    st.style.animationDuration = (1.4 + Math.random() * 1.6) + "s";
-    particles.appendChild(st);
-  }
-}
 
 
       // Eclipse
