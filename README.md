@@ -771,26 +771,51 @@
 
 
 
-      // Storm
+ // Storm
       if(cls==="wb-storm"){
-        for(let i=0;i<260;i++){
-          const p=document.createElement("span"); p.className="rain-drop";
+        for(let i=0;i<320;i++){
+          const p=document.createElement("span"); 
+          p.className="rain-drop";
           p.style.left=Math.floor(Math.random()*100)+"%";
-          p.style.top=(-140-Math.random()*160)+"px";
-          p.style.animation=`rainFall ${0.60+Math.random()*0.50}s linear infinite`;
-          p.style.opacity=0.6+Math.random()*0.35;
+          p.style.top=(-200-Math.random()*200)+"px";
+          p.style.width="2px";
+          p.style.height=(12+Math.random()*18)+"px";
+          p.style.background="linear-gradient(to bottom, rgba(200,200,255,0.9), rgba(150,150,255,0.2))";
+          p.style.borderRadius="50%";
+          p.style.animation=`rainFall ${0.45+Math.random()*0.55}s linear infinite`;
+          p.style.opacity=0.55+Math.random()*0.4;
           particles.appendChild(p);
         }
         function spawnLightning(){
-          const bolt=document.createElement("div"); bolt.className="bolt";
-          bolt.style.left=(6+Math.random()*88)+"%"; bolt.style.top=(-30+Math.random()*30)+"px";
-          bolt.style.animation="flash 1.2s linear 1";
+          const bolt=document.createElement("div"); 
+          bolt.className="bolt";
+          bolt.style.left=(4+Math.random()*92)+"%"; 
+          bolt.style.top=(-40+Math.random()*40)+"px";
+          bolt.style.width="4px";
+          bolt.style.height=(120+Math.random()*180)+"px";
+          bolt.style.background="linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0))";
+          bolt.style.boxShadow="0 0 25px 10px rgba(255,255,255,0.8)";
+          bolt.style.animation="flash 0.8s ease-out 1";
           particles.appendChild(bolt);
-          setTimeout(()=>bolt.remove(), 1200);
+          setTimeout(()=>bolt.remove(), 800);
+          if(Math.random()>0.6){
+            const afterglow=document.createElement("div");
+            afterglow.className="afterglow";
+            afterglow.style.position="absolute";
+            afterglow.style.left="0";
+            afterglow.style.top="0";
+            afterglow.style.width="100%";
+            afterglow.style.height="100%";
+            afterglow.style.background="rgba(255,255,255,0.15)";
+            afterglow.style.animation="fadeGlow 1.2s ease-out 1";
+            particles.appendChild(afterglow);
+            setTimeout(()=>afterglow.remove(),1200);
+          }
         }
-        const lightningInterval=setInterval(spawnLightning, 1400);
+        const lightningInterval=setInterval(spawnLightning, 1000+Math.random()*1200);
         bg.addEventListener("DOMNodeRemoved", ()=>clearInterval(lightningInterval));
       }
+
 
       // Blizzard
       if(cls==="wb-blizzard"){
