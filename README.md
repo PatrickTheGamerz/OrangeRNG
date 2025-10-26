@@ -852,12 +852,8 @@
         }
       }
 
-      // Eclipse (golden corona)
-      if(cls==="wb-eclipse"){
-        const corona=document.createElement("div"); corona.className="corona";
-        corona.style.boxShadow="0 0 120px rgba(255,200,120,0.45)";
-        particles.appendChild(corona);
-      }
+      // Eclipse corona (kept for Eternal Eclipse visual hint)
+      if(cls==="wb-eclipse"){ const corona=document.createElement("div"); corona.className="corona"; particles.appendChild(corona); }
 
       // Cosmic Tempest
       if(cls==="wb-tempest"){
