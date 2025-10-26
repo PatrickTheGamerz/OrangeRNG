@@ -746,25 +746,30 @@
       const bg=document.createElement("div"); bg.className="weather-bg "+cls;
       const particles=document.createElement("div"); particles.className="particles";
 
-      // Sunny
-      if(cls==="wb-sunny"){
-        for(let i=0;i<18;i++){
-          const b=document.createElement("div"); b.className="sunbeam";
-          b.style.left=(4+i*5.3)+"%"; b.style.top=(16+Math.random()*24)+"%";
-          b.style.animation=`beamRise ${4.4+Math.random()*2}s ease-in-out infinite`;
-          b.style.opacity=0.5+Math.random()*0.35;
-          particles.appendChild(b);
-        }
-        for(let i=0;i<60;i++){
-          const mote=document.createElement("span"); mote.className="cosmic";
-          mote.style.left=Math.floor(Math.random()*100)+"%";
-          mote.style.top=Math.floor(Math.random()*100)+"%";
-          mote.style.width=mote.style.height=(Math.random()*2+1)+"px";
-          mote.style.animation=`drift ${6+Math.random()*6}s ease-in-out infinite`;
-          mote.style.opacity=0.65;
-          particles.appendChild(mote);
-        }
-      }
+// Sunny
+if(cls==="wb-sunny"){
+  const core=document.createElement("div"); core.className="sun-core"; particles.appendChild(core);
+
+  for(let i=0;i<24;i++){
+    const beam=document.createElement("div"); beam.className="sunbeam";
+    beam.style.transform=`rotate(${(360/24)*i}deg)`;
+    beam.style.animation=`shimmer ${3+Math.random()*2}s ease-in-out infinite`;
+    beam.style.animationDelay=`${Math.random()*2}s`;
+    particles.appendChild(beam);
+  }
+
+  for(let i=0;i<80;i++){
+    const mote=document.createElement("span"); mote.className="cosmic";
+    mote.style.left=Math.floor(Math.random()*100)+"%";
+    mote.style.top=Math.floor(Math.random()*100)+"%";
+    mote.style.width=mote.style.height=(Math.random()*3+1)+"px";
+    mote.style.animation=`drift ${6+Math.random()*6}s ease-in-out infinite, twinkle ${2+Math.random()*3}s ease-in-out infinite`;
+    mote.style.animationDelay=`${Math.random()*6}s`;
+    mote.style.opacity=0.5+Math.random()*0.5;
+    particles.appendChild(mote);
+  }
+}
+
 
       // Storm
       if(cls==="wb-storm"){
