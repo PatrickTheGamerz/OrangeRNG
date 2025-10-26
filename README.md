@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sol’s RNG — Full Updated Working Build (Black Hole Spiral Core)</title>
+  <title>Sol’s RNG — Full Updated Working Build (Event-locked Cosmic/Eclipse Gems)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -159,7 +159,7 @@
         radial-gradient(circle at 50% 50%,rgba(255,200,120,0.14), transparent 70%);
     }
 
-    /* Black Hole backdrop base (galaxy pads for depth) */
+    /* Black Hole backdrop base */
     .wb-blackhole{
       background:
         radial-gradient(120% 120% at 50% 50%, rgba(0,0,0,0.96), rgba(0,0,0,0.9)),
@@ -195,7 +195,7 @@
     .shooting{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;box-shadow:0 0 12px rgba(255,255,255,0.8);opacity:1;}
     @keyframes shoot{0%{transform:translate(0,0);opacity:1}80%{opacity:1}100%{transform:translate(-420px,220px);opacity:0}}
 
-    /* Corona (white for Black Hole) */
+    /* Corona (white for Black Hole/Eclipse hint) */
     .corona{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:280px;height:280px;border-radius:50%;box-shadow:0 0 120px rgba(255,255,255,0.55);animation:coronaPulse 6s ease-in-out infinite; z-index:3;}
     @keyframes coronaPulse{0%,100%{box-shadow:0 0 80px rgba(255,255,255,0.3)}50%{box-shadow:0 0 160px rgba(255,255,255,0.75)}}
 
@@ -507,6 +507,9 @@
       {key:"omniversal",name:"Omniversal",weight:1,colorClass:"b-omniversal"},
       {key:"exclusive",name:"Exclusive",weight:0,colorClass:"b-exclusive"}
     ];
+
+    /* Keep Cosmic Gem (omniversal) and Eclipse Gem (celestial) in index for tracking,
+       but enforce weather-only acquisition in logic. */
     const INDEX_ITEMS={
       worthless:["Flicker Dust","Cracked Ash","Dim Mote","Frayed Thread","Worn Chip","Hollow Grain","Stale Ember","Silt Speck","Faded Spark","Withered Flake","Dull Scale","Spent Echo"],
       trash:["Bent Sigil","Scuffed Gear","Fractured Bead","Tarnished Ring","Splintered Token","Bruised Charm","Chipped Prism","Dented Halo","Crater Chip","Scratched Fang","Bruised Petal","Muddled Rune"],
@@ -517,10 +520,10 @@
       legendary:["Sol’s Tear","Moonveil Crown","Eternal Star","Riftwalker’s Fang","Celestial Bloom","Radiant Halo","Abyss Crown","Prism Heart","Void Lantern","Chrono Relic","Phoenix Crown","Astral Flame"],
       mythic:["Solstice Crown","Eclipse Heart","Infinity Core","Astral Diadem","Rift Monarch","Nova Grimoire","Umbra Scepter","Parallax Halo","Quasar Thorn","Aether Loom","Aurora Sigil","Prime Catalyst"],
       divine:["Sol’s Core","Eternal Sun","Celestial Orb","Divine Halo","Radiant Crown","Cosmic Tear","Riftheart","Astral Bloom","Phoenix Soul","Chrono Star","Abyssal Flame","Prism Crown"],
-      celestial:["Stellar Crown","Singularity Shard","Event Horizon","Nebula Heart","Galactic Sigil","Nova Crown","Comet Ring","Quasar Core","Ecliptic Rune","Parhelion Gem","Aurora Diadem","Aether Crown"],
+      celestial:["Stellar Crown","Singularity Shard","Event Horizon","Nebula Heart","Galactic Sigil","Nova Crown","Comet Ring","Quasar Core","Ecliptic Rune","Parhelion Gem","Aurora Diadem","Aether Crown","Eclipse Gem"],
       transcendent:["Transcendent Eye","Omni Sigil","Hyperion Core","Timeweaver Crest","Axis Heart","Prime Star","Beyond Rune","Unbound Halo","Perennial Flame","Limitless Gem","Meta Crown","Supernal Tear"],
       eternal:["Eternal Bloom","Forever Star","Unending Crown","Ceaseless Orb","Timeless Fang","Endless Prism","Sempiternal Rune","Undying Flame","Ageless Halo","Perpetual Core","Immortal Sigil","Infinite Diadem"],
-      omniversal:["Omniversal Heart","All-Crown","Totality Core","Panreality Halo","Absolute Sigil","Everything Rune","Boundless Star","Cosmos Crown","Axis of All","Prime Totality","Eclipse Gem","Cosmic Gem"],
+      omniversal:["Omniversal Heart","All-Crown","Totality Core","Panreality Halo","Absolute Sigil","Everything Rune","Boundless Star","Cosmos Crown","Axis of All","Prime Totality","Cosmic Gem"],
       exclusive:["M87 Matter"]
     };
 
@@ -694,7 +697,30 @@
     }
     function toChances(tiers){ const total=sumWeights(tiers); return tiers.map(t=>({ ...t, chance: total>0 ? t.weight/total : 0 })); }
     function pickTier(chances){ const r=Math.random(); let acc=0; for(let i=0;i<chances.length;i++){ acc+=chances[i].chance; if(r<=acc) return chances[i]; } return chances[chances.length-1]; }
-    function pickIndexItem(tierKey){ const list=INDEX_ITEMS[tierKey]||[]; if(!list.length) return null; return list[Math.floor(Math.random()*list.length)]; }
+
+    /* WEATHER-LOCKED ITEMS MAP */
+    const WEATHER_LOCKS = {
+      "Cosmic Gem": "Cosmic Tempest",
+      "Eclipse Gem": "Eternal Eclipse"
+    };
+    function isWeatherActiveByName(name){
+      const now=Date.now();
+      return !!state.effectInstances.find(e=>e.type==="weather" && e.name===name && e.expiresAt>now);
+    }
+    function isAllowedByWeather(name){
+      const req = WEATHER_LOCKS[name];
+      return !req || isWeatherActiveByName(req);
+    }
+
+    function pickIndexItem(tierKey){
+      const list=INDEX_ITEMS[tierKey]||[];
+      if(!list.length) return null;
+      const filtered = list.filter(n=>isAllowedByWeather(n));
+      const src = filtered.length ? filtered : list.filter(n=>!WEATHER_LOCKS[n]);
+      if(!src.length) return null;
+      return src[Math.floor(Math.random()*src.length)];
+    }
+
     function buildItemTierWeightsFromIndex(baseTiers){
       const order=baseTiers.map(t=>t.key);
       return baseTiers.map(t=>{ const idx=order.indexOf(t.key); const penalKey=order[Math.min(idx+2,order.length-1)]; const penalTier=baseTiers.find(x=>x.key===penalKey); const weight=(penalTier?.weight || t.weight)/8000; return { ...t, weight }; });
@@ -852,7 +878,7 @@
         }
       }
 
-      // Eclipse corona (kept for Eternal Eclipse visual hint)
+      // Eclipse corona (Eternal Eclipse visual hint)
       if(cls==="wb-eclipse"){ const corona=document.createElement("div"); corona.className="corona"; particles.appendChild(corona); }
 
       // Cosmic Tempest
@@ -900,7 +926,7 @@
         bg.addEventListener("DOMNodeRemoved", ()=>clearInterval(meteorInterval));
       }
 
-      // Black Hole — twinkling galaxy + WHITE corona + BLACK CORE + SPIRAL ACCRETION RINGS
+      // Black Hole — galaxy + white corona + black core + spiral rings
       if(cls==="wb-blackhole"){
         for(let i=0;i<64;i++){
           const c=document.createElement("span"); c.className="cosmic";
@@ -1204,7 +1230,7 @@
         spawnBanner(`Guarantee consumed: Origin Crystal`,"announce","b-omniversal");
         const highKeys=["eternal","omniversal"];
         const tierKey = highKeys[Math.random()<0.65 ? 0 : 1];
-        const items=INDEX_ITEMS[tierKey];
+        const items=INDEX_ITEMS[tierKey].filter(n=>isAllowedByWeather(n));
         const itemName = items[Math.floor(Math.random()*items.length)];
         return { forcedTierKey:tierKey, forcedTierName:TIERS.find(t=>t.key===tierKey).name, forcedTierNameShort:tierKey, forcedItemName:itemName };
       }
@@ -1232,11 +1258,17 @@
       if(guaranteePick){
         tierKey=guaranteePick.forcedTierKey; tierName=guaranteePick.forcedTierName; prePickedItem=guaranteePick.forcedItemName;
       } else if(forced && forced.rarity){
-        tierKey=forced.rarity; tierName=TIERS.find(t=>t.key===tierKey)?.name || forced.rarity;
-        if(forced.name){ prePickedItem=forced.name; }
-        state.commands.nextRoll.applied=true; if(forced.clearAfter){ setTimeout(()=>{ state.commands.nextRoll=null; saveState(); }, 0); }
-        saveState();
-      } else {
+        if(forced.name && WEATHER_LOCKS[forced.name] && !isWeatherActiveByName(WEATHER_LOCKS[forced.name])){
+          spawnBanner(`Blocked: ${forced.name} requires ${WEATHER_LOCKS[forced.name]}`,"announce","b-trash");
+          state.commands.nextRoll=null; saveState();
+        } else {
+          tierKey=forced.rarity; tierName=TIERS.find(t=>t.key===tierKey)?.name || forced.rarity;
+          if(forced.name){ prePickedItem=forced.name; }
+          state.commands.nextRoll.applied=true; if(forced.clearAfter){ setTimeout(()=>{ state.commands.nextRoll=null; saveState(); }, 0); }
+          saveState();
+        }
+      }
+      if(!tierKey){
         const chances=toChances(tiers); const pickedTier=pickTier(chances); tierKey=pickedTier.key; tierName=pickedTier.name;
         if(exclusiveActive){
           const base = m87Active ? 0.0000005 : 0.00002;
@@ -1258,13 +1290,36 @@
 
       function tryWeatherItemBias(defaultTierKey){
         const bias=state.activeEffects.weatherBiasItem; if(!bias) return null;
-        const items=INDEX_ITEMS[defaultTierKey]||[]; if(!items.includes(bias.name)) return null;
-        const pass=Math.random()<(bias.boost||0); return pass?bias.name:null;
+        const items=INDEX_ITEMS[defaultTierKey]||[];
+        if(!items.includes(bias.name)) return null;
+        const pass=Math.random()<(bias.boost||0);
+        const chosen = pass ? bias.name : null;
+        return chosen && isAllowedByWeather(chosen) ? chosen : null;
       }
 
-      if(prePickedItem){
-        displayName=prePickedItem; displayRarityClass=TIERS.find(t=>t.key===tierKey)?.colorClass || "";
-        processIndexItem(tierKey,tierName,prePickedItem,surge); isNew=markNew(tierKey,prePickedItem);
+      // Event-only forced gems
+      if(wEff && wEff.name==="Cosmic Tempest"){
+        displayName="Cosmic Gem";
+        tierKey="omniversal"; tierName="Omniversal";
+        displayRarityClass="b-omniversal";
+        processIndexItem(tierKey,tierName,displayName,surge);
+        isNew=markNew(tierKey,displayName);
+      }
+      else if(wEff && wEff.name==="Eternal Eclipse"){
+        displayName="Eclipse Gem";
+        tierKey="celestial"; tierName="Celestial";
+        displayRarityClass="b-celestial";
+        processIndexItem(tierKey,tierName,displayName,surge);
+        isNew=markNew(tierKey,displayName);
+      }
+      else if(prePickedItem){
+        if(WEATHER_LOCKS[prePickedItem] && !isAllowedByWeather(prePickedItem)){
+          displayName=tierName; displayRarityClass=TIERS.find(t=>t.key===tierKey)?.colorClass || "";
+          processIndexItem(tierKey,tierName,null,surge);
+        } else {
+          displayName=prePickedItem; displayRarityClass=TIERS.find(t=>t.key===tierKey)?.colorClass || "";
+          processIndexItem(tierKey,tierName,prePickedItem,surge); isNew=markNew(tierKey,prePickedItem);
+        }
       } else if(rollItem){
         const itemTier=pickTier(itemChances);
         const drop=pickConsumableFromTier(itemTier.key);
@@ -1284,12 +1339,16 @@
               } else { if(!state.fullAnnouncedItems){ spawnBanner(`Items inventory is full ${ITEMS_MAX}/${ITEMS_MAX}`,"announce",""); state.fullAnnouncedItems=true; } }
             }
           } else {
-            const biasPick=tryWeatherItemBias(tierKey); const itemName=biasPick || pickIndexItem(tierKey);
+            const biasPick=tryWeatherItemBias(tierKey); 
+            let itemName=biasPick || pickIndexItem(tierKey);
+            if(itemName && !isAllowedByWeather(itemName)) itemName=null;
             displayName=itemName || tierName; displayRarityClass=TIERS.find(t=>t.key===tierKey)?.colorClass || "";
             processIndexItem(tierKey,tierName,itemName,surge); if(itemName) isNew=markNew(tierKey,itemName);
           }
         } else {
-          const biasPick=tryWeatherItemBias(tierKey); const itemName=biasPick || pickIndexItem(tierKey);
+          const biasPick=tryWeatherItemBias(tierKey); 
+          let itemName=biasPick || pickIndexItem(tierKey);
+          if(itemName && !isAllowedByWeather(itemName)) itemName=null;
           displayName=itemName || tierName; displayRarityClass=TIERS.find(t=>t.key===tierKey)?.colorClass || "";
           processIndexItem(tierKey,tierName,itemName,surge); if(itemName) isNew=markNew(tierKey,itemName);
         }
@@ -1301,7 +1360,8 @@
           processIndexItem("exclusive","Exclusive",itemName,surge);
           if(itemName){ isNew=markNew("exclusive",itemName); saveState(); }
         } else {
-          const chosenName=tryWeatherItemBias(tierKey) || pickIndexItem(tierKey);
+          const chosenNameRaw=tryWeatherItemBias(tierKey) || pickIndexItem(tierKey);
+          const chosenName = (chosenNameRaw && isAllowedByWeather(chosenNameRaw)) ? chosenNameRaw : null;
           displayName=chosenName || tierName; displayRarityClass=TIERS.find(t=>t.key===tierKey)?.colorClass || "";
           processIndexItem(tierKey,tierName,chosenName,surge); if(chosenName) isNew=markNew(tierKey,chosenName);
         }
@@ -1446,6 +1506,7 @@
         const cap=document.createElement("div"); cap.className="inv-stats"; cap.style.marginTop="8px"; cap.textContent=`Items capacity ${state.inventoryItems.length}/${ITEMS_MAX}`; elInventoryList.appendChild(cap);
       }
     }
+
     function performDeleteRolledEntry(entry){
       const idx=state.inventoryRolled.findIndex(i=>i.roll===entry.roll && i.name===entry.name);
       if(idx>=0){ state.inventoryRolled.splice(idx,1); saveState(); renderInventory(); state.fullAnnouncedRolled=false; }
@@ -1618,150 +1679,149 @@
           pick.classList.add('selected');
           spawnBanner(`CMD: Next item → ${name}`,"announce",TIERS.find(t=>t.key===rarityKey)?.colorClass||"");
         });
-        right.appendChild(pick); row.appendChild(left); row.appendChild(right); list.appendChild(row);
+        right.appendChild(pick);
+        row.appendChild(left);
+        row.appendChild(right);
+        list.appendChild(row);
       });
     }
-    document.getElementById("cmdNextRollApply").addEventListener("click",()=>{
-      if(!commandsUnlocked){ spawnBanner("Access denied","announce","b-trash"); return; }
-      if(!state.commands.nextRoll || !state.commands.nextRoll.rarity){ alert("Pick a next rarity first."); return; }
-      saveState(); spawnBanner(`Next roll set → ${state.commands.nextRoll.rarity.toUpperCase()} ${state.commands.nextRoll.name?`(${state.commands.nextRoll.name})`:''}`,"announce",TIERS.find(t=>t.key===state.commands.nextRoll.rarity)?.colorClass||"");
+
+    cmdNextRollApply.addEventListener("click",()=>{
+      if(!state.commands.nextRoll){ alert("No rarity/item selected."); return; }
+      saveState();
+      spawnBanner(`CMD: Next roll set → ${state.commands.nextRoll.name||state.commands.nextRoll.rarity}`,"announce","b-epic");
     });
-    document.getElementById("cmdNextRollClear").addEventListener("click",()=>{
-      if(!commandsUnlocked){ spawnBanner("Access denied","announce","b-trash"); return; }
-      state.commands.nextRoll=null; saveState(); spawnBanner("Next roll cleared","announce","b-common");
-      const grp=document.getElementById("cmdNextRarityGroup");
-      [...grp.querySelectorAll('.cmd-btn')].forEach(x=>x.classList.remove('selected'));
-      document.getElementById("cmdNextItemList").innerHTML="";
+    cmdNextRollClear.addEventListener("click",()=>{
+      state.commands.nextRoll=null;
+      saveState();
+      spawnBanner("CMD: Next roll cleared","announce","b-trash");
+      renderNextRarityGroup();
+      renderNextItemList("common");
     });
 
     function renderGiveRarityGroup(){
-      const grp=document.getElementById("cmdGiveRarityGroup");
-      grp.innerHTML="";
+      cmdGiveRarityGroup.innerHTML="";
       TIERS.forEach(t=>{
-        const b=document.createElement("button"); b.className="cmd-btn"; b.textContent=t.name;
-        b.addEventListener("click",()=>{ state.commands.giveRarity=t.key; renderGiveDropsList(t.key);
-          [...grp.querySelectorAll('.cmd-btn')].forEach(x=>x.classList.remove('selected'));
+        const b=document.createElement("button");
+        b.className="cmd-btn";
+        b.textContent=t.name;
+        b.addEventListener("click",()=>{
+          state.commands.giveRarity=t.key;
+          [...cmdGiveRarityGroup.querySelectorAll('.cmd-btn')].forEach(x=>x.classList.remove('selected'));
           b.classList.add('selected');
-          spawnBanner(`CMD: Give rarity → ${t.name}`,"announce",t.colorClass); });
-        grp.appendChild(b);
+          renderGiveDropsList(t.key);
+          spawnBanner(`CMD: Give rarity → ${t.name}`,"announce",t.colorClass);
+        });
+        cmdGiveRarityGroup.appendChild(b);
       });
-      renderGiveDropsList(state.commands.giveRarity);
     }
+
     function renderGiveDropsList(rarityKey){
-      const list=document.getElementById("cmdGiveDropsList");
-      list.innerHTML="";
+      cmdGiveDropsList.innerHTML="";
       const drops=ITEM_DROPS[rarityKey]||[];
-      if(!drops.length){ list.textContent="(no drops)"; state.commands.giveDrop=null; return; }
-      drops.forEach(d=>{
+      if(!drops.length){ cmdGiveDropsList.textContent="(no drops)"; return; }
+      drops.forEach(drop=>{
         const row=document.createElement("div"); row.className="cmd-item";
-        const left=document.createElement("div"); left.textContent=d.name;
+        const left=document.createElement("div"); left.textContent=drop.name;
         const right=document.createElement("div");
         const pick=document.createElement("button"); pick.className="cmd-btn"; pick.textContent="Select";
-        pick.addEventListener("click",()=>{ state.commands.giveDrop=d;
-          [...list.querySelectorAll('.cmd-btn')].forEach(x=>x.classList.remove('selected'));
+        pick.addEventListener("click",()=>{
+          state.commands.giveDrop=drop;
+          [...cmdGiveDropsList.querySelectorAll('.cmd-btn')].forEach(x=>x.classList.remove('selected'));
           pick.classList.add('selected');
-          spawnBanner(`CMD: Selected ${d.name}`,"announce",TIERS.find(t=>t.key===d.rarity)?.colorClass||""); });
-        right.appendChild(pick); row.appendChild(left); row.appendChild(right); list.appendChild(row);
+          spawnBanner(`CMD: Selected drop → ${drop.name}`,"announce",TIERS.find(t=>t.key===rarityKey)?.colorClass||"");
+        });
+        right.appendChild(pick);
+        row.appendChild(left);
+        row.appendChild(right);
+        cmdGiveDropsList.appendChild(row);
       });
     }
-    document.getElementById("cmdGiveAdd").addEventListener("click",()=>{
-      if(!commandsUnlocked){ spawnBanner("Access denied","announce","b-trash"); return; }
-      const eff=state.commands.giveDrop; const key=state.commands.giveRarity;
-      if(!eff){ alert("Select a drop first."); return; }
+
+    cmdGiveAdd.addEventListener("click",()=>{
+      if(!state.commands.giveDrop){ alert("Pick a drop first."); return; }
+      const drop=state.commands.giveDrop;
       if(state.inventoryItems.length<ITEMS_MAX){
-        state.inventoryItems.push({ type:eff.type, tier:key, tierName:TIERS.find(t=>t.key===key).name, name:eff.name, roll:state.rolls, effect:eff });
-        saveState(); renderInventory();
-        spawnBanner(`CMD: Added ${eff.name} to Items`,"announce",TIERS.find(t=>t.key===eff.rarity)?.colorClass||"");
-      } else { spawnBanner(`Items inventory is full ${ITEMS_MAX}/${ITEMS_MAX}`,"announce",""); }
+        state.inventoryItems.push({ type:drop.type, tier:drop.rarity, tierName:TIERS.find(t=>t.key===drop.rarity)?.name||drop.rarity, name:drop.name, roll:state.rolls, effect:drop });
+        saveState();
+        renderInventory();
+        spawnBanner(`CMD: Added ${drop.name}`,"announce",TIERS.find(t=>t.key===drop.rarity)?.colorClass||"");
+      } else { spawnBanner("Items inventory full","announce","b-trash"); }
     });
-    document.getElementById("cmdGiveActivate").addEventListener("click",()=>{
-      if(!commandsUnlocked){ spawnBanner("Access denied","announce","b-trash"); return; }
-      const eff=state.commands.giveDrop;
-      if(!eff){ alert("Select a drop first."); return; }
-      addEffect(eff);
-      spawnBanner(`CMD: Activated ${eff.name}`,"activate",TIERS.find(t=>t.key===eff.rarity)?.colorClass||"");
-    });
-
-    // Bias apply
-    document.getElementById("cmdBiasApply").addEventListener("click",()=>{
-      if(!commandsUnlocked){ spawnBanner("Access denied","announce","b-trash"); return; }
-      const biasKey=state.commands.biasSel;
-      const biasAmt=parseFloat(cmdBiasAmount.value);
-      if(!biasKey){ alert("Pick a bias rarity first."); return; }
-      if(Number.isNaN(biasAmt) || biasAmt<=0){ alert("Enter a valid bias amount (e.g., 0.2)."); return; }
-      addEffect({ name:`Bias → ${biasKey.toUpperCase()} +${Math.round(biasAmt*100)}%`, type:"bias", target:biasKey, amount:biasAmt, duration:60, rarity:"epic" });
-      spawnBanner(`CMD: Bias → ${biasKey.toUpperCase()} +${Math.round(biasAmt*100)}%`,"activate","b-epic");
+    cmdGiveActivate.addEventListener("click",()=>{
+      if(!state.commands.giveDrop){ alert("Pick a drop first."); return; }
+      const drop=state.commands.giveDrop;
+      addEffect({ ...drop, name:drop.name, type:drop.type, amount:drop.amount, target:drop.target, duration:drop.duration, rarity:drop.rarity });
+      spawnBanner(`CMD: Activated ${drop.name}`,"activate",TIERS.find(t=>t.key===drop.rarity)?.colorClass||"");
     });
 
-    // Luck apply (click in section applies current amount & duration)
-    document.getElementById("cmdLuckSection").addEventListener("click",(e)=>{
-      if(!commandsUnlocked) return;
-      if(e.target && e.target.hasAttribute("data-luckdur")) return;
-      const luckAmt=parseFloat(cmdLuckInput.value);
-      if(!Number.isNaN(luckAmt) && luckAmt!==0){
-        const dur=state.commands.luckDur||60;
-        addEffect({ name:`Command Luck +${Math.round(luckAmt*100)}%`, type:"luck", amount:luckAmt, duration:dur, rarity: luckAmt>=1 ? "legendary" : luckAmt>=0.5 ? "epic" : "rare" });
-        spawnBanner(`CMD: Luck +${Math.round(luckAmt*100)}% (${dur}s)`,"activate","b-epic");
+    cmdLuckInput.addEventListener("change",()=>{
+      const val=parseFloat(cmdLuckInput.value);
+      if(!isNaN(val) && val>0){
+        addEffect({ name:"CMD Luck", type:"luck", amount:val, duration:state.commands.luckDur||60, rarity:"epic" });
+        spawnBanner(`CMD: Luck +${Math.round(val*100)}%`,"announce","b-epic");
+      }
+    });
+    cmdBiasApply.addEventListener("click",()=>{
+      const amt=parseFloat(cmdBiasAmount.value);
+      if(!state.commands.biasSel || isNaN(amt) || amt<=0){ alert("Pick bias target and amount."); return; }
+      addEffect({ name:`CMD Bias → ${state.commands.biasSel}`, type:"bias", target:state.commands.biasSel, amount:amt, duration:60, rarity:"legendary" });
+      spawnBanner(`CMD: Bias → ${state.commands.biasSel.toUpperCase()} +${Math.round(amt*100)}%`,"announce","b-legendary");
+    });
+    cmdSpeedApply.addEventListener("click",()=>{
+      const val=parseFloat(cmdSpeedInput.value);
+      if(!isNaN(val) && val>0){
+        addEffect({ name:"CMD Speed", type:"speed", amount:val, duration:60, rarity:"legendary" });
+        spawnBanner(`CMD: Speed +${Math.round(val*100)}%`,"announce","b-legendary");
       }
     });
 
-    // Speed apply
-    document.getElementById("cmdSpeedApply").addEventListener("click",()=>{
-      if(!commandsUnlocked){ spawnBanner("Access denied","announce","b-trash"); return; }
-      const speedAmt=parseFloat(cmdSpeedInput.value);
-      if(Number.isNaN(speedAmt) || speedAmt<=0){ alert("Enter a valid speed amount (e.g., 0.25)."); return; }
-      addEffect({ name:`Command Speed +${Math.round(speedAmt*100)}%`, type:"speed", amount:speedAmt, duration:state.commands.luckDur||60, rarity: speedAmt>=1 ? "legendary" : speedAmt>=0.5 ? "epic" : "rare" });
-      spawnBanner(`CMD: Speed +${Math.round(speedAmt*100)}%`,"activate","b-epic");
+    cmdResetBtn.addEventListener("click",()=>{
+      document.getElementById("resetWrap").style.display="flex";
     });
-
-    /* ---------------- Data management ---------------- */
-    const resetWrap=document.getElementById("resetWrap");
-    const resetCancel=document.getElementById("resetCancel");
-    const resetConfirm=document.getElementById("resetConfirm");
-
-    document.getElementById("cmdReset").addEventListener("click",()=>{
-      if(!commandsUnlocked){ spawnBanner("Access denied","announce","b-trash"); return; }
-      resetWrap.style.display="flex";
+    document.getElementById("resetCancel").addEventListener("click",()=>{
+      document.getElementById("resetWrap").style.display="none";
     });
-    resetCancel.addEventListener("click",()=>{ resetWrap.style.display="none"; });
-    resetConfirm.addEventListener("click",()=>{
-      resetWrap.style.display="none";
-      localStorage.clear(); location.reload();
+    document.getElementById("resetConfirm").addEventListener("click",()=>{
+      localStorage.clear();
+      location.reload();
     });
-
-    document.getElementById("cmdClearEffects").addEventListener("click",()=>{
-      if(!commandsUnlocked){ spawnBanner("Access denied","announce","b-trash"); return; }
-      state.effectInstances=[]; state.guarantees=[]; deriveEffectsTotals(); saveState(); renderActiveEffects(); renderWeatherBackdrop(); spawnBanner("Effects & guarantees cleared","announce","b-common");
+    cmdClearEffectsBtn.addEventListener("click",()=>{
+      state.effectInstances=[];
+      state.guarantees=[];
+      deriveEffectsTotals();
+      saveState();
+      renderActiveEffects();
+      spawnBanner("CMD: Cleared effects","announce","b-trash");
     });
-
-    /* ---------------- Hooks ---------------- */
-    document.getElementById("btnRoll").addEventListener("click",rollOnce);
-    document.getElementById("btnAuto").addEventListener("click",()=>toggleAuto());
-    document.getElementById("btnIndex").addEventListener("click",()=>{ const vis=elIndexPanel.style.display!=="none"; if(vis){ elIndexPanel.style.display="none"; } else { elIndexPanel.style.display="block"; elInventoryPanel.style.display="none"; renderIndex(); } });
-    document.getElementById("btnInventory").addEventListener("click",()=>{ const vis=elInventoryPanel.style.display!=="none"; if(vis){ elInventoryPanel.style.display="none"; } else { elInventoryPanel.style.display="block"; elIndexPanel.style.display="none"; renderInventory(); } });
-    document.getElementById("autoSellPrev").addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,(state.mode==="Items"?state.autoSellItems:state.autoSellRolled),-1)));
-    document.getElementById("autoSellNext").addEventListener("click",()=>setAutoSell(cycle(autoSellOptions,(state.mode==="Items"?state.autoSellItems:state.autoSellRolled),1)));
-    document.getElementById("modePrev").addEventListener("click",()=>setMode(cycle(modes,state.mode,-1)));
-    document.getElementById("modeNext").addEventListener("click",()=>setMode(cycle(modes,state.mode,1)));
 
     /* ---------------- Init ---------------- */
+    document.getElementById("btnRoll").addEventListener("click",rollOnce);
+    document.getElementById("btnAuto").addEventListener("click",()=>toggleAuto());
+    document.getElementById("btnIndex").addEventListener("click",()=>{
+      elIndexPanel.style.display=elIndexPanel.style.display==="none"?"block":"none";
+      renderIndex();
+    });
+    document.getElementById("btnInventory").addEventListener("click",()=>{
+      elInventoryPanel.style.display=elInventoryPanel.style.display==="none"?"block":"none";
+      renderInventory();
+    });
+
+    document.getElementById("modePrev").addEventListener("click",()=>{ setMode(cycle(modes,state.mode,-1)); });
+    document.getElementById("modeNext").addEventListener("click",()=>{ setMode(cycle(modes,state.mode,+1)); });
+    document.getElementById("autoSellPrev").addEventListener("click",()=>{ setAutoSell(cycle(autoSellOptions,state.mode==="Items"?state.autoSellItems:state.autoSellRolled,-1)); });
+    document.getElementById("autoSellNext").addEventListener("click",()=>{ setAutoSell(cycle(autoSellOptions,state.mode==="Items"?state.autoSellItems:state.autoSellRolled,+1)); });
+
     loadState();
     renderButtonsState();
-    renderActiveEffects();
-    renderWeatherBackdrop();
-    renderInventory();
     renderIndex();
-    renderBiasTierGroup();
-    renderWeatherList();
-    renderNextRarityGroup();
-    renderGiveRarityGroup();
-    updateBlackHoleTransformButtonVisibility();
-
-    const elAutoBtn=document.getElementById("btnAuto");
-    if(state.auto && state.rolls>=50){ elAutoBtn.disabled=false; elAutoBtn.textContent="Auto Roll: On"; updateAutoInterval(); }
-    else { elAutoBtn.textContent=state.rolls>=50?"Auto Roll: Off":"Auto Roll (locked)"; }
-
+    renderInventory();
+    renderActiveEffects();
     scheduleNextWeather();
   </script>
 </body>
 </html>
+
+          spawnBanner(`CMD: Next item → ${name}`,"announce",TIERS.find(t=>t.key===rarityKey)?.colorClass||"");
+        });
+        right
