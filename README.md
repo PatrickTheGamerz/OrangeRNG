@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sol’s RNG — Full Updated Working Build (Event-locked Cosmic/Eclipse Gems)</title>
+  <title>Sol’s RNG — Full Working Build (Updated)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -159,7 +159,6 @@
         radial-gradient(circle at 50% 50%,rgba(255,200,120,0.14), transparent 70%);
     }
 
-    /* Black Hole backdrop base */
     .wb-blackhole{
       background:
         radial-gradient(120% 120% at 50% 50%, rgba(0,0,0,0.96), rgba(0,0,0,0.9)),
@@ -195,7 +194,6 @@
     .shooting{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;box-shadow:0 0 12px rgba(255,255,255,0.8);opacity:1;}
     @keyframes shoot{0%{transform:translate(0,0);opacity:1}80%{opacity:1}100%{transform:translate(-420px,220px);opacity:0}}
 
-    /* Corona (white for Black Hole/Eclipse hint) */
     .corona{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:280px;height:280px;border-radius:50%;box-shadow:0 0 120px rgba(255,255,255,0.55);animation:coronaPulse 6s ease-in-out infinite; z-index:3;}
     @keyframes coronaPulse{0%,100%{box-shadow:0 0 80px rgba(255,255,255,0.3)}50%{box-shadow:0 0 160px rgba(255,255,255,0.75)}}
 
@@ -205,7 +203,6 @@
     .beam{position:absolute;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0));filter:blur(1px);mix-blend-mode:screen;}
     .shard{position:absolute;width:8px;height:24px;background:linear-gradient(180deg,rgba(150,200,255,0.9),rgba(150,200,255,0));transform-origin:center;filter:blur(0.4px);opacity:.88;}
 
-    /* Twinkle keyframes for stars */
     @keyframes twinkle{0%{opacity:.2}50%{opacity:1}100%{opacity:.2}}
 
     /* --- Black Hole spiral accretion disk and core --- */
@@ -508,8 +505,6 @@
       {key:"exclusive",name:"Exclusive",weight:0,colorClass:"b-exclusive"}
     ];
 
-    /* Keep Cosmic Gem (omniversal) and Eclipse Gem (celestial) in index for tracking,
-       but enforce weather-only acquisition in logic. */
     const INDEX_ITEMS={
       worthless:["Flicker Dust","Cracked Ash","Dim Mote","Frayed Thread","Worn Chip","Hollow Grain","Stale Ember","Silt Speck","Faded Spark","Withered Flake","Dull Scale","Spent Echo"],
       trash:["Bent Sigil","Scuffed Gear","Fractured Bead","Tarnished Ring","Splintered Token","Bruised Charm","Chipped Prism","Dented Halo","Crater Chip","Scratched Fang","Bruised Petal","Muddled Rune"],
@@ -723,7 +718,13 @@
 
     function buildItemTierWeightsFromIndex(baseTiers){
       const order=baseTiers.map(t=>t.key);
-      return baseTiers.map(t=>{ const idx=order.indexOf(t.key); const penalKey=order[Math.min(idx+2,order.length-1)]; const penalTier=baseTiers.find(x=>x.key===penalKey); const weight=(penalTier?.weight || t.weight)/8000; return { ...t, weight }; });
+      return baseTiers.map(t=>{
+        const idx=order.indexOf(t.key);
+        const penalKey=order[Math.min(idx+2,order.length-1)];
+        const penalTier=baseTiers.find(x=>x.key===penalKey);
+        const weight=(penalTier?.weight || t.weight)/8000;
+        return { ...t, weight };
+      });
     }
     function pickConsumableFromTier(tierKey){ const list=ITEM_DROPS[tierKey]||[]; if(!list.length) return null; return list[Math.floor(Math.random()*list.length)]; }
     function colorClassForWeather(name){ const all=[...WEATHERS.normal,...WEATHERS.rare,...WEATHERS.super,...WEATHERS.commandOnly]; const w=all.find(x=>x.name===name); return w?.colorClass || ""; }
@@ -738,7 +739,11 @@
         if(e.type==="luck") totals.luck+=e.amount;
         else if(e.type==="speed") totals.speed+=e.amount;
         else if(e.type==="bias"){ totals.bias[e.target]=(totals.bias[e.target]||0)+e.amount; }
-        else if(e.type==="weather" && e.meta){ totals.weatherBiasItem=e.meta.biasItem||null; totals.luck += (e.meta.luck||0); totals.speed += (e.meta.speed||0); }
+        else if(e.type==="weather" && e.meta){
+          totals.weatherBiasItem=e.meta.biasItem||null;
+          totals.luck += (e.meta.luck||0);
+          totals.speed += (e.meta.speed||0);
+        }
       }
       state.activeEffects=totals;
     }
@@ -776,7 +781,7 @@
       state.guarantees.forEach(g=>{ const div=document.createElement("div"); div.className=`effect-entry ${"b-omniversal"}`; div.textContent=`${g.name}: ready`; el.appendChild(div); });
     }
 
-    /* ---------------- Weather visuals (includes Black Hole spiral core) ---------------- */
+    /* ---------------- Weather visuals ---------------- */
     function renderWeatherBackdrop(){
       const area=document.getElementById("rollArea");
       const old=area.querySelector(".weather-bg");
@@ -797,7 +802,6 @@
       const bg=document.createElement("div"); bg.className="weather-bg "+cls;
       const particles=document.createElement("div"); particles.className="particles";
 
-      // Sunny
       if(cls==="wb-sunny"){
         for(let i=0;i<18;i++){
           const b=document.createElement("div");
@@ -820,7 +824,6 @@
         }
       }
 
-      // Storm
       if(cls==="wb-storm"){
         for(let i=0;i<220;i++){
           const p=document.createElement("span"); p.className="rain-drop";
@@ -841,7 +844,6 @@
         bg.dataset.intervalId = lightningInterval;
       }
 
-      // Blizzard
       if(cls==="wb-blizzard"){
         function spawnSnow(){
           const s=document.createElement("span"); s.className="snow-flake";
@@ -856,7 +858,6 @@
         const swirl=document.createElement("div"); swirl.className="snow-swirl"; particles.appendChild(swirl);
       }
 
-      // Fog
       if(cls==="wb-fog"){
         const fog1=document.createElement("div"); fog1.className="fog-mist"; fog1.style.opacity="0.8";
         const fog2=document.createElement("div"); fog2.className="fog-mist"; fog2.style.opacity="0.55"; fog2.style.animationDuration="32s";
@@ -864,7 +865,6 @@
         particles.appendChild(fog1); particles.appendChild(fog2); particles.appendChild(fog3);
       }
 
-      // Aurora
       if(cls==="wb-aurora"){
         for (let i = 0; i < 24; i++) {
           const st = document.createElement("span");
@@ -878,10 +878,8 @@
         }
       }
 
-      // Eclipse corona (Eternal Eclipse visual hint)
       if(cls==="wb-eclipse"){ const corona=document.createElement("div"); corona.className="corona"; particles.appendChild(corona); }
 
-      // Cosmic Tempest
       if(cls==="wb-tempest"){
         for(let i=0;i<58;i++){
           const c=document.createElement("span"); c.className="cosmic";
@@ -902,7 +900,6 @@
         bg.dataset.intervalId = starInterval;
       }
 
-      // Meteor storm (one-by-one)
       if(cls==="wb-meteor"){
         for(let i=0;i<28;i++){
           const c=document.createElement("span"); c.className="cosmic";
@@ -914,19 +911,23 @@
         }
         function spawnMeteor(){
           const m=document.createElement("div"); m.className="meteor";
-          const startX = 20 + Math.random()*80;
-          m.style.left = startX + "%";
+          m.style.left = (20 + Math.random()*80) + "%";
           m.style.top = (-140 - Math.random()*120) + "px";
+          m.style.width="6px"; m.style.height="30px"; m.style.background="linear-gradient(180deg, rgba(255,150,80,0.95), rgba(255,150,80,0))"; m.style.borderRadius="2px";
+          m.style.boxShadow="0 0 14px rgba(255,200,160,0.5)";
           m.style.animation = `meteorFall ${1.2+Math.random()*0.9}s linear 1`;
           particles.appendChild(m);
           setTimeout(()=>m.remove(), 2400);
         }
+        const meteorKey = "meteorFall";
+        if(!document.getElementById("kf_"+meteorKey)){
+          const style=document.createElement("style"); style.id="kf_"+meteorKey; style.textContent=`@keyframes meteorFall{0%{transform:translateY(-160px) translateX(-40px) rotate(15deg);opacity:.0}10%{opacity:.9}100%{transform:translateY(540px) translateX(220px) rotate(25deg);opacity:.0}}`; document.head.appendChild(style);
+        }
         spawnMeteor();
         const meteorInterval = setInterval(spawnMeteor, 1500);
-        bg.addEventListener("DOMNodeRemoved", ()=>clearInterval(meteorInterval));
+        bg.dataset.intervalId = meteorInterval;
       }
 
-      // Black Hole — galaxy + white corona + black core + spiral rings
       if(cls==="wb-blackhole"){
         for(let i=0;i<64;i++){
           const c=document.createElement("span"); c.className="cosmic";
@@ -998,7 +999,7 @@
 
     /* ---------------- Cutscenes ---------------- */
     const injectedKeyframes = new Set();
-    function injectKeyframesOnce(name, body){ if(injectedKeyframes.has(name)) return; injectedKeyframes.add(name); const style=document.createElement("style"); style.textContent=`@keyframes ${name}{${body}}`; document.head.appendChild(style); }
+    function injectKeyframesOnce(name, body){ if(injectedKeyframes.has(name)) return; const style=document.createElement("style"); style.textContent=`@keyframes ${name}{${body}}`; document.head.appendChild(style); injectedKeyframes.add(name); }
 
     function playInlineCutscene(tierKey, special=null){
       const rollArea=document.getElementById("rollArea");
@@ -1297,7 +1298,6 @@
         return chosen && isAllowedByWeather(chosen) ? chosen : null;
       }
 
-      // Event-only forced gems
       if(wEff && wEff.name==="Cosmic Tempest"){
         displayName="Cosmic Gem";
         tierKey="omniversal"; tierName="Omniversal";
@@ -1739,6 +1739,7 @@
     }
 
     cmdGiveAdd.addEventListener("click",()=>{
+      if(!commandsUnlocked){ spawnBanner("Access denied","announce","b-trash"); return; }
       if(!state.commands.giveDrop){ alert("Pick a drop first."); return; }
       const drop=state.commands.giveDrop;
       if(state.inventoryItems.length<ITEMS_MAX){
@@ -1749,10 +1750,28 @@
       } else { spawnBanner("Items inventory full","announce","b-trash"); }
     });
     cmdGiveActivate.addEventListener("click",()=>{
+      if(!commandsUnlocked){ spawnBanner("Access denied","announce","b-trash"); return; }
       if(!state.commands.giveDrop){ alert("Pick a drop first."); return; }
       const drop=state.commands.giveDrop;
-      addEffect({ ...drop, name:drop.name, type:drop.type, amount:drop.amount, target:drop.target, duration:drop.duration, rarity:drop.rarity });
-      spawnBanner(`CMD: Activated ${drop.name}`,"activate",TIERS.find(t=>t.key===drop.rarity)?.colorClass||"");
+      if(drop.type==="totem"){
+        const metaSrc=[...WEATHERS.normal,...WEATHERS.rare,...WEATHERS.super].find(w=>w.name===drop.weather);
+        const dur=100+Math.floor(Math.random()*201);
+        const meta={ luck:(metaSrc?.effects?.luck)||0, biasItem:(metaSrc?.effects?.biasItem)||null, speed:(metaSrc?.effects?.speed)||0 };
+        addEffect({ name:drop.weather, type:"weather", duration:dur, rarity: classToTierKey(colorClassForWeather(drop.weather)), meta });
+        spawnBanner(`CMD: Activated ${drop.name}`,"activate",classToTierKey(colorClassForWeather(drop.weather)) || "");
+      } else if(drop.type==="totem_random"){
+        const r=Math.random(); let pool=WEATHERS.normal; if(r>=0.70 && r<0.95) pool=WEATHERS.rare; else if(r>=0.95) pool=WEATHERS.super;
+        const w=pool[Math.floor(Math.random()*pool.length)]; const dur=100+Math.floor(Math.random()*201);
+        const meta={ luck:(w.effects?.luck)||0, biasItem:(w.effects?.biasItem)||null, speed:(w.effects?.speed)||0 };
+        addEffect({ name:w.name, type:"weather", duration:dur, rarity: classToTierKey(w.colorClass), meta });
+        spawnBanner(`CMD: Activated ${drop.name}`,"activate",w.colorClass);
+      } else if(drop.type==="guarantee" && drop.name==="Origin Crystal"){
+        addEffect({ ...drop });
+        spawnBanner(`CMD: Stored ${drop.name}`,"activate","b-omniversal");
+      } else {
+        addEffect({ name:drop.name, type:drop.type, amount:drop.amount, target:drop.target, duration:drop.duration, rarity:drop.rarity });
+        spawnBanner(`CMD: Activated ${drop.name}`,"activate",TIERS.find(t=>t.key===drop.rarity)?.colorClass||"");
+      }
     });
 
     cmdLuckInput.addEventListener("change",()=>{
@@ -1817,11 +1836,14 @@
     renderIndex();
     renderInventory();
     renderActiveEffects();
+    renderWeatherBackdrop();
+    renderBiasTierGroup();
+    renderWeatherList();
+    renderNextRarityGroup();
+    renderNextItemList("common");
+    renderGiveRarityGroup();
+    renderGiveDropsList("common");
     scheduleNextWeather();
   </script>
 </body>
 </html>
-
-          spawnBanner(`CMD: Next item → ${name}`,"announce",TIERS.find(t=>t.key===rarityKey)?.colorClass||"");
-        });
-        right
