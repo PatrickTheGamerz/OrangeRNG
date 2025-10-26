@@ -880,9 +880,9 @@
         bg.dataset.intervalId = starInterval;
       }
 
-      // Meteor Storm — minimal starfield
+      // Meteor storm (one-by-one)
       if(cls==="wb-meteor"){
-        for(let i=0;i<24;i++){
+        for(let i=0;i<28;i++){
           const c=document.createElement("span"); c.className="cosmic";
           c.style.left=Math.floor(Math.random()*100)+"%";
           c.style.top=Math.floor(Math.random()*40)+"%";
@@ -890,6 +890,18 @@
           c.style.animation=`drift ${8+Math.random()*6}s ease-in-out infinite`;
           particles.appendChild(c);
         }
+        function spawnMeteor(){
+          const m=document.createElement("div"); m.className="meteor";
+          const startX = 20 + Math.random()*80;
+          m.style.left = startX + "%";
+          m.style.top = (-140 - Math.random()*120) + "px";
+          m.style.animation = `meteorFall ${1.2+Math.random()*0.9}s linear 1`;
+          particles.appendChild(m);
+          setTimeout(()=>m.remove(), 2400);
+        }
+        spawnMeteor();
+        const meteorInterval = setInterval(spawnMeteor, 1500);
+        bg.addEventListener("DOMNodeRemoved", ()=>clearInterval(meteorInterval));
       }
 
       // Black Hole — twinkling galaxy + WHITE corona + BLACK CORE + SPIRAL ACCRETION RINGS
