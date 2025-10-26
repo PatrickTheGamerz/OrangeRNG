@@ -897,17 +897,7 @@
       }
 
       // Black Hole visuals
-      if(cls==="wb-blackhole"){
-        const hole=document.createElement("div");
-        hole.className="blackhole";
-        particles.appendChild(hole);
-        for(let i=0;i<60;i++){
-          const c=document.createElement("span"); c.className="cosmic";
-          c.style.left=(20+Math.random()*60)+"%";
-          c.style.top=(20+Math.random()*60)+"%";
-          c.style.width=c.style.height=(Math.random()*3+2)+"px";
-          c.style.animation=`drift ${7+Math.random()*6}s ease-in-out infinite`;
-          particles.appendChild(c);
+      if(cls==="wb-eclipse"){ const corona=document.createElement("div"); corona.className="corona"; particles.appendChild(corona); }
         }
       }
 
