@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sol’s RNG — Full Build (Aurora + Black Hole fixes)</title>
+  <title>Sol’s RNG — Full Updated Working Build</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -13,10 +13,10 @@
     .content{padding:20px;display:grid;gap:18px;}
     .panel{background:#121521;border:1px solid #242a38;border-radius:12px;padding:16px;}
 
-    /* Hotspot for password */
-    .pw-hotspot{position:absolute; right:8px; top:8px; width:30px; height:30px; z-index:100; opacity:0; pointer-events:auto; cursor:pointer;}
+    /* Password hotspot (hidden after unlock) */
+    .pw-hotspot{position:absolute; right:8px; top:8px; width:30px; height:30px; z-index:100; opacity:0; pointer-events:auto; cursor:pointer; display:block;}
 
-    /* Modal: Password */
+    /* Password modal */
     .pw-wrap{display:none; position:fixed; inset:0; align-items:center; justify-content:center; z-index:200; background:rgba(0,0,0,0.6); backdrop-filter:blur(3px);}
     .pw-modal{width:420px; max-width:94vw; background:#0f1320; border:1px solid #2a3449; border-radius:14px; box-shadow:0 18px 50px rgba(0,0,0,0.65); overflow:hidden;}
     .pw-head{padding:12px 14px; background:#121826; border-bottom:1px solid #2a3449; font-weight:800;}
@@ -51,7 +51,7 @@
     .icon-tempest{background:radial-gradient(circle, rgba(255,255,255,0.9), rgba(255,255,255,0));}
     .icon-meteor{background:radial-gradient(circle at 50% 50%, rgba(255,180,120,0.9), rgba(255,180,120,0));}
     .icon-sunny{background:radial-gradient(circle at 50% 50%, rgba(255,220,140,0.9), rgba(255,220,140,0));}
-    .icon-bh{background:radial-gradient(circle at 50% 50%, rgba(0,0,0,0.95) 50%, rgba(255,160,80,0.35) 55%, transparent 65%);}
+    .icon-bh{background:radial-gradient(circle at 50% 50%, rgba(0,0,0,0.95) 50%, rgba(255,255,255,0.35) 55%, transparent 65%);}
 
     /* Active effects tray */
     .active-effects{position:absolute;bottom:10px;right:10px;z-index:6;font-size:12px;max-width:70%;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
@@ -68,7 +68,7 @@
     .b-omniversal{background:#2f1a2f;color:#ff9cff;}
     .b-exclusive{background:conic-gradient(from 0deg, red, orange, yellow, green, blue, indigo, violet, red);animation:exclusiveSpin 8s linear infinite; color:white;}
     @keyframes exclusiveSpin{0%{filter:hue-rotate(0deg)}100%{filter:hue-rotate(360deg)}}
-    .b-darkmatter{background:radial-gradient(circle at 50% 50%, #000, #0a0714 40%, #5a00ff 70%, #000);color:#c0a0ff;text-shadow:0 0 6px #5a00ff,0 0 12px #ff00ff;}
+    .b-darkmatter{background:radial-gradient(circle at 50% 50%, #000, #0a0714 40%, #ffffff 70%, #000);color:#e7e9ee;text-shadow:0 0 6px #fff,0 0 12px #a0a0ff;}
 
     /* Index */
     .index-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
@@ -137,7 +137,7 @@
     .reset-body .warn{font-size:13px;color:#9aa0ab;}
     .reset-actions{display:flex;gap:12px;justify-content:flex-end;padding:14px;border-top:1px solid #2a3449;background:#101624;}
 
-    /* Weather BGs (Aurora simplified, Black Hole uses Eclipse) */
+    /* Weather BGs */
     .weather-bg{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;animation:weatherFadeIn .7s ease-out forwards;}
     @keyframes weatherFadeIn{from{opacity:0}to{opacity:1}}
 
@@ -145,7 +145,6 @@
     .wb-storm{background:linear-gradient(180deg,rgba(25,30,55,0.85),rgba(0,0,0,0.92));}
     .wb-blizzard{background:linear-gradient(180deg,rgba(200,230,255,0.48),rgba(0,0,0,0.6));}
     .wb-meteor{background:linear-gradient(180deg,rgba(120,50,30,0.36),rgba(0,0,0,0.68)), radial-gradient(160% 160% at 20% -20%, rgba(255,120,80,0.28), transparent 60%);}
-    /* Aurora Veil: simple, reliable animated gradient */
     .wb-aurora{
       --c1: rgba(120,200,255,0.32); --c2: rgba(180,120,255,0.32); --c3: rgba(120,255,200,0.32);
       background: linear-gradient(120deg,var(--c1),var(--c2),var(--c3));
@@ -154,16 +153,21 @@
     }
     @keyframes auroraShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 
-    .wb-eclipse,
-    .wb-blackhole{
+    .wb-eclipse{
       background:
         radial-gradient(circle at 50% 50%,rgba(0,0,0,0.96),rgba(0,0,0,0.86)),
         radial-gradient(circle at 50% 50%,rgba(255,200,120,0.14), transparent 70%);
     }
+    .wb-blackhole{
+      background:
+        radial-gradient(120% 120% at 50% 50%, rgba(0,0,0,0.96), rgba(0,0,0,0.9)),
+        radial-gradient(100% 100% at 70% 30%, rgba(80,200,255,0.25), transparent 70%),
+        radial-gradient(100% 100% at 30% 70%, rgba(180,120,255,0.25), transparent 70%);
+    }
     .wb-tempest{background:radial-gradient(circle at 50% 50%,rgba(120,80,255,0.28),transparent 70%), radial-gradient(circle at 70% 30%,rgba(80,200,255,0.28),transparent 70%);}
     .wb-fog{background:radial-gradient(100% 100% at 50% 50%, rgba(185,195,210,0.18), rgba(0,0,0,0.62));}
 
-    /* Particles (polished) */
+    /* Particles */
     .particles{position:absolute;inset:0;overflow:hidden;filter:blur(0.1px);z-index:2;}
 
     .sunbeam{position:absolute;width:8px;height:340px;background:linear-gradient(180deg, rgba(255,240,180,0.92), rgba(255,240,180,0));opacity:.75;filter:blur(1px);}
@@ -188,19 +192,23 @@
     .shooting{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;box-shadow:0 0 12px rgba(255,255,255,0.8);opacity:1;}
     @keyframes shoot{0%{transform:translate(0,0);opacity:1}80%{opacity:1}100%{transform:translate(-420px,220px);opacity:0}}
 
-    .corona{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:280px;height:280px;border-radius:50%;box-shadow:0 0 120px rgba(255,200,120,0.4);animation:coronaPulse 6s ease-in-out infinite; z-index:3;}
-    @keyframes coronaPulse{0%,100%{box-shadow:0 0 80px rgba(255,200,120,0.22)}50%{box-shadow:0 0 160px rgba(255,200,120,0.6)}}
+    /* Corona (white for Black Hole) */
+    .corona{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:280px;height:280px;border-radius:50%;box-shadow:0 0 120px rgba(255,255,255,0.55);animation:coronaPulse 6s ease-in-out infinite; z-index:3;}
+    @keyframes coronaPulse{0%,100%{box-shadow:0 0 80px rgba(255,255,255,0.3)}50%{box-shadow:0 0 160px rgba(255,255,255,0.75)}}
 
     /* Cutscene */
     .cutscene-inline{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:90%;height:82%;border-radius:16px;overflow:hidden;z-index:5;pointer-events:none;border:1px solid rgba(255,255,255,0.12);box-shadow:0 16px 40px rgba(0,0,0,0.55), inset 0 0 50px rgba(255,255,255,0.04);}
     .ring{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,0.25);}
     .beam{position:absolute;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0));filter:blur(1px);mix-blend-mode:screen;}
     .shard{position:absolute;width:8px;height:24px;background:linear-gradient(180deg,rgba(150,200,255,0.9),rgba(150,200,255,0));transform-origin:center;filter:blur(0.4px);opacity:.88;}
+
+    /* Twinkle keyframes for stars */
+    @keyframes twinkle{0%{opacity:.2}50%{opacity:1}100%{opacity:.2}}
   </style>
 </head>
 <body>
   <div class="app">
-    <div class="pw-hotspot" id="pwHotspot"></div>
+    <div class="pw-hotspot" id="pwHotspot" title="Unlock commands"></div>
 
     <div class="content">
       <div class="panel">
@@ -304,7 +312,6 @@
               </div>
             </div>
             <div class="cmd-actions" style="margin-top:8px;">
-              <!-- Only appears when Black Hole is active -->
               <button class="cmd-btn" id="cmdWeatherToM87" style="display:none;">Transform Black Hole → M87</button>
             </div>
           </div>
@@ -429,18 +436,22 @@
       commandsUnlocked = localStorage.getItem(STORAGE_PW) === "true";
       if(commandsUnlocked){
         btnCommands.style.display = "inline-block";
+        if(pwHotspot) pwHotspot.style.display = "none";
       } else {
         btnCommands.style.display = "none";
         commandsPanel.style.display = "none";
+        if(pwHotspot) pwHotspot.style.display = "block";
       }
     }
 
-    pwHotspot.addEventListener("click", ()=>{
-      pwWrap.style.display = "flex";
-      pwInput.value = "";
-      pwError.style.display = "none";
-      setTimeout(()=>pwInput.focus(), 50);
-    });
+    if(pwHotspot){
+      pwHotspot.addEventListener("click", ()=>{
+        pwWrap.style.display = "flex";
+        pwInput.value = "";
+        pwError.style.display = "none";
+        setTimeout(()=>pwInput.focus(), 50);
+      });
+    }
     pwCancel.addEventListener("click", ()=>{ pwWrap.style.display = "none"; });
     pwSubmit.addEventListener("click", ()=>{
       if(pwInput.value === PASSWORD_VALUE){
@@ -448,6 +459,7 @@
         localStorage.setItem(STORAGE_PW, "true");
         pwWrap.style.display = "none";
         btnCommands.style.display = "inline-block";
+        if(pwHotspot) pwHotspot.style.display = "none";
         spawnBanner("Commands unlocked","announce","b-legendary");
       } else {
         pwError.style.display = "block";
@@ -537,7 +549,7 @@
 
     const LUCK_TARGET_KEYS=["rare","epic","legendary","mythic","divine","celestial","transcendent","eternal","omniversal","exclusive"];
 
-    /* ---------------- Weather definitions ---------------- */
+    /* ---------------- Weathers ---------------- */
     const WEATHERS = {
       normal: [
         {name:"Storm", colorClass:"b-rare", effects:{luck:+0.18}},
@@ -590,8 +602,7 @@
       indexExclusiveUnlocked:false
     };
     function loadState(){
-      commandsUnlocked = localStorage.getItem(STORAGE_PW) === "true";
-      if(commandsUnlocked) btnCommands.style.display = "inline-block";
+      loadPwUnlocked();
 
       const rolls=parseInt(localStorage.getItem(STORAGE_KEYS.rolls)||"0",10);
       const unlocksRaw=localStorage.getItem(STORAGE_KEYS.unlocks);
@@ -721,17 +732,22 @@
       state.guarantees.forEach(g=>{ const div=document.createElement("div"); div.className=`effect-entry ${"b-omniversal"}`; div.textContent=`${g.name}: ready`; el.appendChild(div); });
     }
 
-    /* ---------------- Weather visuals (Aurora simplified, BH uses Eclipse) ---------------- */
+    /* ---------------- Weather visuals (Meteor port, Black Hole white corona, galaxy background) ---------------- */
     function renderWeatherBackdrop(){
       const area=document.getElementById("rollArea");
-      const old=area.querySelector(".weather-bg"); if(old) old.remove();
+      const old=area.querySelector(".weather-bg");
+      if(old){
+        const intId = old.dataset.intervalId;
+        if(intId) { try{ clearInterval(Number(intId)); }catch{} }
+        old.remove();
+      }
       const now=Date.now();
       const weather=state.effectInstances.find(e=>e.type==="weather" && e.expiresAt>now);
       if(!weather) return;
       const map={
         "Sunny Radiance":"wb-sunny","Storm":"wb-storm","Blizzard":"wb-blizzard","Meteor Storm":"wb-meteor",
         "Aurora Veil":"wb-aurora","Eternal Eclipse":"wb-eclipse","Cosmic Tempest":"wb-tempest","Fog":"wb-fog",
-        "Black Hole":"wb-blackhole","M87":"wb-eclipse" /* M87 inherits eclipse background, cutscene adds flair */
+        "Black Hole":"wb-blackhole","M87":"wb-eclipse"
       };
       const cls=map[weather.name] || "wb-sunny";
       const bg=document.createElement("div"); bg.className="weather-bg "+cls;
@@ -778,7 +794,7 @@
           setTimeout(()=>bolt.remove(), 1200);
         }
         const lightningInterval=setInterval(spawnLightning, 1600);
-        bg.addEventListener("DOMNodeRemoved", ()=>clearInterval(lightningInterval));
+        bg.dataset.intervalId = lightningInterval;
       }
 
       // Blizzard
@@ -792,7 +808,7 @@
         }
         for(let i=0;i<160;i++) spawnSnow();
         const snowInterval=setInterval(()=>{ for(let i=0;i<16;i++) spawnSnow(); }, 1400);
-        bg.addEventListener("DOMNodeRemoved", ()=>clearInterval(snowInterval));
+        bg.dataset.intervalId = snowInterval;
         const swirl=document.createElement("div"); swirl.className="snow-swirl"; particles.appendChild(swirl);
       }
 
@@ -804,7 +820,7 @@
         particles.appendChild(fog1); particles.appendChild(fog2); particles.appendChild(fog3);
       }
 
-      // Aurora Veil — simple, reliable, no complex particles
+      // Aurora
       if(cls==="wb-aurora"){
         for (let i = 0; i < 24; i++) {
           const st = document.createElement("span");
@@ -818,10 +834,14 @@
         }
       }
 
-      // Eclipse corona (kept)
-      if(cls==="wb-eclipse"){ const corona=document.createElement("div"); corona.className="corona"; particles.appendChild(corona); }
+      // Eclipse (golden corona)
+      if(cls==="wb-eclipse"){
+        const corona=document.createElement("div"); corona.className="corona";
+        corona.style.boxShadow="0 0 120px rgba(255,200,120,0.45)";
+        particles.appendChild(corona);
+      }
 
-      // Tempest + shooting stars
+      // Cosmic Tempest
       if(cls==="wb-tempest"){
         for(let i=0;i<58;i++){
           const c=document.createElement("span"); c.className="cosmic";
@@ -839,10 +859,10 @@
           setTimeout(()=>s.remove(),2400);
         }
         const starInterval=setInterval(spawnShooting, 2200);
-        bg.addEventListener("DOMNodeRemoved", ()=>clearInterval(starInterval));
+        bg.dataset.intervalId = starInterval;
       }
 
-      // Meteor storm (one-by-one)
+      // Meteor Storm — meteors ported
       if(cls==="wb-meteor"){
         for(let i=0;i<24;i++){
           const c=document.createElement("span"); c.className="cosmic";
@@ -859,16 +879,27 @@
           m.style.top = (-140 - Math.random()*120) + "px";
           m.style.animation = `meteorFall ${1.2+Math.random()*0.9}s linear 1`;
           particles.appendChild(m);
-          setTimeout(()=>m.remove(), 1400);
+          setTimeout(()=>m.remove(), 1600);
         }
-        const meteorInterval = setInterval(spawnMeteor, 1500);
-        bg.addEventListener("DOMNodeRemoved", ()=>clearInterval(meteorInterval));
+        const meteorInterval = setInterval(spawnMeteor, 800);
+        bg.dataset.intervalId = meteorInterval;
       }
 
-      // Black Hole — reuse Eclipse visuals (corona)
-      if(cls==="wb-blackhole"){ const corona=document.createElement("div"); corona.className="corona"; particles.appendChild(corona); }
-
-      // M87 uses eclipse BG; cutscene handles extra flair
+      // Black Hole — galaxy pads + white corona
+      if(cls==="wb-blackhole"){
+        for(let i=0;i<64;i++){
+          const c=document.createElement("span"); c.className="cosmic";
+          c.style.left=Math.floor(Math.random()*100)+"%";
+          c.style.top=Math.floor(Math.random()*100)+"%";
+          c.style.width=c.style.height=(Math.random()*2+1)+"px";
+          c.style.animation=`drift ${7+Math.random()*6}s ease-in-out infinite`;
+          c.style.opacity=0.8;
+          particles.appendChild(c);
+        }
+        const corona=document.createElement("div"); corona.className="corona";
+        corona.style.boxShadow="0 0 140px rgba(255,255,255,0.6)";
+        particles.appendChild(corona);
+      }
 
       bg.appendChild(particles); area.appendChild(bg);
     }
@@ -1052,7 +1083,7 @@
         const r=document.createElement("div"); r.className="ring";
         r.style.left="50%"; r.style.top="50%";
         r.style.width=80+i*30+"px"; r.style.height=80+i*30+"px";
-        r.style.borderColor=`rgba(255,160,80,${0.35-0.02*i})`;
+        r.style.borderColor=`rgba(255,255,255,${0.35-0.02*i})`;
         r.style.animation=`ringPulse ${2.0+i*0.12}s ease-in-out infinite`;
         stage.appendChild(r);
       }
@@ -1060,7 +1091,7 @@
         const b=document.createElement("div"); b.className="beam";
         b.style.width="3px"; b.style.height="360px";
         b.style.left=(10+i*8.5)+"%"; b.style.top="0%";
-        b.style.background="linear-gradient(180deg,rgba(255,160,80,0.9),rgba(255,255,255,0))";
+        b.style.background="linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0))";
         b.style.animation=`beamDown ${1.6+i*0.08}s linear infinite`;
         stage.appendChild(b);
       }
@@ -1069,7 +1100,7 @@
           const ring=document.createElement("div");
           ring.className="ring";
           ring.style.left="50%"; ring.style.top="50%";
-          ring.style.borderColor="rgba(255,160,80,0.95)";
+          ring.style.borderColor="rgba(255,255,255,0.95)";
           ring.style.width=100+i*38+"px"; ring.style.height=100+i*38+"px";
           ring.style.animation=`pulseRing ${1.1+i*0.1}s ease-out forwards`;
           stage.appendChild(ring);
@@ -1639,7 +1670,7 @@
       spawnBanner(`CMD: Bias → ${biasKey.toUpperCase()} +${Math.round(biasAmt*100)}%`,"activate","b-epic");
     });
 
-    // Luck apply
+    // Luck apply (click in section applies current amount & duration)
     document.getElementById("cmdLuckSection").addEventListener("click",(e)=>{
       if(!commandsUnlocked) return;
       if(e.target && e.target.hasAttribute("data-luckdur")) return;
@@ -1691,7 +1722,6 @@
     document.getElementById("modeNext").addEventListener("click",()=>setMode(cycle(modes,state.mode,1)));
 
     /* ---------------- Init ---------------- */
-    loadPwUnlocked();
     loadState();
     renderButtonsState();
     renderActiveEffects();
@@ -1709,20 +1739,6 @@
     else { elAutoBtn.textContent=state.rolls>=50?"Auto Roll: Off":"Auto Roll (locked)"; }
 
     scheduleNextWeather();
-
-    /* --------- Helpers for banners (no external CSS icons needed) --------- */
-    function spawnBanner(text,type="announce",colorClass="",withIcon=""){
-      const rollArea=document.getElementById("rollArea");
-      const div=document.createElement("div");
-      div.className=`banner ${type} show ${colorClass?colorClass:''}`;
-      const title=document.createElement("div"); title.className="title"; title.textContent=text;
-      const fxTop=document.createElement("div"); fxTop.className="fxline top";
-      const fxBot=document.createElement("div"); fxBot.className="fxline bot";
-      if(withIcon){ const icon=document.createElement("div"); icon.className="banner-icon " + withIcon; div.appendChild(icon); }
-      div.appendChild(fxTop); div.appendChild(title); div.appendChild(fxBot);
-      div.addEventListener("animationend",()=>div.remove());
-      rollArea.appendChild(div);
-    }
   </script>
 </body>
 </html>
