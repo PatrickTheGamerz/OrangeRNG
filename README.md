@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sol’s RNG — Full Updated Working Build</title>
+  <title>Sol’s RNG — Full Updated Working Build (Black Hole Spiral Core)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -158,12 +158,15 @@
         radial-gradient(circle at 50% 50%,rgba(0,0,0,0.96),rgba(0,0,0,0.86)),
         radial-gradient(circle at 50% 50%,rgba(255,200,120,0.14), transparent 70%);
     }
+
+    /* Black Hole backdrop base (galaxy pads for depth) */
     .wb-blackhole{
       background:
         radial-gradient(120% 120% at 50% 50%, rgba(0,0,0,0.96), rgba(0,0,0,0.9)),
-        radial-gradient(100% 100% at 70% 30%, rgba(80,200,255,0.25), transparent 70%),
-        radial-gradient(100% 100% at 30% 70%, rgba(180,120,255,0.25), transparent 70%);
+        radial-gradient(100% 100% at 70% 30%, rgba(80,200,255,0.18), transparent 70%),
+        radial-gradient(100% 100% at 30% 70%, rgba(180,120,255,0.18), transparent 70%);
     }
+
     .wb-tempest{background:radial-gradient(circle at 50% 50%,rgba(120,80,255,0.28),transparent 70%), radial-gradient(circle at 70% 30%,rgba(80,200,255,0.28),transparent 70%);}
     .wb-fog{background:radial-gradient(100% 100% at 50% 50%, rgba(185,195,210,0.18), rgba(0,0,0,0.62));}
 
@@ -196,7 +199,7 @@
     .corona{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:280px;height:280px;border-radius:50%;box-shadow:0 0 120px rgba(255,255,255,0.55);animation:coronaPulse 6s ease-in-out infinite; z-index:3;}
     @keyframes coronaPulse{0%,100%{box-shadow:0 0 80px rgba(255,255,255,0.3)}50%{box-shadow:0 0 160px rgba(255,255,255,0.75)}}
 
-    /* Cutscene */
+    /* Cutscene container basics */
     .cutscene-inline{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:90%;height:82%;border-radius:16px;overflow:hidden;z-index:5;pointer-events:none;border:1px solid rgba(255,255,255,0.12);box-shadow:0 16px 40px rgba(0,0,0,0.55), inset 0 0 50px rgba(255,255,255,0.04);}
     .ring{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,0.25);}
     .beam{position:absolute;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0));filter:blur(1px);mix-blend-mode:screen;}
@@ -204,6 +207,21 @@
 
     /* Twinkle keyframes for stars */
     @keyframes twinkle{0%{opacity:.2}50%{opacity:1}100%{opacity:.2}}
+
+    /* --- Black Hole spiral accretion disk and core --- */
+    .bh-core{
+      position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+      width:180px;height:180px;border-radius:50%;background:#000;z-index:4;box-shadow:0 0 0 2px rgba(0,0,0,0.9);
+    }
+    .bh-ring{
+      position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(0deg);
+      border-radius:50%;border:6px solid transparent;filter:blur(1px);mix-blend-mode:screen;z-index:3;
+      animation:bhSpin 10s linear infinite;
+    }
+    .bh-ring.r1{width:320px;height:320px;border-top-color:rgba(255,255,255,0.9);border-left-color:rgba(180,120,255,0.7);border-right-color:rgba(80,200,255,0.7);animation-duration:6s;}
+    .bh-ring.r2{width:360px;height:360px;border-top-color:rgba(255,255,255,0.6);border-left-color:rgba(180,120,255,0.4);border-right-color:rgba(80,200,255,0.4);animation-duration:12s;opacity:0.75;}
+    .bh-ring.r3{width:400px;height:400px;border-top-color:rgba(255,255,255,0.3);border-left-color:rgba(180,120,255,0.2);border-right-color:rgba(80,200,255,0.2);animation-duration:20s;opacity:0.55;}
+    @keyframes bhSpin{from{transform:translate(-50%,-50%) rotate(0deg);}to{transform:translate(-50%,-50%) rotate(360deg);}}
   </style>
 </head>
 <body>
@@ -732,7 +750,7 @@
       state.guarantees.forEach(g=>{ const div=document.createElement("div"); div.className=`effect-entry ${"b-omniversal"}`; div.textContent=`${g.name}: ready`; el.appendChild(div); });
     }
 
-    /* ---------------- Weather visuals (Meteor port, Black Hole white corona, galaxy background) ---------------- */
+    /* ---------------- Weather visuals (includes Black Hole spiral core) ---------------- */
     function renderWeatherBackdrop(){
       const area=document.getElementById("rollArea");
       const old=area.querySelector(".weather-bg");
@@ -862,7 +880,7 @@
         bg.dataset.intervalId = starInterval;
       }
 
-      // Meteor Storm — meteors ported
+      // Meteor Storm — minimal starfield
       if(cls==="wb-meteor"){
         for(let i=0;i<24;i++){
           const c=document.createElement("span"); c.className="cosmic";
@@ -872,20 +890,9 @@
           c.style.animation=`drift ${8+Math.random()*6}s ease-in-out infinite`;
           particles.appendChild(c);
         }
-        function spawnMeteor(){
-          const m=document.createElement("div"); m.className="meteor";
-          const startX = 20 + Math.random()*80;
-          m.style.left = startX + "%";
-          m.style.top = (-140 - Math.random()*120) + "px";
-          m.style.animation = `meteorFall ${1.2+Math.random()*0.9}s linear 1`;
-          particles.appendChild(m);
-          setTimeout(()=>m.remove(), 1600);
-        }
-        const meteorInterval = setInterval(spawnMeteor, 800);
-        bg.dataset.intervalId = meteorInterval;
       }
 
-      // Black Hole — galaxy pads + white corona
+      // Black Hole — twinkling galaxy + WHITE corona + BLACK CORE + SPIRAL ACCRETION RINGS
       if(cls==="wb-blackhole"){
         for(let i=0;i<64;i++){
           const c=document.createElement("span"); c.className="cosmic";
@@ -897,8 +904,16 @@
           particles.appendChild(c);
         }
         const corona=document.createElement("div"); corona.className="corona";
-        corona.style.boxShadow="0 0 140px rgba(255,255,255,0.6)";
+        corona.style.boxShadow="0 0 140px rgba(255,255,255,0.65)";
         particles.appendChild(corona);
+
+        const core=document.createElement("div"); core.className="bh-core";
+        particles.appendChild(core);
+
+        const r1=document.createElement("div"); r1.className="bh-ring r1";
+        const r2=document.createElement("div"); r2.className="bh-ring r2";
+        const r3=document.createElement("div"); r3.className="bh-ring r3";
+        particles.appendChild(r1); particles.appendChild(r2); particles.appendChild(r3);
       }
 
       bg.appendChild(particles); area.appendChild(bg);
